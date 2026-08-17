@@ -1,0 +1,6 @@
+{
+  "name": "AKS Garments",
+  "description": "A premier e-commerce platform for high-quality apparel, ethnic panjabis, formal wear, contemporary casuals, kurtis, and festive garments by AKS Bangladesh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
