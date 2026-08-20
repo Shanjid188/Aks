@@ -1,7 +1,7 @@
-import heroImg from '../assets/images/aks_hero_garments_showcase_1786896850255.jpg';
-import panjabiImg from '../assets/images/aks_heritage_panjabi_banner_1786896863397.jpg';
-import rivaImg from '../assets/images/aks_riva_women_couture_1786896878241.jpg';
-import studioImg from '../assets/images/aks_studio_contemporary_wear_1786896891773.jpg';
+import heroImg from '../assets/images/hero_footwear_showcase_1786895779693.jpg';
+import panjabiImg from '../assets/images/marie_claire_chic_1786895817363.jpg';
+import rivaImg from '../assets/images/leather_craft_banner_1786895833994.jpg';
+import studioImg from '../assets/images/power_athletic_banner_1786895795947.jpg';
 import { Coupon } from '../types';
 
 export interface HeroSlide {
