@@ -1,23 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { HERO_SLIDES, HeroSlide } from '../data/promos';
+import { dataLoader } from '../lib/dataLoader';
 import { useStore } from '../context/StoreContext';
 import { ArrowRight, ChevronLeft, ChevronRight, ShieldCheck, Sparkles, Zap, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { BRAND_BN, SLIDER_DESC_BN } from '../data/bn';
+import { FEATURE_STRIP_BN } from '../data/bn';
 
 export const HeroSlider: React.FC = () => {
   const { setFilters, setActiveProductPage } = useStore();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [slides, setSlides] = useState<HeroSlide[]>(HERO_SLIDES);
+
+  // Admin-managed slides from the API; keeps bundled slides as fallback.
+  useEffect(() => {
+    let cancelled = false;
+    dataLoader.loadHeroSlides().then((loaded) => {
+      if (!cancelled && loaded.length > 0) setSlides(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || slides.length === 0) return;
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+            setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, [isPaused]);
+  }, [isPaused, slides.length]);
 
-  const slide = HERO_SLIDES[currentSlide];
+  if (slides.length === 0) return null;
+
+  const slide = slides[currentSlide % slides.length];
+  const titleBn =
+    BRAND_BN[slide.ctaBrand ?? ''] ?? BRAND_BN[(slide.title || '').toUpperCase()] ?? '';
+  const descBn =
+    SLIDER_DESC_BN[slide.ctaBrand ?? ''] ??
+    SLIDER_DESC_BN[(slide.title || '').toUpperCase()] ??
+    '';
 
   const handleSlideCta = (current: HeroSlide) => {
     setActiveProductPage(null);
@@ -26,7 +49,7 @@ export const HeroSlider: React.FC = () => {
       category: (current.ctaCategory as any) || 'all',
       subcategory: current.ctaSubcategory || 'All',
       brand: current.ctaBrand ? [current.ctaBrand] : [],
-      searchQuery: '',
+            searchQuery: '',
     }));
     const catalogEl = document.getElementById('product-catalog-section');
     if (catalogEl) {
@@ -40,14 +63,14 @@ export const HeroSlider: React.FC = () => {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="relative min-h-[440px] sm:min-h-[520px] lg:min-h-[580px] flex items-center">
+      <div className="relative h-[335px] sm:h-[415px] lg:h-[485px] flex items-center overflow-hidden">
         {/* Background Image Carousel with Fade */}
         <AnimatePresence mode="wait">
           <motion.div
             key={slide.id}
-            initial={{ opacity: 0, scale: 1.04 }}
+            initial={{ opacity: 0, scale: 1.02 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
+            exit={{ opacity: 0, scale: 0.99 }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
             className="absolute inset-0 z-0"
           >
@@ -64,7 +87,7 @@ export const HeroSlider: React.FC = () => {
         </AnimatePresence>
 
         {/* Hero Content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 w-full">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 w-full">
           <div className="max-w-2xl">
             <AnimatePresence mode="wait">
               <motion.div
@@ -72,11 +95,11 @@ export const HeroSlider: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
+                transition={{ duration: 0.5, delay: 0.15 }}
                 className="space-y-4 sm:space-y-6"
               >
                 {/* Badge */}
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-bold tracking-widest uppercase">
+                <div className="inline-flex items-center gap-2 px-3.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-bold tracking-widest uppercase">
                   <span
                     className="w-2 h-2 rounded-full animate-pulse"
                     style={{ backgroundColor: slide.accentColor }}
@@ -85,14 +108,24 @@ export const HeroSlider: React.FC = () => {
                 </div>
 
                 {/* Main Heading */}
-                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1]">
+                <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.05]">
                   {slide.title}
-                </h1>
+                  {titleBn && (
+                    <span className="text-xl sm:text-3xl lg:text-4xl font-bold text-neutral-200 tracking-normal">
+                      {' '}({titleBn})
+                    </span>
+                  )}
+                </h2>
 
                 {/* Subtitle */}
                 <p className="text-sm sm:text-base lg:text-lg text-neutral-300 font-normal leading-relaxed max-w-xl">
                   {slide.subtitle}
                 </p>
+                {descBn && (
+                  <p className="text-xs sm:text-sm text-neutral-300/90 font-medium leading-relaxed max-w-xl mt-1.5">
+                    {descBn}
+                  </p>
+                )}
 
                 {/* Tagline pill */}
                 <div className="text-xs text-neutral-400 font-semibold tracking-wide flex items-center gap-2">
@@ -125,7 +158,7 @@ export const HeroSlider: React.FC = () => {
                     }}
                     className="px-5 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 backdrop-blur-md transition-all cursor-pointer"
                   >
-                    View Festive Deals
+                                        View All Deals
                   </button>
                 </div>
               </motion.div>
@@ -136,8 +169,8 @@ export const HeroSlider: React.FC = () => {
         {/* Carousel Navigation Arrows */}
         <div className="absolute right-6 bottom-6 z-20 flex items-center gap-2">
           <button
-            onClick={() =>
-              setCurrentSlide((prev) => (prev === 0 ? HERO_SLIDES.length - 1 : prev - 1))
+                  onClick={() =>
+              setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1))
             }
             className="w-10 h-10 rounded-full bg-neutral-900/80 hover:bg-white hover:text-neutral-900 text-white border border-neutral-700 backdrop-blur-md flex items-center justify-center transition-all cursor-pointer"
             aria-label="Previous slide"
@@ -145,7 +178,7 @@ export const HeroSlider: React.FC = () => {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
-            onClick={() => setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length)}
+                        onClick={() => setCurrentSlide((prev) => (prev + 1) % slides.length)}
             className="w-10 h-10 rounded-full bg-neutral-900/80 hover:bg-white hover:text-neutral-900 text-white border border-neutral-700 backdrop-blur-md flex items-center justify-center transition-all cursor-pointer"
             aria-label="Next slide"
           >
@@ -155,38 +188,34 @@ export const HeroSlider: React.FC = () => {
 
         {/* Slide Indicators */}
         <div className="absolute left-1/2 -translate-x-1/2 bottom-6 z-20 flex items-center gap-2">
-          {HERO_SLIDES.map((s, idx) => (
+          {slides.map((s, idx) => (
             <button
               key={s.id}
               onClick={() => setCurrentSlide(idx)}
               className={`h-2 rounded-full transition-all cursor-pointer ${
                 currentSlide === idx ? 'w-8 bg-[#D8232A]' : 'w-2 bg-white/40 hover:bg-white/70'
               }`}
-              aria-label={`Go to slide ${idx + 1}`}
+                            aria-label={`Go to slide ${idx + 1}`}
             />
           ))}
         </div>
       </div>
 
-      {/* Feature Strip under Hero */}
+      {/* Feature Strip under Hero (bilingual) */}
       <div className="bg-neutral-950/90 border-t border-neutral-800 text-neutral-300 py-3 px-4">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-medium">
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>100% Certified Authentic AKS Quality</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <Zap className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>Express Delivery in 24-48h</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <Award className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>30-Day Nationwide Boutique Exchange</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="w-4 h-4 text-sky-400 shrink-0" />
-            <span>bKash, Nagad & Cash on Delivery</span>
-          </div>
+          {FEATURE_STRIP_BN.map((f, i) => (
+            <div key={f.en} className="flex items-center gap-2.5">
+              {i === 0 && <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />}
+              {i === 1 && <Zap className="w-4 h-4 text-amber-400 shrink-0" />}
+              {i === 2 && <Award className="w-4 h-4 text-rose-400 shrink-0" />}
+              {i === 3 && <Sparkles className="w-4 h-4 text-sky-400 shrink-0" />}
+              <span>
+                <span className="block leading-tight">{f.en}</span>
+                <span className="block text-neutral-500 leading-tight">{f.bn}</span>
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

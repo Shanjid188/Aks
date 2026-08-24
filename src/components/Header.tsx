@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
+import { CategoryType } from '../types';
+import Logo from './Logo';
 import {
   Search,
   ShoppingBag,
@@ -30,10 +32,10 @@ export const Header: React.FC = () => {
     compareList,
     cartSubtotal,
     currency,
-    setCurrency,
     setIsCartDrawerOpen,
+    setIsWishlistDrawerOpen,
     setIsStoreLocatorOpen,
-    setIsBataClubOpen,
+        setIsAksMartClubOpen,
     setIsOrderTrackerOpen,
     setIsShoeFinderOpen,
     setIsCompareModalOpen,
@@ -53,9 +55,9 @@ export const Header: React.FC = () => {
 
   // Announcement rotation
   const announcements = [
-    { icon: <Truck className="w-3.5 h-3.5" />, text: 'Free Express Courier Across Bangladesh on Orders Above ৳2,500' },
-    { icon: <Sparkles className="w-3.5 h-3.5" />, text: 'Festive Season Offer: Flat 15% OFF with Code AKS15 at Checkout' },
-    { icon: <RotateCcw className="w-3.5 h-3.5" />, text: '30-Day Hassle-Free Exchange & Alterations at Any AKS Flagship Boutique' },
+    { icon: <Truck className="w-3.5 h-3.5" />, text: 'Free Delivery Across Bangladesh on Orders Above ৳2,500' },
+    { icon: <Sparkles className="w-3.5 h-3.5" />, text: 'AKS Mart — Food · Craft · Home · Beauty · Print · One Mart, Many Choices' },
+    { icon: <ShieldCheck className="w-3.5 h-3.5" />, text: 'Cash on Delivery Available — Pay When Your Order Arrives' },
   ];
   const [announcementIndex, setAnnouncementIndex] = useState(0);
 
@@ -110,7 +112,7 @@ export const Header: React.FC = () => {
     }
   };
 
-  const handleSelectCategory = (cat: 'all' | 'men' | 'women' | 'kids' | 'accessories', sub = 'All') => {
+  const handleSelectCategory = (cat: CategoryType, sub = 'All') => {
     setActiveProductPage(null);
     setFilters((prev) => ({
       ...prev,
@@ -175,8 +177,8 @@ export const Header: React.FC = () => {
               className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
             >
               <MapPin className="w-3.5 h-3.5 text-[#D8232A]" />
-              <span className="hidden md:inline">AKS Boutiques & Outlets</span>
-              <span className="md:hidden">Boutiques</span>
+              <span className="hidden md:inline">AKS Mart Stores</span>
+                            <span className="md:hidden">Stores</span>
             </button>
 
             <span className="w-px h-3 bg-neutral-700" />
@@ -192,33 +194,18 @@ export const Header: React.FC = () => {
             <span className="w-px h-3 bg-neutral-700" />
 
             <button
-              onClick={() => setIsBataClubOpen(true)}
+                    onClick={() => setIsAksMartClubOpen(true)}
               className="flex items-center gap-1 hover:text-white transition-colors text-amber-400 font-semibold cursor-pointer"
             >
               <Award className="w-3.5 h-3.5" />
-              <span>AKS Privé Club</span>
+              <span>AKS Mart Club</span>
             </button>
 
             <span className="w-px h-3 bg-neutral-700" />
 
-            {/* Currency toggle */}
-            <div className="flex items-center gap-1 bg-neutral-800 rounded px-1.5 py-0.5 border border-neutral-700 text-[11px]">
-              <button
-                onClick={() => setCurrency('BDT')}
-                className={`px-1.5 py-0.5 rounded font-semibold transition-all ${
-                  currency === 'BDT' ? 'bg-[#D8232A] text-white' : 'text-neutral-400 hover:text-white'
-                }`}
-              >
-                ৳ BDT
-              </button>
-              <button
-                onClick={() => setCurrency('USD')}
-                className={`px-1.5 py-0.5 rounded font-semibold transition-all ${
-                  currency === 'USD' ? 'bg-[#D8232A] text-white' : 'text-neutral-400 hover:text-white'
-                }`}
-              >
-                $ USD
-              </button>
+            {/* Currency — BDT only */}
+            <div className="flex items-center bg-neutral-800 rounded px-2 py-0.5 border border-neutral-700 text-[11px] font-semibold text-neutral-300">
+              ৳ BDT
             </div>
           </div>
         </div>
@@ -236,7 +223,7 @@ export const Header: React.FC = () => {
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
 
-          {/* AKS Garments Logo */}
+          {/* AKS Mart Logo */}
           <div
             onClick={() => {
               setActiveProductPage(null);
@@ -244,15 +231,13 @@ export const Header: React.FC = () => {
             }}
             className="flex items-center gap-3 cursor-pointer group select-none"
           >
-            <div className="bg-[#D8232A] text-white font-black text-2xl tracking-tight px-3.5 py-1 rounded-sm shadow-sm group-hover:scale-[1.02] transition-transform">
-              AKS
-            </div>
+            <Logo className="h-10 w-10 rounded-md shadow-sm ring-1 ring-neutral-200 shrink-0 group-hover:scale-[1.02] transition-transform" />
             <div className="hidden sm:flex flex-col">
               <span className="text-[11px] uppercase tracking-widest font-bold text-neutral-900 leading-tight">
-                GARMENTS
+                AKS MART
               </span>
               <span className="text-[10px] text-neutral-500 font-medium tracking-tight">
-                Contemporary & Heritage Apparel
+                One Mart. Many Choices.
               </span>
             </div>
           </div>
@@ -265,7 +250,7 @@ export const Header: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setIsSearchFocused(true)}
-                placeholder="Search silk panjabis, formal shirts, festive salwar kameez, linen..."
+                placeholder="Search rice, honey, nakshi kantha, bedsheets, face wash, custom print…"
                 className="w-full pl-11 pr-24 py-2.5 bg-neutral-50 hover:bg-neutral-100/80 focus:bg-white text-sm text-neutral-900 placeholder:text-neutral-400 rounded-full border border-neutral-200 focus:border-[#D8232A] focus:ring-2 focus:ring-[#D8232A]/20 transition-all outline-none"
               />
               <Search className="w-4 h-4 text-neutral-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -299,7 +284,7 @@ export const Header: React.FC = () => {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
-                          Matching Apparel ({searchResults.length})
+                          Matching Products ({searchResults.length})
                         </span>
                         <button
                           onClick={handleSearchSubmit}
@@ -350,7 +335,7 @@ export const Header: React.FC = () => {
                         </div>
                       ) : (
                         <div className="py-6 text-center text-neutral-500 text-sm">
-                          No exact garments found for "{searchQuery}". Try exploring our collections!
+                          No exact products found for "{searchQuery}". Try exploring our collections!
                         </div>
                       )}
                     </div>
@@ -362,14 +347,14 @@ export const Header: React.FC = () => {
                         </span>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {[
-                            'Silk Panjabi',
-                            'Kabli Suit',
-                            '2-Ply Oxford Shirt',
-                            'European Washed Linen',
-                            'Organza 3-Piece Suit',
-                            'Jamdani Saree',
-                            'Selvedge Denim',
-                            'Italian Leather Belt',
+                            'Miniket Rice',
+                            'Mustard Oil',
+                            'Nakshi Kantha',
+                            'Jute Bag',
+                            'Bedsheet',
+                            'Face Wash',
+                            'Business Cards',
+                            'Custom Mug',
                           ].map((kw) => (
                             <button
                               key={kw}
@@ -389,7 +374,7 @@ export const Header: React.FC = () => {
                       <div className="border-t border-neutral-100 pt-3 flex items-center justify-between text-xs text-neutral-500">
                         <span className="flex items-center gap-1 text-emerald-700 font-medium">
                           <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                          100% Certified Authentic Fabrics & Tailoring
+                          Quality checked products from every AKS Mart division
                         </span>
                         <button
                           onClick={() => {
@@ -398,7 +383,7 @@ export const Header: React.FC = () => {
                           }}
                           className="text-[#D8232A] font-semibold hover:underline"
                         >
-                          Garment Size Chart & Fit Guide
+                          Size Chart & Fit Guide
                         </button>
                       </div>
                     </div>
@@ -423,7 +408,7 @@ export const Header: React.FC = () => {
             <button
               onClick={() => setIsCompareModalOpen(true)}
               className="relative p-2.5 rounded-full text-neutral-700 hover:bg-neutral-100 transition-colors cursor-pointer"
-              title="Compare Garments"
+              title="Compare Products"
             >
               <SlidersHorizontal className="w-5 h-5" />
               {compareList.length > 0 && (
@@ -435,11 +420,7 @@ export const Header: React.FC = () => {
 
             {/* Wishlist */}
             <button
-              onClick={() => {
-                setActiveProductPage(null);
-                setFilters((prev) => ({ ...prev, category: 'all', subcategory: 'All', searchQuery: '' }));
-                setIsCartDrawerOpen(true);
-              }}
+              onClick={() => setIsWishlistDrawerOpen(true)}
               className="relative p-2.5 rounded-full text-neutral-700 hover:bg-neutral-100 transition-colors cursor-pointer"
               title="Saved Wishlist"
             >
@@ -481,7 +462,7 @@ export const Header: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search panjabis, shirts, lawn, sarees..."
+              placeholder="Search products, food, home, craft & more..."
               className="w-full pl-10 pr-20 py-2 bg-neutral-100 text-xs rounded-full border border-neutral-200 outline-none focus:border-[#D8232A]"
             />
             <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -499,7 +480,7 @@ export const Header: React.FC = () => {
       <nav className="border-t border-neutral-100 bg-white hidden lg:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <ul className="flex items-center gap-1 text-sm font-semibold text-neutral-800">
-            {/* All Apparel */}
+            {/* All Departments */}
             <li>
               <button
                 onClick={() => handleSelectCategory('all', 'All')}
@@ -507,28 +488,28 @@ export const Header: React.FC = () => {
                   filters.category === 'all' && filters.subcategory === 'All' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
                 }`}
               >
-                All Garments
+                All Departments
               </button>
             </li>
 
             {/* Men */}
             <li
               className="relative"
-              onMouseEnter={() => setActiveMegaMenu('men')}
+              onMouseEnter={() => setActiveMegaMenu('food')}
               onMouseLeave={() => setActiveMegaMenu(null)}
             >
               <button
-                onClick={() => handleSelectCategory('men', 'All')}
+                onClick={() => handleSelectCategory('food', 'All')}
                 className={`px-3.5 py-3 hover:text-[#D8232A] transition-colors flex items-center gap-1 cursor-pointer ${
-                  filters.category === 'men' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
+                  filters.category === 'food' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
                 }`}
               >
-                Men's Wear <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                SHUDDHO <ChevronDown className="w-3.5 h-3.5 opacity-60" />
               </button>
 
               {/* Mega Dropdown Men */}
               <AnimatePresence>
-                {activeMegaMenu === 'men' && (
+                {activeMegaMenu === 'food' && (
                   <motion.div
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -537,47 +518,47 @@ export const Header: React.FC = () => {
                   >
                     <div>
                       <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
-                        By Garment Type
+                        Food Categories
                       </h4>
                       <ul className="space-y-2 text-sm text-neutral-700 font-medium">
                         <li>
                           <button
-                            onClick={() => handleSelectCategory('men', 'Panjabis & Kabli')}
+                            onClick={() => handleSelectCategory('food', 'Rice & Staples')}
                             className="hover:text-[#D8232A] transition-colors"
                           >
-                            Silk & Cotton Panjabis
+                            Rice & Staples
                           </button>
                         </li>
                         <li>
                           <button
-                            onClick={() => handleSelectCategory('men', 'Formal Shirts')}
+                            onClick={() => handleSelectCategory('food', 'Oils & Ghee')}
                             className="hover:text-[#D8232A] transition-colors"
                           >
-                            2-Ply Oxford Formal Shirts
+                            Oils & Ghee
                           </button>
                         </li>
                         <li>
                           <button
-                            onClick={() => handleSelectCategory('men', 'Casual Shirts & Polos')}
+                            onClick={() => handleSelectCategory('food', 'Dal & Pulses')}
                             className="hover:text-[#D8232A] transition-colors"
                           >
-                            Pure Linen Shirts & Polos
+                            Dal & Pulses
                           </button>
                         </li>
                         <li>
                           <button
-                            onClick={() => handleSelectCategory('men', 'Denim & Trousers')}
+                            onClick={() => handleSelectCategory('food', 'Spices')}
                             className="hover:text-[#D8232A] transition-colors"
                           >
-                            Selvedge Denim & Chinos
+                            Spices
                           </button>
                         </li>
                         <li>
                           <button
-                            onClick={() => handleSelectCategory('men', 'Blazers & Waistcoats')}
+                            onClick={() => handleSelectCategory('food', 'Honey & Sweet')}
                             className="hover:text-[#D8232A] transition-colors"
                           >
-                            Wool Blazers & Waistcoats
+                            Honey & Sweet
                           </button>
                         </li>
                       </ul>
@@ -585,27 +566,27 @@ export const Header: React.FC = () => {
 
                     <div>
                       <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
-                        Featured Labels
+                        Featured Picks
                       </h4>
                       <ul className="space-y-2 text-sm text-neutral-700 font-medium">
                         <li>
-                          <button onClick={() => handleSelectBrand('AKS Heritage')} className="hover:text-[#D8232A]">
-                            AKS Heritage Panjabi
+                          <button onClick={() => handleSelectCategory('food', 'All')} className="hover:text-[#D8232A]">
+                            Rice & Staples
                           </button>
                         </li>
                         <li>
-                          <button onClick={() => handleSelectBrand('AKS Signature')} className="hover:text-[#D8232A]">
-                            AKS Signature Tailored
+                          <button onClick={() => handleSelectCategory('home', 'All')} className="hover:text-[#D8232A]">
+                            Bedding & Linens
                           </button>
                         </li>
                         <li>
-                          <button onClick={() => handleSelectBrand('AKS Studio')} className="hover:text-[#D8232A]">
-                            AKS Studio Linen & Polos
+                          <button onClick={() => handleSelectCategory('craft', 'All')} className="hover:text-[#D8232A]">
+                            Dal & Pulses
                           </button>
                         </li>
                         <li>
-                          <button onClick={() => handleSelectBrand('AKS Denim Co.')} className="hover:text-[#D8232A]">
-                            AKS Denim Co.
+                          <button onClick={() => handleSelectCategory('beauty', 'All')} className="hover:text-[#D8232A]">
+                            Soap & Body Care
                           </button>
                         </li>
                       </ul>
@@ -614,16 +595,16 @@ export const Header: React.FC = () => {
                     <div className="bg-neutral-50 p-4 rounded-xl flex flex-col justify-between">
                       <div>
                         <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#D8232A] bg-red-100 px-2 py-0.5 rounded">
-                          EID 2026
+                          NEW SEASON
                         </span>
-                        <h5 className="font-bold text-neutral-900 text-sm mt-2">Imperial Silk Panjabi</h5>
-                        <p className="text-xs text-neutral-500 mt-1">100% Mulberry silk with fine zardozi collar embroidery.</p>
+                        <h5 className="font-bold text-neutral-900 text-sm mt-2">Tradition in Every Thread</h5>
+                        <p className="text-xs text-neutral-500 mt-1">Handpicked crafts and essentials from dedicated local makers.</p>
                       </div>
                       <button
-                        onClick={() => handleSelectCategory('men', 'Panjabis & Kabli')}
+                        onClick={() => handleSelectCategory('food', 'Rice & Staples')}
                         className="text-xs font-bold text-[#D8232A] flex items-center gap-1 mt-3"
                       >
-                        Shop Men's Festive <ArrowRight className="w-3 h-3" />
+                        Shop SHUDDHO Food <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
                   </motion.div>
@@ -634,20 +615,20 @@ export const Header: React.FC = () => {
             {/* Women */}
             <li
               className="relative"
-              onMouseEnter={() => setActiveMegaMenu('women')}
+              onMouseEnter={() => setActiveMegaMenu('craft')}
               onMouseLeave={() => setActiveMegaMenu(null)}
             >
               <button
-                onClick={() => handleSelectCategory('women', 'All')}
+                onClick={() => handleSelectCategory('craft', 'All')}
                 className={`px-3.5 py-3 hover:text-[#D8232A] transition-colors flex items-center gap-1 cursor-pointer ${
-                  filters.category === 'women' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
+                  filters.category === 'craft' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
                 }`}
               >
-                Women's Couture <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                AKS CRAFT <ChevronDown className="w-3.5 h-3.5 opacity-60" />
               </button>
 
               <AnimatePresence>
-                {activeMegaMenu === 'women' && (
+                {activeMegaMenu === 'craft' && (
                   <motion.div
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -656,31 +637,31 @@ export const Header: React.FC = () => {
                   >
                     <div>
                       <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
-                        By Garment Category
+                        Craft Categories
                       </h4>
                       <ul className="space-y-2 text-sm text-neutral-700 font-medium">
                         <li>
                           <button
-                            onClick={() => handleSelectCategory('women', 'Salwar Kameez & Suits')}
+                            onClick={() => handleSelectCategory('craft', 'Nakshi Kantha')}
                             className="hover:text-[#D8232A]"
                           >
-                            Organza & Lawn 3-Piece Suits
+                            Nakshi Kantha
                           </button>
                         </li>
                         <li>
                           <button
-                            onClick={() => handleSelectCategory('women', 'Sarees & Festive')}
+                            onClick={() => handleSelectCategory('craft', 'Paposh & Shotoronji')}
                             className="hover:text-[#D8232A]"
                           >
-                            Muslin Dhakai Jamdani Sarees
+                            Paposh & Shotoronji
                           </button>
                         </li>
                         <li>
                           <button
-                            onClick={() => handleSelectCategory('women', 'Kurtis & Tunics')}
+                            onClick={() => handleSelectCategory('craft', 'Jute Products')}
                             className="hover:text-[#D8232A]"
                           >
-                            Embroidered Viscose Kurtis
+                            Jute Products
                           </button>
                         </li>
                       </ul>
@@ -688,17 +669,17 @@ export const Header: React.FC = () => {
 
                     <div>
                       <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
-                        Women's Labels
+                        Craft Picks
                       </h4>
                       <ul className="space-y-2 text-sm text-neutral-700 font-medium">
                         <li>
-                          <button onClick={() => handleSelectBrand('AKS Riva')} className="hover:text-[#D8232A]">
-                            AKS Riva Luxury Couture
+                          <button onClick={() => handleSelectCategory('craft', 'All')} className="hover:text-[#D8232A]">
+                            Nakshi Kantha Gallery
                           </button>
                         </li>
                         <li>
-                          <button onClick={() => handleSelectBrand('AKS Studio')} className="hover:text-[#D8232A]">
-                            AKS Studio Ethnic Chic
+                          <button onClick={() => handleSelectCategory('craft', 'All')} className="hover:text-[#D8232A]">
+                            Jute & Bamboo Studio
                           </button>
                         </li>
                       </ul>
@@ -707,16 +688,16 @@ export const Header: React.FC = () => {
                     <div className="bg-pink-50 p-4 rounded-xl flex flex-col justify-between">
                       <div>
                         <span className="text-[10px] font-extrabold uppercase tracking-widest text-pink-700 bg-pink-200 px-2 py-0.5 rounded">
-                          AKS RIVA
+                          AKS CRAFT
                         </span>
-                        <h5 className="font-bold text-neutral-900 text-sm mt-2">Dhakai Jamdani Heritage</h5>
-                        <p className="text-xs text-neutral-500 mt-1">200-count fine handloom muslin with pure zari work.</p>
+                        <h5 className="font-bold text-neutral-900 text-sm mt-2">Handcrafted Heritage</h5>
+                        <p className="text-xs text-neutral-500 mt-1">Nakshi kantha, paposh and handmade textiles from local artisans.</p>
                       </div>
                       <button
-                        onClick={() => handleSelectCategory('women', 'Sarees & Festive')}
+                        onClick={() => handleSelectCategory('craft', 'Paposh & Shotoronji')}
                         className="text-xs font-bold text-[#D8232A] flex items-center gap-1 mt-3"
                       >
-                        Explore Sarees <ArrowRight className="w-3 h-3" />
+                        Explore Handicrafts <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
                   </motion.div>
@@ -727,24 +708,24 @@ export const Header: React.FC = () => {
             {/* Kids */}
             <li>
               <button
-                onClick={() => handleSelectCategory('kids', 'All')}
+                onClick={() => handleSelectCategory('home', 'All')}
                 className={`px-3.5 py-3 hover:text-[#D8232A] transition-colors flex items-center gap-1 cursor-pointer ${
-                  filters.category === 'kids' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
+                  filters.category === 'home' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
                 }`}
               >
-                Kids & Festive Wear
+                AKS HOME
               </button>
             </li>
 
             {/* Accessories & Shawls */}
             <li>
               <button
-                onClick={() => handleSelectCategory('accessories', 'All')}
+                onClick={() => handleSelectCategory('beauty', 'All')}
                 className={`px-3.5 py-3 hover:text-[#D8232A] transition-colors flex items-center gap-1 cursor-pointer ${
-                  filters.category === 'accessories' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
+                  filters.category === 'beauty' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
                 }`}
               >
-                Shawls, Belts & Dupattas
+                AKS BEAUTY
               </button>
             </li>
 
@@ -757,7 +738,7 @@ export const Header: React.FC = () => {
               <button
                 className="px-3.5 py-3 hover:text-[#D8232A] transition-colors flex items-center gap-1 cursor-pointer"
               >
-                AKS Labels <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                Divisions <ChevronDown className="w-3.5 h-3.5 opacity-60" />
               </button>
 
               <AnimatePresence>
@@ -834,31 +815,31 @@ export const Header: React.FC = () => {
                 onClick={() => handleSelectCategory('all', 'All')}
                 className="text-left font-bold text-sm py-2 px-3 rounded-lg bg-neutral-100 text-neutral-900"
               >
-                All Apparel
+                All Departments
               </button>
               <button
-                onClick={() => handleSelectCategory('men', 'All')}
+                onClick={() => handleSelectCategory('food', 'All')}
                 className="text-left font-bold text-sm py-2 px-3 rounded-lg hover:bg-neutral-100 text-neutral-900"
               >
-                Men's Collection
+                SHUDDHO Food
               </button>
               <button
-                onClick={() => handleSelectCategory('women', 'All')}
+                onClick={() => handleSelectCategory('craft', 'All')}
                 className="text-left font-bold text-sm py-2 px-3 rounded-lg hover:bg-neutral-100 text-neutral-900"
               >
-                Women's Couture
+                AKS CRAFT
               </button>
               <button
-                onClick={() => handleSelectCategory('kids', 'All')}
+                onClick={() => handleSelectCategory('home', 'All')}
                 className="text-left font-bold text-sm py-2 px-3 rounded-lg hover:bg-neutral-100 text-neutral-900"
               >
-                Kids & Festive
+                AKS HOME
               </button>
               <button
-                onClick={() => handleSelectCategory('accessories', 'All')}
+                onClick={() => handleSelectCategory('beauty', 'All')}
                 className="text-left font-bold text-sm py-2 px-3 rounded-lg hover:bg-neutral-100 text-neutral-900"
               >
-                Shawls & Accessories
+                AKS BEAUTY
               </button>
               <button
                 onClick={() => {
@@ -872,7 +853,7 @@ export const Header: React.FC = () => {
             </div>
 
             <div className="border-t border-neutral-100 pt-3">
-              <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">Shop by AKS Label</p>
+              <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">Shop by AKS Mart Division</p>
               <div className="flex flex-wrap gap-1.5">
                 {BRAND_INFOS.map((b) => (
                   <button
@@ -905,7 +886,7 @@ export const Header: React.FC = () => {
                 className="flex items-center gap-2 py-2"
               >
                 <MapPin className="w-4 h-4 text-[#D8232A]" />
-                Find Nearby AKS Boutiques
+                Find Nearby AKS Mart Stores
               </button>
               <button
                 onClick={() => {
@@ -925,7 +906,7 @@ export const Header: React.FC = () => {
                 className="flex items-center gap-2 py-2"
               >
                 <SlidersHorizontal className="w-4 h-4 text-neutral-500" />
-                Garment Size Guide & Measurements
+                Product & Fit Guides
               </button>
             </div>
           </motion.div>

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
 import { ProductCard } from './ProductCard';
 import { SubcategoryType } from '../types';
+import { SUBCATEGORIES_BY_CATEGORY, CATEGORY_LABELS, DIVISIONS } from '../data/aksMart';
 import { BRAND_INFOS } from '../data/promos';
 import {
   SlidersHorizontal,
@@ -20,35 +21,13 @@ export const ProductGrid: React.FC = () => {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [viewLayout, setViewLayout] = useState<'grid4' | 'grid3' | 'list'>('grid4');
 
-  // Subcategory list based on active category
+  // Subcategory list based on active division (single source: aksMart.ts)
   const subcategories: SubcategoryType[] = useMemo(() => {
-    if (filters.category === 'men') {
-      return ['All', 'Panjabis & Kabli', 'Formal Shirts', 'Casual Shirts & Polos', 'Trousers & Chinos', 'Blazers & Waistcoats'];
-    }
-    if (filters.category === 'women') {
-      return ['All', 'Salwar Kameez & Suits', 'Kurtis & Tunics', 'Jamdani & Festive Sarees', 'Shawls & Dupattas'];
-    }
-    if (filters.category === 'kids') {
-      return ['All', 'Boys Panjabi Sets', 'Girls Frocks & Kurtis'];
-    }
-    if (filters.category === 'accessories') {
-      return ['All', 'Shawls & Stoles', 'Belts & Wallets', 'Caps & Brooches'];
-    }
-    return [
-      'All',
-      'Panjabis & Kabli',
-      'Formal Shirts',
-      'Salwar Kameez & Suits',
-      'Kurtis & Tunics',
-      'Jamdani & Festive Sarees',
-      'Casual Shirts & Polos',
-      'Trousers & Chinos',
-      'Blazers & Waistcoats',
-      'Shawls & Stoles',
-    ];
+    const list = SUBCATEGORIES_BY_CATEGORY[filters.category] || [];
+    return ['All', ...list] as SubcategoryType[];
   }, [filters.category]);
 
-  // Common Garment Sizes
+  // Common Available Sizess
   const availableSizes = ['38 (S)', '40 (M)', '42 (L)', '44 (XL)', '46 (XXL)', '30', '32', '34', '36', '38'];
 
   // Filtering Logic
@@ -164,15 +143,15 @@ export const ProductGrid: React.FC = () => {
                   {filters.searchQuery
                     ? `Search Results for "${filters.searchQuery}"`
                     : filters.category === 'all'
-                    ? 'All Garments & Accessories'
-                    : `${filters.category}'s Collection`}
+                    ? 'All Departments'
+                    : `${CATEGORY_LABELS[filters.category] ?? filters.category} Collection`}
                 </h2>
                 <span className="text-xs font-bold text-neutral-500 bg-neutral-200/80 px-2.5 py-1 rounded-full">
-                  {sortedProducts.length} Garments
+                  {sortedProducts.length} Products
                 </span>
               </div>
               <p className="text-xs text-neutral-500 mt-1">
-                Artisanal certified apparel crafted with fine mulberry silks, 2-ply Egyptian cotton, and bespoke tailoring.
+                SHUDDHO food · AKS CRAFT handiwork · AKS HOME comfort · AKS BEAUTY care · AKS PRINT print — one mart, many choices.
               </p>
             </div>
 
@@ -197,7 +176,7 @@ export const ProductGrid: React.FC = () => {
                       sortOption: e.target.value as any,
                     }))
                   }
-                  aria-label="Sort garments by"
+                  aria-label="Sort products by"
                   className="appearance-none bg-white border border-neutral-300 hover:border-neutral-400 text-xs font-bold text-neutral-800 pl-3.5 pr-8 py-2 rounded-xl outline-none focus:ring-2 focus:ring-[#D8232A]/20 cursor-pointer shadow-xs"
                 >
                   <option value="featured">Sort by: Featured</option>
@@ -369,12 +348,9 @@ export const ProductGrid: React.FC = () => {
                   Department
                 </h4>
                 <div className="space-y-1.5">
-                  {[
-                    { id: 'all', label: 'All Garments' },
-                    { id: 'men', label: "Men's Collection" },
-                    { id: 'women', label: "Women's Collection" },
-                    { id: 'kids', label: 'Kids & Juniors' },
-                    { id: 'accessories', label: 'Shawls & Accessories' },
+                                    {[
+                    { id: 'all', label: 'All Divisions' },
+                    ...DIVISIONS.map((d) => ({ id: d.slug, label: d.brand })),
                   ].map((dept) => (
                     <button
                       key={dept.id}
@@ -428,10 +404,10 @@ export const ProductGrid: React.FC = () => {
                 </div>
               </div>
 
-              {/* Garment Sizes */}
+              {/* Available Sizess */}
               <div className="border-t border-neutral-100 pt-4">
                 <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2.5">
-                  Garment Size
+                  Available Sizes
                 </h4>
                 <div className="grid grid-cols-2 gap-1.5">
                   {availableSizes.map((sz) => {
@@ -465,7 +441,7 @@ export const ProductGrid: React.FC = () => {
                     }
                     className="rounded border-neutral-300 text-[#D8232A] focus:ring-[#D8232A]"
                   />
-                  <span className="text-red-600">Festive Offers & On Sale</span>
+                  <span className="text-red-600">Deals & On Sale</span>
                 </label>
               </div>
             </div>
@@ -496,9 +472,9 @@ export const ProductGrid: React.FC = () => {
                 <div className="w-16 h-16 bg-red-50 text-[#D8232A] rounded-full flex items-center justify-center mx-auto mb-4">
                   <SlidersHorizontal className="w-8 h-8" />
                 </div>
-                <h3 className="text-lg font-bold text-neutral-900">No garments matched your filters</h3>
+                <h3 className="text-lg font-bold text-neutral-900">No products matched your filters</h3>
                 <p className="text-xs text-neutral-500 max-w-md mx-auto mt-1">
-                  Try clearing some filter criteria, broadening your price range, or exploring our signature Panjabis or Shirts collections.
+                  Try clearing some filter criteria, broadening your price range, or exploring another AKS Mart division.
                 </p>
                 <button
                   onClick={resetFilters}

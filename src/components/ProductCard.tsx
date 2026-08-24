@@ -4,6 +4,7 @@ import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
 import { Heart, Eye, ShoppingBag, Star, Check, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { PRODUCT_BN } from '../data/bn';
 
 interface ProductCardProps {
   product: Product;
@@ -44,8 +45,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Determine current display image
-  const displayImage = isHovered && product.images[1] ? product.images[1] : selectedColor.image;
+  // Determine current display image (never blank — always fall back to the first image)
+  const displayImage =
+    (isHovered && product.images[1]) || selectedColor.image || product.images[0] || '';
 
   if (layout === 'list') {
     return (
@@ -59,6 +61,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
             src={displayImage}
             alt={product.name}
             referrerPolicy="no-referrer"
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
           />
 
@@ -94,6 +98,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
             <h3 className="text-base sm:text-lg font-bold text-neutral-900 mt-1 group-hover:text-[#D8232A] transition-colors">
               {product.name}
             </h3>
+            {PRODUCT_BN[product.slug] && (
+              <p className="text-[11px] font-medium text-neutral-500 mt-0.5 truncate">{PRODUCT_BN[product.slug]}</p>
+            )}
 
             <p className="text-xs text-neutral-500 mt-2 line-clamp-2 leading-relaxed">
               {product.description}
@@ -189,6 +196,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
           src={displayImage}
           alt={product.name}
           referrerPolicy="no-referrer"
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover object-center group-hover:scale-104 transition-transform duration-500"
         />
 
@@ -280,7 +289,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1.5">
-                Select Garment Size:
+                Select Size:
               </div>
               <div className="flex flex-wrap items-center justify-center gap-1">
                 {product.sizes.map((s) => (
@@ -341,6 +350,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
           <h3 className="text-sm font-bold text-neutral-900 group-hover:text-[#D8232A] transition-colors line-clamp-1 leading-snug">
             {product.name}
           </h3>
+          {PRODUCT_BN[product.slug] && (
+            <p className="text-[11px] font-medium text-neutral-500 mt-0.5 truncate">{PRODUCT_BN[product.slug]}</p>
+          )}
 
           {/* Rating */}
           <div className="flex items-center gap-1.5 mt-1.5 text-xs text-neutral-500">

@@ -248,7 +248,7 @@ export const ProductDetailModal: React.FC = () => {
               {/* Stock Warning */}
               {selectedSize.stockCount && selectedSize.stockCount < 10 && (
                 <p className="text-[11px] font-semibold text-amber-600 mt-2">
-                  ⚡ Only {selectedSize.stockCount} pieces left in boutique inventory!
+                                    ⚡ Only {selectedSize.stockCount} items left in stock!
                 </p>
               )}
             </div>

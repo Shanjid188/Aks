@@ -130,7 +130,7 @@ export const ProductDetailPage: React.FC = () => {
       author: newReviewAuthor.trim(),
       city: newReviewCity.trim() || 'Dhaka',
       rating: newReviewRating,
-      title: newReviewTitle.trim() || 'Verified AKS Garments Purchase',
+      title: newReviewTitle.trim() || 'Verified AKS Mart Purchase',
       comment: newReviewComment.trim(),
       verified: true,
       fitFeedback: newReviewFit,
@@ -227,7 +227,7 @@ export const ProductDetailPage: React.FC = () => {
                 <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-100">
                   <ShieldCheck className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
                   <p className="font-bold text-neutral-800">100% Authentic</p>
-                  <p className="text-[10px] text-neutral-400">AKS Atelier Certified</p>
+                  <p className="text-[10px] text-neutral-400">AKS Mart Certified</p>
                 </div>
                 <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-100">
                   <Truck className="w-5 h-5 text-sky-600 mx-auto mb-1" />
@@ -236,8 +236,8 @@ export const ProductDetailPage: React.FC = () => {
                 </div>
                 <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-100">
                   <RotateCcw className="w-5 h-5 text-rose-600 mx-auto mb-1" />
-                  <p className="font-bold text-neutral-800">Bespoke Alterations</p>
-                  <p className="text-[10px] text-neutral-400">At Any AKS Boutique</p>
+                                    <p className="font-bold text-neutral-800">AKS Mart Pickup & Returns</p>
+                  <p className="text-[10px] text-neutral-400">At Any AKS Mart Location</p>
                 </div>
               </div>
             </div>
@@ -341,7 +341,7 @@ export const ProductDetailPage: React.FC = () => {
                 <div className="mt-6">
                   <div className="flex items-center justify-between text-xs mb-2">
                     <span className="font-bold text-neutral-800">
-                      Select Garment Size: <span className="font-normal text-neutral-500">{selectedSize.size}</span>
+                      Select Size: <span className="font-normal text-neutral-500">{selectedSize.size}</span>
                     </span>
                     <button
                       onClick={() => setIsSizeGuideOpen(true)}
@@ -541,7 +541,7 @@ export const ProductDetailPage: React.FC = () => {
                     : 'text-neutral-500 hover:text-neutral-900'
                 }`}
               >
-                Garment Specifications & Craft
+                Product Specifications
               </button>
               <button
                 onClick={() => setActiveTab('reviews')}
@@ -573,7 +573,7 @@ export const ProductDetailPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
                     <h4 className="text-xs font-black uppercase tracking-wider text-neutral-400 mb-3">
-                      Atelier Craft Details
+                                            Key Features
                     </h4>
                     <ul className="space-y-2 text-xs text-neutral-700">
                       {product.features.map((f, i) => (
@@ -815,7 +815,7 @@ export const ProductDetailPage: React.FC = () => {
                       ))
                     ) : (
                       <p className="text-xs text-neutral-500 text-center py-6">
-                        No customer reviews yet for this garment. Be the first to share your thoughts!
+                        No customer reviews yet for this product. Be the first to share your thoughts!
                       </p>
                     )}
                   </div>
@@ -825,13 +825,13 @@ export const ProductDetailPage: React.FC = () => {
               {activeTab === 'care' && (
                 <div className="space-y-4 text-xs text-neutral-700 bg-neutral-50 p-6 rounded-2xl border border-neutral-200">
                   <h4 className="font-bold text-sm text-neutral-900">
-                    AKS Garments Artisanal Care & Fabric Preservation Guide
+                                        Product Care Guide
                   </h4>
                   <ul className="space-y-2 list-disc list-inside text-neutral-600 leading-relaxed">
-                    <li>For pure silk, raw silk, and Jamdani handloom ensembles: Professional dry clean only.</li>
-                    <li>For 100% Egyptian cotton and formal shirts: Machine wash cold with mild detergent, hang dry inside out in the shade.</li>
-                    <li>Steam iron on medium setting for crisp finishes; avoid direct high-heat iron over metallic zari embroidery.</li>
-                    <li>Complimentary bespoke tailoring and alterations are provided within 30 days of purchase at any AKS Boutique.</li>
+                                        <li>Keep dry goods airtight; store in a cool, dry place away from direct sunlight.</li>
+                                        <li>Keep crafted & jute items dry; wipe with a dry microfiber cloth only.</li>
+                                        <li>Custom-print items: handle by edges; avoid creasing or rubbing the print surface.</li>
+                                                          <li>Free returns within 30 days at any AKS Mart pickup point. Shop happy — we cover return shipping.</li>
                   </ul>
                 </div>
               )}
@@ -843,7 +843,7 @@ export const ProductDetailPage: React.FC = () => {
         {relatedProducts.length > 0 && (
           <div className="mb-12">
             <h3 className="text-xl font-black text-neutral-900 mb-6">
-              Complete Your Wardrobe with Related Garments
+                            You May Also Like
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedProducts.map((p) => (

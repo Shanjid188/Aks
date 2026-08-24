@@ -1,0 +1,175 @@
+// AKS Garments — Database schema
+// Local dev uses SQLite; switch to PostgreSQL in production by changing the
+// provider below and the DATABASE_URL in .env.
+//
+// NOTE: SQLite does not support Prisma's native `Json` type, so JSON-able
+// columns (colors, sizes, features, ...) are stored as TEXT and parsed in the
+// API layer (see src/utils/json.ts).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("admin") // "superadmin" | "admin"
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  parentId  String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id              String    @id @default(cuid())
+  legacyId        String?   @unique // carries the original frontend product id (e.g. "prod-m-01")
+  sku             String    @unique
+  name            String
+  slug            String    @unique
+  brand           String
+  category        String
+  subcategory     String
+  price           Float
+  originalPrice   Float?
+  discountPercent Int?
+  rating          Float     @default(0)
+  reviewsCount    Int       @default(0)
+  isNewArrival    Boolean   @default(false)
+  isBestSeller    Boolean   @default(false)
+  isTrending      Boolean   @default(false)
+  isClearance     Boolean   @default(false)
+  featuredOrder   Int?
+  description     String
+  features        String // JSON string[]
+  materials       String // JSON object
+  colors          String // JSON array
+  sizes           String // JSON array
+  images          String // JSON string[]
+  tags            String // JSON string[]
+  fit             String?
+  pattern         String?
+  sleeve          String?
+  occasion        String
+  cushionTech     String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  reviews         Review[]
+  orderItems      OrderItem[]
+}
+
+model Order {
+  id                String      @id @default(cuid())
+  orderNumber       String      @unique
+  trackingCode      String      @unique
+  status            String      @default("confirmed") // confirmed | processing | shipped | out_for_delivery | delivered | cancelled
+  customerName      String
+  customerPhone     String
+  customerEmail     String
+  customerAddress   String      // JSON — mirrors ShippingAddress from src/types.ts
+  deliveryMethod    String      // standard | express | pickup
+  pickupStore       String?
+  paymentMethod     String      // bkash | nagad | card | cod
+  subtotal          Float
+  discount          Float       @default(0)
+  shippingFee       Float       @default(0)
+  total             Float
+  couponCode        String?
+  estimatedDelivery String?
+  items             OrderItem[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String?
+  productName String
+  productSku  String
+  size        String
+  color       String
+  quantity    Int
+  price       Float
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id])
+}
+
+model Coupon {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  discountType String // percent | fixed
+  value        Float
+  minSpend     Float    @default(0)
+  description  String
+  active       Boolean  @default(true)
+  usedCount    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Store {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  division     String
+  district     String
+  area         String
+  address      String
+  phone        String
+  openingHours String
+  features     String // JSON string[]
+  lat          Float
+  lng          Float
+  isFlagship   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model Review {
+  id           String   @id @default(cuid())
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  author       String
+  city         String?
+  rating       Int
+  title        String
+  comment      String
+  date         String
+  verified     Boolean  @default(false)
+  helpfulCount Int      @default(0)
+  fitFeedback  String?
+  isApproved   Boolean  @default(true)
+  createdAt    DateTime @default(now())
+}
+
+model HeroSlide {
+  id             String   @id @default(cuid())
+  badge          String
+  title          String
+  subtitle       String
+  ctaText        String   @default("Shop Now")
+  ctaCategory    String   @default("all") // all | food | craft | home | beauty | print
+  ctaSubcategory String?
+  ctaBrand       String?
+  image          String // URL or public path of the slide background
+  accentColor    String   @default("#D8232A")
+  tagline        String   @default("")
+  sortOrder      Int      @default(0) // lower = earlier in the carousel
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

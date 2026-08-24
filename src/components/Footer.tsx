@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import {
-  Phone,
-  Mail,
-  MapPin,
   ShieldCheck,
   Truck,
   RotateCcw,
   Headphones,
+  Phone,
+  MapPin,
+  Globe,
 } from 'lucide-react';
+import { AKS_MART } from '../data/aksMart';
+import { Logo } from './Logo';
+import type { CategoryType } from '../types';
 
 export const Footer: React.FC = () => {
   const {
     setIsStoreLocatorOpen,
-    setIsBataClubOpen,
+        setIsAksMartClubOpen,
     setIsOrderTrackerOpen,
     setIsSizeGuideOpen,
     setFilters,
@@ -26,15 +29,16 @@ export const Footer: React.FC = () => {
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newsletterEmail) return;
+    // Honest feedback: nothing is emailed yet, so we never claim a promo code was sent.
     addToast({
       type: 'success',
-      title: 'Subscribed to AKS Privé!',
-      message: 'Thank you! A 15% discount promo code (AKS15) has been sent to your email.',
+      title: 'Thanks for subscribing!',
+      message: "We'll keep you updated with new products and offers.",
     });
     setNewsletterEmail('');
   };
 
-  const handleCategoryClick = (category: 'all' | 'men' | 'women' | 'kids' | 'accessories') => {
+  const handleCategoryClick = (category: CategoryType) => {
     setActiveProductPage(null);
     setFilters((prev) => ({
       ...prev,
@@ -57,8 +61,8 @@ export const Footer: React.FC = () => {
               <Truck className="w-5 h-5 text-[#D8232A]" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Nationwide Fast Courier</h4>
-              <p className="text-xs text-neutral-400 mt-1">Next-day in Dhaka, 3-4 days across all 64 districts</p>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Nationwide Delivery</h4>
+              <p className="text-xs text-neutral-400 mt-1">Home delivery available across Bangladesh — timing confirmed after you order</p>
             </div>
           </div>
 
@@ -67,8 +71,8 @@ export const Footer: React.FC = () => {
               <RotateCcw className="w-5 h-5 text-[#D8232A]" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">30-Day Easy Exchange</h4>
-              <p className="text-xs text-neutral-400 mt-1">Free alterations & size exchange at any AKS flagship boutique</p>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Easy Exchange</h4>
+              <p className="text-xs text-neutral-400 mt-1">Exchange policy details coming soon</p>
             </div>
           </div>
 
@@ -77,8 +81,8 @@ export const Footer: React.FC = () => {
               <ShieldCheck className="w-5 h-5 text-[#D8232A]" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">100% Certified Fabrics</h4>
-              <p className="text-xs text-neutral-400 mt-1">Pure Mulberry silk, Dhakai Jamdani & Egyptian Giza cotton</p>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Curated Quality</h4>
+              <p className="text-xs text-neutral-400 mt-1">Every product quality checked across all five divisions</p>
             </div>
           </div>
 
@@ -87,8 +91,8 @@ export const Footer: React.FC = () => {
               <Headphones className="w-5 h-5 text-[#D8232A]" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Personal Stylist Support</h4>
-              <p className="text-xs text-neutral-400 mt-1">Dedicated style helpline +880 9612 888999 (9 AM - 10 PM)</p>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Customer Support</h4>
+              <p className="text-xs text-neutral-400 mt-1">WhatsApp / Call: {AKS_MART.phone}</p>
             </div>
           </div>
         </div>
@@ -98,20 +102,25 @@ export const Footer: React.FC = () => {
           {/* Brand & Newsletter (2 cols) */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-2.5">
-              <span className="bg-[#D8232A] text-white font-black text-2xl tracking-tight px-3 py-0.5 rounded-sm">
-                AKS
-              </span>
+              <Logo className="h-9 w-9 rounded-md shrink-0" />
               <span className="text-xs uppercase font-bold tracking-widest text-neutral-300">
-                GARMENTS BANGLADESH
+                AKS MART BANGLADESH
               </span>
             </div>
             <p className="text-xs text-neutral-400 leading-relaxed max-w-sm">
-              AKS Garments is Bangladesh's premier contemporary apparel house, fusing timeless South Asian heritage weaving with bespoke modern tailoring since 1998.
+              AKS Mart is Bangladesh's multi-division marketplace — SHUDDHO food, AKS CRAFT handicrafts, AKS HOME living, AKS BEAUTY personal care and AKS PRINT custom print — all under one roof at aksmartbd.com.
             </p>
+            {/* Brand motto */}
+            <div className="space-y-0.5 pt-1 border-l-2 border-[#D8232A] pl-3 max-w-sm">
+              <p className="text-[11px] font-bold text-neutral-200 leading-snug">
+                “{AKS_MART.mottoEn}”
+              </p>
+              <p className="text-[11px] text-neutral-500 leading-snug">{AKS_MART.mottoBn}</p>
+            </div>
 
             {/* Newsletter Form */}
             <div className="pt-2">
-              <p className="text-xs font-bold text-white mb-2">Subscribe to AKS Privé Gazette</p>
+              <p className="text-xs font-bold text-white mb-2">Subscribe to the AKS Mart Gazette</p>
               <form onSubmit={handleNewsletterSubmit} className="flex gap-2 max-w-sm">
                 <input
                   type="email"
@@ -129,38 +138,43 @@ export const Footer: React.FC = () => {
                 </button>
               </form>
               <p className="text-[11px] text-neutral-500 mt-1.5">
-                Receive curated seasonal lookbooks, private sale access, and runway alerts.
+                Receive seasonal offers, division launches and private sale alerts.
               </p>
             </div>
           </div>
 
           {/* Shop Categories */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">Collections</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white">Divisions</h4>
             <ul className="space-y-2 text-xs text-neutral-400">
               <li>
-                <button onClick={() => handleCategoryClick('men')} className="hover:text-white transition-colors cursor-pointer">
-                  Men's Panjabis & Shirts
+                <button onClick={() => handleCategoryClick('food')} className="hover:text-white transition-colors cursor-pointer">
+                  SHUDDHO — Food
                 </button>
               </li>
               <li>
-                <button onClick={() => handleCategoryClick('women')} className="hover:text-white transition-colors cursor-pointer">
-                  Women's Salwar & Sarees
+                <button onClick={() => handleCategoryClick('craft')} className="hover:text-white transition-colors cursor-pointer">
+                  AKS Craft — Handicrafts
                 </button>
               </li>
               <li>
-                <button onClick={() => handleCategoryClick('kids')} className="hover:text-white transition-colors cursor-pointer">
-                  Kids & Junior Festive Wear
+                <button onClick={() => handleCategoryClick('home')} className="hover:text-white transition-colors cursor-pointer">
+                  AKS Home — Living
                 </button>
               </li>
               <li>
-                <button onClick={() => handleCategoryClick('accessories')} className="hover:text-white transition-colors cursor-pointer">
-                  Kashmiri Shawls & Belts
+                <button onClick={() => handleCategoryClick('beauty')} className="hover:text-white transition-colors cursor-pointer">
+                  AKS Beauty — Care
+                </button>
+              </li>
+              <li>
+                <button onClick={() => handleCategoryClick('print')} className="hover:text-white transition-colors cursor-pointer">
+                  AKS Print — Custom
                 </button>
               </li>
               <li>
                 <button onClick={() => handleCategoryClick('all')} className="hover:text-white transition-colors cursor-pointer">
-                  New Arrivals & Lookbook
+                  All Departments
                 </button>
               </li>
             </ul>
@@ -177,17 +191,17 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <button onClick={() => setIsStoreLocatorOpen(true)} className="hover:text-white transition-colors cursor-pointer">
-                  AKS Flagship Boutiques
+                  AKS Mart Stores
                 </button>
               </li>
               <li>
                 <button onClick={() => setIsSizeGuideOpen(true)} className="hover:text-white transition-colors cursor-pointer">
-                  Garment Fit & Measuring Guide
+                  Product & Fit Guides
                 </button>
               </li>
               <li>
-                <button onClick={() => setIsBataClubOpen(true)} className="hover:text-white transition-colors cursor-pointer">
-                  AKS Privé Loyalty Rewards
+                <button onClick={() => setIsAksMartClubOpen(true)} className="hover:text-white transition-colors cursor-pointer">
+                  AKS Mart Club Rewards
                 </button>
               </li>
               <li>
@@ -197,13 +211,13 @@ export const Footer: React.FC = () => {
                     e.preventDefault();
                     addToast({
                       type: 'info',
-                      title: 'AKS Care Hotline',
-                      message: 'Call +880 9612 888999 or email care@aksgarments.com.bd',
+                      title: 'Customer Support',
+                      message: `Call or WhatsApp us at ${AKS_MART.phone}.`,
                     });
                   }}
                   className="hover:text-white transition-colors"
                 >
-                  Bespoke Alteration & Returns
+                  Returns & Easy Exchange
                 </a>
               </li>
             </ul>
@@ -211,20 +225,31 @@ export const Footer: React.FC = () => {
 
           {/* Contact Details */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">Boutique Atelier</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white">Contact & Order</h4>
             <div className="space-y-2.5 text-xs text-neutral-400">
+              <a
+                href={`tel:${AKS_MART.phoneRaw}`}
+                className="flex items-center gap-2 hover:text-white transition-colors"
+              >
+                <Phone className="w-4 h-4 text-[#D8232A] shrink-0" />
+                <span>WhatsApp / Call: {AKS_MART.phone}</span>
+              </a>
               <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-neutral-500 shrink-0 mt-0.5" />
-                <span>AKS Garments Atelier<br />Gulshan Avenue, Road 11, Block D, Dhaka-1212</span>
+                <MapPin className="w-4 h-4 text-[#D8232A] shrink-0 mt-0.5" />
+                <span>
+                  {AKS_MART.address}
+                  <span className="block text-[11px] text-neutral-500 mt-0.5">{AKS_MART.addressBn}</span>
+                </span>
               </div>
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-neutral-500 shrink-0" />
-                <span>+880 9612 888999 / +880 1711 000111</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-neutral-500 shrink-0" />
-                <span>care@aksgarments.com.bd</span>
-              </div>
+              <a
+                href={`https://${AKS_MART.site}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 hover:text-white transition-colors"
+              >
+                <Globe className="w-4 h-4 text-[#D8232A] shrink-0" />
+                <span>www.{AKS_MART.site}</span>
+              </a>
             </div>
           </div>
         </div>
@@ -232,7 +257,7 @@ export const Footer: React.FC = () => {
         {/* Bottom Bar: Payment Logos & Copyright */}
         <div className="pt-8 border-t border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
           <div className="flex items-center gap-2">
-            <span>© {new Date().getFullYear()} AKS Garments (Bangladesh) Limited. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} AKS Mart (Bangladesh). All rights reserved. aksmartbd.com</span>
           </div>
 
           {/* Payment Gateways Badges */}

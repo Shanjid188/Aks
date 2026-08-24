@@ -6,3 +6,9 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Backend (server/) — SQLite local database
+server/prisma/dev.db
+server/prisma/dev.db-journal
+
+# Admin panel build output is gitignored via dist/ above

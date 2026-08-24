@@ -1,66 +1,20 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { DIVISIONS } from '../data/aksMart';
 
 export const CategoryVisualGrid: React.FC = () => {
   const { setFilters, setActiveProductPage } = useStore();
 
-  const categories = [
-    {
-      title: 'AKS Heritage Silk Panjabis',
-      subtitle: 'Pure Mulberry Silk & Intricate Zardozi Neck Embroidery',
-      image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80',
-      category: 'men',
-      subcategory: 'Panjabis & Kabli',
-      badge: 'Festive Luxury',
-      badgeColor: 'bg-amber-600',
-    },
-    {
-      title: 'AKS Signature Formal Shirts',
-      subtitle: '2-Ply Egyptian Giza Cotton & Wrinkle-Resistant Finish',
-      image: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80',
-      category: 'men',
-      subcategory: 'Formal Shirts',
-      badge: 'Executive Tailored',
-      badgeColor: 'bg-sky-600',
-    },
-    {
-      title: 'AKS Riva Salwar & Jamdani Sarees',
-      subtitle: 'Handloom Muslin Jamdani & Organza 3-Piece Festive Ensembles',
-      image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80',
-      category: 'women',
-      subcategory: 'Salwar Kameez & Suits',
-      badge: 'Heritage Haute',
-      badgeColor: 'bg-rose-600',
-    },
-    {
-      title: 'European Washed Linen & Polos',
-      subtitle: 'Breathable 100% French Flax Linen for Tropical Sophistication',
-      image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80',
-      category: 'men',
-      subcategory: 'Casual Shirts & Polos',
-      badge: 'Summer Comfort',
-      badgeColor: 'bg-emerald-600',
-    },
-    {
-      title: 'Junior Festive & Kids Panjabi',
-      subtitle: 'Soft cotton lining, playful motifs & matching father-son sets',
-      image: 'https://images.unsplash.com/photo-1518831959646-742c3a14ebf7?auto=format&fit=crop&w=800&q=80',
-      category: 'kids',
-      subcategory: 'All',
-      badge: 'Festive Juniors',
-      badgeColor: 'bg-orange-500',
-    },
-    {
-      title: 'Kashmiri Shawls & Leather Belts',
-      subtitle: 'Pashmina weave shawls, dupattas & full-grain Italian leather accessories',
-      image: 'https://images.unsplash.com/photo-1607522370275-f14206abe5d3?auto=format&fit=crop&w=800&q=80',
-      category: 'accessories',
-      subcategory: 'All',
-      badge: 'Atelier Accents',
-      badgeColor: 'bg-indigo-600',
-    },
-  ];
+  const categories = DIVISIONS.map((d) => ({
+    title: d.title,
+    subtitle: d.subtitle,
+    image: d.image,
+    category: d.slug,
+    subcategory: 'All',
+    badge: d.badge,
+    badgeColor: d.badgeClass,
+  }));
 
   const handleTileClick = (item: (typeof categories)[0]) => {
     setActiveProductPage(null);
@@ -87,11 +41,11 @@ export const CategoryVisualGrid: React.FC = () => {
               Curated Collections
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight">
-              Explore Our Signature Garment Universes
+              Explore Our Five Mart Divisions
             </h2>
           </div>
           <p className="text-sm text-neutral-500 max-w-md">
-            From artisanal festive panjabis and handloom Jamdani sarees to sharp executive 2-ply cotton shirts, discover garments crafted for discerning elegance.
+            From SHUDDHO pure food to AKS CRAFT handiwork, AKS HOME comfort, AKS BEAUTY care and AKS PRINT custom print — everything under one mart.
           </p>
         </div>
 
@@ -127,7 +81,7 @@ export const CategoryVisualGrid: React.FC = () => {
                 </h3>
                 <p className="text-xs text-neutral-300 mt-1 line-clamp-1">{cat.subtitle}</p>
                 <div className="flex items-center gap-1 text-xs font-bold text-white mt-3 group-hover:translate-x-1 transition-transform">
-                  <span>Explore Garments</span>
+                  <span>Explore Division</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </div>

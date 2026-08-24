@@ -48,7 +48,7 @@ export const CompareModal: React.FC = () => {
             </div>
             <div>
               <h2 className="text-lg font-bold text-neutral-900 tracking-tight">
-                AKS Garment Comparison Matrix
+                AKS Mart Product Comparison
               </h2>
               <p className="text-xs text-neutral-500">
                 Comparing fabric weave, tailoring cut, and artisanal craft details side-by-side
@@ -81,9 +81,9 @@ export const CompareModal: React.FC = () => {
               <div className="w-12 h-12 bg-neutral-100 rounded-full flex items-center justify-center mx-auto text-neutral-400">
                 <Scale className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-bold text-neutral-900">No Garments Added to Compare</h3>
+              <h3 className="text-sm font-bold text-neutral-900">No Products Added to Compare</h3>
               <p className="text-xs text-neutral-500 max-w-sm mx-auto">
-                Click the compare icon on any garment card in the catalog to evaluate fabrics and fits side-by-side.
+                Click the compare icon on any product card in the catalog to compare features side-by-side.
               </p>
             </div>
           ) : (

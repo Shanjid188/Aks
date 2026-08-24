@@ -7,7 +7,11 @@
     "dev": "node node_modules/vite/bin/vite.js --port=3000 --host=0.0.0.0",
     "build": "node node_modules/vite/bin/vite.js build",
     "preview": "node node_modules/vite/bin/vite.js preview",
-    "lint": "node node_modules/typescript/bin/tsc --noEmit"
+    "lint": "node node_modules/typescript/bin/tsc --noEmit",
+    "dev:api": "cd server && npm run dev",
+    "dev:admin": "cd admin && npm run dev",
+    "setup:api": "cd server && npm install --no-audit --no-fund && npm run prisma:generate && npm run prisma:push && npm run seed",
+    "seed": "cd server && npm run seed"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",

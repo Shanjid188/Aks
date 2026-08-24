@@ -1,6 +1,6 @@
-# AKS Garments — Official Online Fashion & Apparel Store
+# AKS Mart — Everyday Essentials Online Store
 
-A premium single-page e-commerce application for Bangladeshi fashion — featuring artisanal panjabis, tailored formal shirts, festive salwar kameez, denim, kids' wear, and accessories.
+A fast, single-page e-commerce application for everyday Bangladeshi essentials — featuring curated food staples (SHUDDHO), handcrafted goods (AKS CRAFT), home & décor (AKS HOME), beauty (AKS BEAUTY), and custom printing (AKS PRINT).
 
 ## Tech Stack
 
@@ -20,7 +20,7 @@ A premium single-page e-commerce application for Bangladeshi fashion — featuri
 - Checkout flow (bKash, Nagad, card, COD)
 - Store locator (8 locations across Bangladesh)
 - Order tracking
-- Size guide & "Outfit Matcher" quiz
+- Product Guide & Smart Finder quiz
 - Client-side persistence via localStorage
 
 ## Getting Started
@@ -66,11 +66,63 @@ src/
 ├── App.tsx                 # Root layout: Header, sections, Footer, all modals
 ├── components/             # 18 UI components (Header, ProductGrid, CartDrawer, etc.)
 ├── context/
-│   └── StoreContext.tsx    # Global state (cart, wishlist, filters, orders, toasts)
+│   └── StoreContext.tsx    # Storefront state (cart, wishlist, filters, orders, toasts)
 ├── data/                   # Products, hero slides, coupons, brands, store locations
 ├── utils/format.ts         # Price formatting (BDT/USD) & size calculator
 └── types.ts                # All TypeScript interfaces
+
+server/                     # NEW — REST API (Express + Prisma + SQLite)
+├── prisma/schema.prisma    # Database schema (products, orders, coupons, stores, reviews, admins)
+├── prisma/seed.ts          # Seeds DB from src/data/* (16 products, 8 stores, 4 coupons, reviews, admin)
+├── src/index.ts            # Express app (port 4000)
+├── src/routes/             # auth, products, orders, coupons, stores, reviews, stats
+└── scripts/smoke.ts        # End-to-end API test suite (17 checks)
+
+admin/                      # React 19 admin panel (Vite, port 5173)
+└── src/pages/              # Login, Dashboard, Products, Orders, Coupons, Boutiques, Reviews
 ```
+
+## Backend API (server/)
+
+```bash
+# 1. Install + create DB + seed (first time only)
+npm run setup:api
+
+# 2. Start the API (http://localhost:4000)
+npm run dev:api
+```
+
+**Default admin login (seeded):** `admin@aksgarments.com.bd` / `Admin@123`
+
+Key endpoints:
+
+| Endpoint | Auth | Purpose |
+|---|---|---|
+| `POST /api/admin/auth/login` | — | Get a JWT |
+| `GET /api/products` | — | Public catalog (same filters as storefront) |
+| `POST /api/orders` | — | Place an order → returns tracking code |
+| `GET /api/orders/track/:code` | — | Customer tracking |
+| `POST /api/coupons/validate` | — | Validate promo code |
+| `GET /api/admin/stats` | Bearer | Dashboard metrics |
+| `/api/admin/products` | Bearer | Product CRUD |
+| `/api/admin/orders` | Bearer | Order list + status updates |
+| `/api/admin/coupons` | Bearer | Coupon CRUD |
+| `/api/admin/stores` | Bearer | Boutique CRUD |
+| `/api/admin/reviews` | Bearer | Review moderation |
+
+## Admin Panel (React)
+
+```bash
+npm run dev:admin   # http://localhost:5173 (proxies /api → :4000)
+```
+
+The storefront currently uses local data (localStorage) with the same data
+shapes as the API. Swapping it to `GET /api/products` / `POST /api/orders`
+is a planned next step — all types and endpoints are already compatible.
+See `docs/PROJECT_CONTEXT.md` for full architecture details.
+
+> Dev database is SQLite for zero-setup. For production, change the Prisma
+> provider to `postgresql` and set `DATABASE_URL` in `server/.env`.
 
 ---
 

@@ -216,7 +216,102 @@ calculateShoeSizeFromFootLength(lengthCm) → { eu, uk, usMen, usWomen, cm, inch
 
 ---
 
-## 9. KNOWN ISSUES / TODOS
+## 9. BACKEND + ADMIN PANEL (server/ and admin/)
+
+> Added 2026-08-22: A full Node.js REST API and a React admin panel, both sharing the same TypeScript ecosystem as the storefront.
+
+### Architecture
+
+```
+d:\Downloads\Aks-store\
+├── src/                    # Storefront (Vite + React 19, static SPA)
+├── server/                 # REST API (Express + Prisma + SQLite/PostgreSQL)
+│   ├── prisma/
+│   │   ├── schema.prisma   # 7 models: AdminUser, Category, Product, Order, OrderItem, Coupon, Store, Review
+│   │   └── seed.ts          # Seeds DB from src/data/* (16 products, 8 stores, 4 coupons, reviews, admin)
+│   ├── src/
+│   │   ├── index.ts         # Express app on port 4000, CORS + JSON body parser, 404 + error handler
+│   │   └── routes/
+│   │       ├── auth.ts      # POST /admin/auth/login, GET /admin/auth/me (JWT + bcrypt)
+│   │       ├── products.ts  # GET /products (public, same filters as storefront) + /admin/products CRUD
+│   │       ├── orders.ts    # POST /orders (place order) + GET /orders/track/:code + /admin/orders CRUD
+│   │       ├── coupons.ts   # POST /coupons/validate (public) + /admin/coupons CRUD
+│   │       ├── stores.ts    # GET /stores (public) + /admin/stores CRUD
+│   │       ├── reviews.ts   # GET /products/:slug/reviews (public) + /admin/reviews moderation
+│   │       └── stats.ts     # GET /admin/stats (dashboard metrics)
+│   ├── src/lib/
+│   │   ├── auth.ts          # JWT sign/verify, requireAuth, requireSuperAdmin, asyncHandler
+│   │   └── prisma.ts        # PrismaClient singleton
+│   ├── src/utils/
+│   │   ├── json.ts          # parseJsonSafe
+│   │   └── product.ts       # productToApi (JSON parsing) + productFromApi (serialization)
+│   ├── scripts/smoke.ts     # 17-check end-to-end test suite
+│   └── .env                 # DATABASE_URL=file:./dev.db, PORT=4000, JWT_SECRET, JWT_EXPIRES_IN=12h
+├── admin/                    # React 19 admin panel (Vite, port 5173, proxies /api → localhost:4000)
+│   ├── src/
+│   │   ├── App.tsx          # Sidebar layout with nav (Dashboard, Products, Orders, Coupons, Boutiques, Reviews)
+│   │   ├── api.ts           # JWT auth client + typed fetch helper (auto 401 → logout)
+│   │   ├── types.ts         # Admin type definitions (mirrors server Prisma models)
+│   │   ├── components/ui.tsx # Shared UI primitives (Button, Modal, Field, Toggle, Badge, Spinner, etc.)
+│   │   └── pages/
+│   │       ├── LoginPage.tsx
+│   │       ├── Dashboard.tsx (stats cards, low-stock alerts, recent orders)
+│   │       ├── Products.tsx  (full CRUD modal editor)
+│   │       ├── Orders.tsx    (list + status workflow + detail view)
+│   │       ├── Coupons.tsx   (CRUD)
+│   │       ├── Stores.tsx    (CRUD)
+│   │       └── Reviews.tsx   (approve/hide/delete moderation)
+│   └── .gitignore
+└── package.json            # Root: dev, build, dev:api, dev:admin, setup:api, seed scripts
+```
+
+### Key design decisions
+- **SQLite locally**, PostgreSQL in production (just change `DATABASE_URL` + Prisma `provider`)
+- **Soft-delete** for products (`isActive = false`) to keep order history valid
+- **Server-side coupon validation** — order totals are recomputed from item snapshots
+- **JWT auth** with Bearer token; admin role: `admin` or `superadmin`
+- **Smoke tests**: `node --env-file=.env node_modules/tsx/dist/cli.mjs scripts/smoke.ts` (17 checks)
+
+### Running locally
+```bash
+# Terminal 1 — API
+cd server && npm run dev
+
+# Terminal 2 — Admin (auto-proxies /api → localhost:4000)
+cd admin && npm run dev
+
+# Terminal 3 — Storefront
+cd .. && npm run dev
+```
+
+### Admin login (seeded)
+- **Email:** `admin@aksgarments.com.bd`
+- **Password:** `Admin@123`
+
+### API Summary
+| Method | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/admin/auth/login` | — | Get JWT |
+| GET | `/api/admin/auth/me` | Bearer | Current admin |
+| GET | `/api/products` | — | Public catalog (same filters as storefront) |
+| GET | `/api/products/:slug` | — | Single product + approved reviews |
+| POST | `/api/orders` | — | Place order → tracking code |
+| GET | `/api/orders/track/:code` | — | Track by tracking code |
+| POST | `/api/coupons/validate` | — | Validate promo code |
+| GET | `/api/stores` | — | All store locations |
+| GET | `/api/admin/products` | Bearer | Admin product list |
+| POST/PATCH/DELETE | `/api/admin/products/:id` | Bearer | CRUD |
+| GET | `/api/admin/orders` | Bearer | Order list (filter by status/search) |
+| PATCH | `/api/admin/orders/:id` | Bearer | Update status |
+| GET/POST/PATCH/DELETE | `/api/admin/coupons` | Bearer | CRUD |
+| GET/POST/PATCH/DELETE | `/api/admin/stores` | Bearer | Boutique CRUD |
+| GET | `/api/admin/reviews` | Bearer | Moderate reviews |
+| PATCH/DELETE | `/api/admin/reviews/:id` | Bearer | Approve/delete |
+| GET | `/api/admin/stats` | Bearer | Dashboard metrics |
+
+---
+
+## 10. KNOWN ISSUES / TODOS
 
 1. **Name mismatch** — directory says "bata footwear" but app is "AKS Garments" apparel.
 2. **`CategoryType` includes `'festive'`** — no product data uses it.

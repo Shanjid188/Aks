@@ -137,7 +137,7 @@ export const CartDrawer: React.FC = () => {
               </div>
               <h3 className="text-base font-bold text-neutral-900">Your shopping bag is empty</h3>
               <p className="text-xs text-neutral-500 mt-1 max-w-xs mx-auto">
-                Explore our authentic collections of artisanal panjabis, tailored shirts, festive sarees, and accessories.
+                              Explore everyday essentials, artisan crafts, home & living, beauty and custom prints across AKS Mart.
               </p>
               <button
                 onClick={() => setIsCartDrawerOpen(false)}

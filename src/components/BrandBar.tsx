@@ -29,14 +29,14 @@ export const BrandBar: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-400">
-              World-Class Portfolio
+              The AKS Mart Family
             </h3>
             <h2 className="text-lg font-black text-neutral-900 tracking-tight">
-              Shop by Authentic House of Brands
+              Shop by Division
             </h2>
           </div>
           <span className="text-xs text-neutral-500 font-medium hidden sm:inline">
-            Click any brand to filter collection
+            Click a division to filter products
           </span>
         </div>
 

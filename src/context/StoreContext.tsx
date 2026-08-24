@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, CartItem, WishlistItem, FilterState, Coupon, Order, Review, CurrencyMode, ProductColor, ProductSize } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_REVIEWS } from '../data/products';
 import { VALID_COUPONS } from '../data/promos';
+import { dataLoader, USE_API } from '../lib/dataLoader';
+import * as API from '../api';
 
 interface ToastMessage {
   id: string;
@@ -23,7 +25,7 @@ interface StoreContextType {
   setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
   resetFilters: () => void;
   appliedCoupon: Coupon | null;
-  applyCoupon: (code: string) => { success: boolean; message: string };
+    applyCoupon: (code: string) => Promise<{ success: boolean; message: string }>;
   removeCoupon: () => void;
   cartSubtotal: number;
   cartDiscount: number;
@@ -39,6 +41,7 @@ interface StoreContextType {
   // Wishlist Actions
   toggleWishlist: (product: Product) => void;
   isInWishlist: (productId: string) => boolean;
+  clearWishlist: () => void;
   // Compare Actions
   toggleCompare: (product: Product) => void;
   isInCompare: (productId: string) => boolean;
@@ -46,6 +49,8 @@ interface StoreContextType {
   // Modals & Navigation
   isCartDrawerOpen: boolean;
   setIsCartDrawerOpen: (open: boolean) => void;
+  isWishlistDrawerOpen: boolean;
+  setIsWishlistDrawerOpen: (open: boolean) => void;
   isQuickViewOpen: boolean;
   setIsQuickViewOpen: (open: boolean) => void;
   quickViewProduct: Product | null;
@@ -59,8 +64,8 @@ interface StoreContextType {
   setIsSizeGuideOpen: (open: boolean) => void;
   isStoreLocatorOpen: boolean;
   setIsStoreLocatorOpen: (open: boolean) => void;
-  isBataClubOpen: boolean;
-  setIsBataClubOpen: (open: boolean) => void;
+    isAksMartClubOpen: boolean;
+  setIsAksMartClubOpen: (open: boolean) => void;
   isOrderTrackerOpen: boolean;
   setIsOrderTrackerOpen: (open: boolean) => void;
   isShoeFinderOpen: boolean;
@@ -69,7 +74,7 @@ interface StoreContextType {
   setIsCompareModalOpen: (open: boolean) => void;
   // Orders & Reviews
   orders: Order[];
-  createOrder: (orderData: Omit<Order, 'id' | 'createdAt' | 'trackingCode' | 'status'>) => Order;
+    createOrder: (orderData: Omit<Order, 'id' | 'createdAt' | 'trackingCode' | 'status'>) => Promise<Order>;
   addReview: (review: Omit<Review, 'id' | 'date' | 'helpfulCount'>) => void;
   // Toast
   toasts: ToastMessage[];
@@ -97,30 +102,41 @@ const FREE_SHIPPING_THRESHOLD = 2500; // ৳2,500
 const STANDARD_SHIPPING_FEE = 120; // ৳120 standard delivery in BD
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [products] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [reviews, setReviews] = useState<Review[]>(() => {
-    const saved = localStorage.getItem('aks_reviews') || localStorage.getItem('bata_reviews');
+    const saved = localStorage.getItem('aks_reviews');
     return saved ? JSON.parse(saved) : INITIAL_REVIEWS;
   });
 
+  // Load products and reviews from API (falls back to local data on any error)
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([dataLoader.loadProducts(), dataLoader.loadReviews()]).then(([prods, revs]) => {
+      if (cancelled) return;
+      setProducts(prods);
+      setReviews(revs);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('aks_cart') || localStorage.getItem('bata_cart');
+    const saved = localStorage.getItem('aks_cart');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [wishlist, setWishlist] = useState<WishlistItem[]>(() => {
-    const saved = localStorage.getItem('aks_wishlist') || localStorage.getItem('bata_wishlist');
+    const saved = localStorage.getItem('aks_wishlist');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [compareList, setCompareList] = useState<Product[]>([]);
   const [recentlyViewed, setRecentlyViewed] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('aks_recent_viewed') || localStorage.getItem('bata_recent_viewed');
+    const saved = localStorage.getItem('aks_recent_viewed');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('aks_orders') || localStorage.getItem('bata_orders');
+    const saved = localStorage.getItem('aks_orders');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -130,13 +146,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Modals state
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const [isWishlistDrawerOpen, setIsWishlistDrawerOpen] = useState(false);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [activeProductPage, setActiveProductPage] = useState<Product | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [isStoreLocatorOpen, setIsStoreLocatorOpen] = useState(false);
-  const [isBataClubOpen, setIsBataClubOpen] = useState(false);
+    const [isAksMartClubOpen, setIsAksMartClubOpen] = useState(false);
   const [isOrderTrackerOpen, setIsOrderTrackerOpen] = useState(false);
   const [isShoeFinderOpen, setIsShoeFinderOpen] = useState(false);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
@@ -232,6 +249,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       message: `${product.name} (${size.size}) added to your shopping bag.`,
     });
 
+    // Auto-remove from wishlist — the item now lives in the bag instead.
+    setWishlist((prev) =>
+      prev.some((item) => item.productId === product.id)
+        ? prev.filter((item) => item.productId !== product.id)
+        : prev
+    );
+
     // Auto record in recently viewed
     addToRecentlyViewed(product);
   };
@@ -284,36 +308,72 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setAppliedCoupon(null);
   };
 
-  // Coupons
-  const applyCoupon = (code: string) => {
+      // Coupons — validates against the backend API, falls back to local list
+  const applyCoupon = async (code: string): Promise<{ success: boolean; message: string }> => {
     const cleanCode = code.trim().toUpperCase();
-    const coupon = VALID_COUPONS.find((c) => c.code === cleanCode);
-    if (!coupon) {
+
+    // Local fallback validation (used when API is off or fails)
+    const applyLocalCoupon = (): { success: boolean; message: string } => {
+      const coupon = VALID_COUPONS.find((c) => c.code === cleanCode);
+      if (!coupon) {
+        addToast({
+          type: 'error',
+          title: 'Invalid Coupon',
+          message: `Promo code "${cleanCode}" is invalid or expired. Try AKS15 or WELCOME10.`,
+        });
+        return { success: false, message: 'Invalid promo code' };
+      }
+      if (cartSubtotal < coupon.minSpend) {
+        addToast({
+          type: 'warning',
+          title: 'Minimum Spend Not Met',
+          message: `Code "${cleanCode}" requires a minimum spend of ৳${coupon.minSpend.toLocaleString()}.`,
+        });
+        return {
+          success: false,
+          message: `Minimum spend of ৳${coupon.minSpend.toLocaleString()} required`,
+        };
+      }
+      setAppliedCoupon(coupon);
       addToast({
-        type: 'error',
-        title: 'Invalid Coupon',
-        message: `Promo code "${cleanCode}" is invalid or expired. Try AKS15 or WELCOME10.`,
+        type: 'success',
+        title: 'Coupon Applied!',
+        message: `${coupon.description} applied successfully.`,
       });
-      return { success: false, message: 'Invalid promo code' };
-    }
-    if (cartSubtotal < coupon.minSpend) {
+      return { success: true, message: coupon.description };
+    };
+
+    // When the API toggle is off, use local validation
+    if (!USE_API) return applyLocalCoupon();
+
+    // Otherwise validate on the backend
+    try {
+      const { valid, coupon: apiCoupon, message } = await API.validateCoupon(cleanCode);
+      if (!valid) {
+        addToast({
+          type: 'error',
+          title: 'Invalid Coupon',
+          message: message ?? `Promo code "${cleanCode}" is invalid or expired.`,
+        });
+        return { success: false, message: message ?? 'Invalid promo code' };
+      }
+      setAppliedCoupon({
+        code: apiCoupon.code,
+        discountType: apiCoupon.discountType,
+        value: apiCoupon.value,
+        minSpend: apiCoupon.minSpend,
+        description: apiCoupon.description ?? '',
+      });
       addToast({
-        type: 'warning',
-        title: 'Minimum Spend Not Met',
-        message: `Code "${cleanCode}" requires a minimum spend of ৳${coupon.minSpend.toLocaleString()}.`,
+        type: 'success',
+        title: 'Coupon Applied!',
+        message: `${apiCoupon.description ?? cleanCode} applied successfully.`,
       });
-      return {
-        success: false,
-        message: `Minimum spend of ৳${coupon.minSpend.toLocaleString()} required`,
-      };
+      return { success: true, message: apiCoupon.description ?? '' };
+    } catch (e) {
+      console.warn('[applyCoupon] API failed, using local fallback:', e);
+      return applyLocalCoupon();
     }
-    setAppliedCoupon(coupon);
-    addToast({
-      type: 'success',
-      title: 'Coupon Applied!',
-      message: `${coupon.description} applied successfully.`,
-    });
-    return { success: true, message: coupon.description };
   };
 
   const removeCoupon = () => {
@@ -325,25 +385,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
-  // Wishlist actions
+  // Wishlist actions — side effects kept out of the state updater so toasts
+  // never fire twice and the toggle stays predictable.
   const toggleWishlist = (product: Product) => {
-    setWishlist((prev) => {
-      const exists = prev.some((item) => item.productId === product.id);
-      if (exists) {
-        addToast({
-          type: 'info',
-          title: 'Removed from Wishlist',
-          message: `${product.name} removed from your saved items.`,
-        });
-        return prev.filter((item) => item.productId !== product.id);
-      } else {
-        addToast({
-          type: 'success',
-          title: 'Saved to Wishlist',
-          message: `${product.name} added to your wishlist.`,
-        });
-        return [...prev, { productId: product.id, product, addedAt: Date.now() }];
-      }
+    const exists = wishlist.some((item) => item.productId === product.id);
+    if (exists) {
+      setWishlist((prev) => prev.filter((item) => item.productId !== product.id));
+      addToast({
+        type: 'info',
+        title: 'Removed from Wishlist',
+        message: `${product.name} removed from your saved items.`,
+      });
+    } else {
+      setWishlist((prev) => [...prev, { productId: product.id, product, addedAt: Date.now() }]);
+      addToast({
+        type: 'success',
+        title: 'Saved to Wishlist',
+        message: `${product.name} added to your wishlist.`,
+      });
+    }
+  };
+
+  const clearWishlist = () => {
+    setWishlist([]);
+    addToast({
+      type: 'info',
+      title: 'Wishlist Cleared',
+      message: 'All saved items removed.',
     });
   };
 
@@ -402,21 +470,66 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setQuickViewProduct(null);
   };
 
-  // Orders
-  const createOrder = (orderData: Omit<Order, 'id' | 'createdAt' | 'trackingCode' | 'status'>): Order => {
-    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-    const trackingCode = `AKS-BD-${randomSuffix}`;
-    const newOrder: Order = {
+    // Orders — POSTs to the backend API; falls back to local-only order generation
+  // if the API is unreachable so the checkout flow never breaks.
+  const createOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'trackingCode' | 'status'>): Promise<Order> => {
+    const cartItems = orderData.items;
+
+    // Optimistic local fallback order (so receipt still renders even if API fails)
+    const fallbackOrder: Order = {
       ...orderData,
+      items: cartItems,
       id: `ORD-${Date.now()}`,
       createdAt: new Date().toISOString(),
-      trackingCode,
+      trackingCode: `AKS-BD-${Math.floor(100000 + Math.random() * 900000)}`,
       status: 'confirmed',
     };
 
-    setOrders((prev) => [newOrder, ...prev]);
-    clearCart();
-    return newOrder;
+    // If we're off the API or the call fails, fall back to local behaviour.
+    if (!USE_API) {
+      setOrders((prev) => [fallbackOrder, ...prev]);
+      clearCart();
+      return fallbackOrder;
+    }
+
+    try {
+      const body: API.ApiCreateOrderBody = {
+        items: cartItems.map((item) => ({
+          product: item.product as unknown as API.ApiProduct,
+          price: item.product.price,
+          quantity: item.quantity,
+          selectedSize: { size: item.selectedSize.size },
+          selectedColor: { name: item.selectedColor.name },
+        })),
+        customerAddress: orderData.shippingAddress as unknown as Record<string, string>,
+        deliveryMethod: orderData.deliveryMethod,
+        pickupStore: orderData.pickupStore,
+        paymentMethod: orderData.paymentMethod,
+        shippingFee: orderData.shippingFee,
+        couponCode: orderData.couponApplied?.code,
+      };
+
+      const { order: apiOrder } = await API.createOrderAPI(body);
+
+      // Map the API response into the frontend Order shape used by the receipt/tracker.
+      const mappedOrder: Order = {
+        ...orderData,
+        items: cartItems,
+        id: apiOrder.id,
+        trackingCode: apiOrder.trackingCode,
+        status: apiOrder.status as Order['status'],
+        createdAt: apiOrder.createdAt,
+      };
+
+            setOrders((prev) => [mappedOrder, ...prev]);
+      clearCart();
+      return mappedOrder;
+    } catch (e) {
+      console.warn('[createOrder] Order API failed:', e);
+      // Surface the failure to checkout so the customer sees an honest error and can
+      // retry — no fake local "success" receipts when the backend call fails.
+      throw new Error("We couldn't place your order right now. Please try again.");
+    }
   };
 
   // Reviews
@@ -464,11 +577,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         clearCart,
         toggleWishlist,
         isInWishlist,
+        clearWishlist,
         toggleCompare,
         isInCompare,
         clearCompare,
         isCartDrawerOpen,
         setIsCartDrawerOpen,
+        isWishlistDrawerOpen,
+        setIsWishlistDrawerOpen,
         isQuickViewOpen,
         setIsQuickViewOpen,
         quickViewProduct,
@@ -482,8 +598,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setIsSizeGuideOpen,
         isStoreLocatorOpen,
         setIsStoreLocatorOpen,
-        isBataClubOpen,
-        setIsBataClubOpen,
+                isAksMartClubOpen,
+        setIsAksMartClubOpen,
         isOrderTrackerOpen,
         setIsOrderTrackerOpen,
         isShoeFinderOpen,

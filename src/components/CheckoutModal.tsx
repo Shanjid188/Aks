@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
-import { STORE_LOCATIONS } from '../data/stores';
 import { Order } from '../types';
+import Logo from './Logo';
 import {
   X,
   CheckCircle2,
   Truck,
-  CreditCard,
-  Building2,
   ShieldCheck,
   ArrowRight,
   ArrowLeft,
@@ -16,10 +14,22 @@ import {
   Mail,
   User,
   MapPin,
-  Sparkles,
   Printer,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+
+/** Bangladeshi mobile numbers: starts 01, second digit 3-9, then 8 more digits. */
+const BD_PHONE_REGEX = /^01[3-9]\d{8}$/;
+const PHONE_ERROR_MESSAGE = 'Please enter a valid Bangladeshi mobile number.';
+/** Neutral delivery wording — we never promise a timeframe we can't guarantee. */
+const ESTIMATED_DELIVERY_NOTE = 'Delivery time will be confirmed after your order is placed.';
+
+/** Delivery zones (owner-configurable fees). */
+const DELIVERY_ZONES = [
+  { id: 'inside_dhaka', en: 'Inside Dhaka', bn: 'ঢাকার ভিতরে', fee: 120 },
+  { id: 'sub_dhaka', en: 'Sub-Dhaka Area', bn: 'ঢাকার আশপাশে', fee: 150 },
+  { id: 'outside_dhaka', en: 'Outside Dhaka', bn: 'ঢাকার বাইরে', fee: 200 },
+] as const;
 
 export const CheckoutModal: React.FC = () => {
   const {
@@ -27,6 +37,7 @@ export const CheckoutModal: React.FC = () => {
     setIsCheckoutOpen,
     cart,
     cartSubtotal,
+    freeShippingThreshold,
     cartDiscount,
     shippingFee,
     cartTotal,
@@ -38,35 +49,52 @@ export const CheckoutModal: React.FC = () => {
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
-  // Address form
-  const [fullName, setFullName] = useState('Tanvir Ahmed');
-  const [phone, setPhone] = useState('01712345678');
-  const [email, setEmail] = useState('tanvir.ahmed@example.com');
+  // Address form — starts completely empty; we never pre-fill customer identity
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [division, setDivision] = useState('Dhaka');
-  const [district, setDistrict] = useState('Dhaka');
-  const [thana, setThana] = useState('Gulshan');
-  const [streetAddress, setStreetAddress] = useState('House 24, Road 11, Block D');
-  const [postalCode, setPostalCode] = useState('1212');
-  const [deliveryInstructions, setDeliveryInstructions] = useState('Please call before delivery.');
+  const [district, setDistrict] = useState('');
+  const [thana, setThana] = useState('');
+  const [streetAddress, setStreetAddress] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
-  // Delivery method
-  const [deliveryMethod, setDeliveryMethod] = useState<'standard' | 'express' | 'pickup'>('standard');
-  const [pickupStore, setPickupStore] = useState(STORE_LOCATIONS[0].name);
+  // Delivery method — three zones (Inside Dhaka / Sub-Dhaka / Outside Dhaka)
+  const [deliveryMethod, setDeliveryMethod] = useState<
+    'inside_dhaka' | 'sub_dhaka' | 'outside_dhaka'
+  >('inside_dhaka');
 
-  // Payment method
-  const [paymentMethod, setPaymentMethod] = useState<'bkash' | 'nagad' | 'card' | 'cod'>('bkash');
-  const [bkashNumber, setBkashNumber] = useState('01712345678');
-  const [bkashOtp, setBkashOtp] = useState('');
-  const [bkashPin, setBkashPin] = useState('');
-  const [bkashStep, setBkashStep] = useState<'number' | 'otp' | 'pin'>('number');
+  // Payment method — Cash on Delivery is the only live method right now
+  const [paymentMethod, setPaymentMethod] = useState<'bkash' | 'nagad' | 'card' | 'cod'>('cod');
 
   // Completed Order Record
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
 
-  if (!isCheckoutOpen) return null;
+  // Inline validation & submission feedback
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+
+  // Delivery-zone math — totals are computed here so the charged amount always
+  // matches what the customer sees on this screen.
+  const isFreeShip =
+    cart.length > 0 &&
+    (appliedCoupon?.code === 'FREESHIP' || cartSubtotal >= freeShippingThreshold);
+  const activeZone = DELIVERY_ZONES.find((z) => z.id === deliveryMethod) ?? DELIVERY_ZONES[0];
+  const zoneShipping = isFreeShip ? 0 : activeZone.fee;
+  const orderTotal = Math.max(0, cartSubtotal - cartDiscount + zoneShipping);
+
+      if (!isCheckoutOpen) return null;
 
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Real validation (not just HTML `required`) for the customer phone number.
+    if (!BD_PHONE_REGEX.test(phone.trim())) {
+      setPhoneError(PHONE_ERROR_MESSAGE);
+      return;
+    }
+    setPhoneError(null);
     setStep(2);
   };
 
@@ -75,33 +103,55 @@ export const CheckoutModal: React.FC = () => {
     setStep(3);
   };
 
-  const handlePlaceOrder = () => {
-    const newOrder = createOrder({
-      items: cart,
-      shippingAddress: {
-        fullName,
-        phone,
-        email,
-        division,
-        district,
-        thana,
-        streetAddress,
-        postalCode,
-        deliveryInstructions,
-      },
-      deliveryMethod,
-      pickupStore: deliveryMethod === 'pickup' ? pickupStore : undefined,
-      paymentMethod,
-      subtotal: cartSubtotal,
-      discount: cartDiscount,
-      shippingFee: deliveryMethod === 'pickup' ? 0 : shippingFee,
-      couponApplied: appliedCoupon || undefined,
-      total: cartTotal,
-      estimatedDelivery: '3 - 4 Business Days',
-    });
+    const handlePlaceOrder = async () => {
+    // Guard: never submit an empty order.
+    if (cart.length === 0) {
+      setOrderError('Your cart is empty.');
+      return;
+    }
+    // Defense-in-depth: re-validate phone at submission time.
+    if (!BD_PHONE_REGEX.test(phone.trim())) {
+      setPhoneError(PHONE_ERROR_MESSAGE);
+      setStep(1);
+      return;
+    }
+    // Guard: ignore accidental double-clicks while an order is already being placed.
+    if (isPlacingOrder) return;
 
-    setCompletedOrder(newOrder);
-    setStep(4);
+    setIsPlacingOrder(true);
+    setOrderError(null);
+    try {
+      const newOrder = await createOrder({
+        items: cart,
+        shippingAddress: {
+          fullName,
+          phone,
+          email,
+          division,
+          district,
+          thana,
+          streetAddress,
+          postalCode,
+          deliveryInstructions,
+        },
+        deliveryMethod,
+        paymentMethod,
+        subtotal: cartSubtotal,
+        discount: cartDiscount,
+        shippingFee: zoneShipping,
+        couponApplied: appliedCoupon || undefined,
+        total: orderTotal,
+        estimatedDelivery: ESTIMATED_DELIVERY_NOTE,
+      });
+
+      setCompletedOrder(newOrder);
+      setStep(4);
+    } catch {
+      // Honest failure: keep the modal open, keep the cart, let the user retry.
+      setOrderError("We couldn't place your order right now. Please try again.");
+    } finally {
+      setIsPlacingOrder(false);
+    }
   };
 
   return (
@@ -127,11 +177,9 @@ export const CheckoutModal: React.FC = () => {
         {/* Header */}
         <div className="p-5 border-b border-neutral-200 flex items-center justify-between bg-neutral-900 text-white">
           <div className="flex items-center gap-2.5">
-            <span className="font-black text-xl italic text-[#D8232A] bg-white px-2 py-0.5 rounded-sm">
-              AKS
-            </span>
+            <Logo className="h-7 w-7 rounded-sm shrink-0" />
             <span className="font-bold text-sm tracking-tight text-neutral-100">
-              {step === 4 ? 'Order Confirmation' : 'Secure Express Checkout'}
+              {step === 4 ? 'Order Confirmation' : 'Checkout'}
             </span>
           </div>
 
@@ -185,8 +233,22 @@ export const CheckoutModal: React.FC = () => {
 
         {/* Body Content */}
         <div className="p-6 sm:p-8 overflow-y-auto flex-1">
+          {/* Empty-cart guard: never allow checkout without items */}
+          {step !== 4 && cart.length === 0 && (
+            <div className="py-14 text-center space-y-3">
+              <h3 className="font-black text-lg text-neutral-900 tracking-tight">Your cart is empty.</h3>
+              <p className="text-xs text-neutral-500">Add products to your cart before checking out.</p>
+              <button
+                onClick={() => setIsCheckoutOpen(false)}
+                className="mt-2 py-2.5 px-5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+              >
+                Continue Shopping
+              </button>
+            </div>
+          )}
+
           {/* STEP 1: Shipping Address */}
-          {step === 1 && (
+          {step === 1 && cart.length > 0 && (
             <form onSubmit={handleStep1Submit} className="space-y-4">
               <h3 className="font-black text-lg text-neutral-900 tracking-tight">
                 Where should we deliver your order?
@@ -203,6 +265,7 @@ export const CheckoutModal: React.FC = () => {
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
+                      placeholder="আপনার পূর্ণ নাম / Your full name"
                       className="w-full pl-8 pr-3 py-2 text-xs border border-neutral-300 rounded-xl outline-none focus:border-[#D8232A]"
                     />
                     <User className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -218,11 +281,20 @@ export const CheckoutModal: React.FC = () => {
                       type="tel"
                       required
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full pl-8 pr-3 py-2 text-xs border border-neutral-300 rounded-xl outline-none focus:border-[#D8232A]"
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        if (phoneError) setPhoneError(null);
+                      }}
+                      placeholder="01XXXXXXXXX"
+                      className={`w-full pl-8 pr-3 py-2 text-xs border rounded-xl outline-none focus:border-[#D8232A] ${
+                        phoneError ? 'border-red-400 bg-red-50/40' : 'border-neutral-300'
+                      }`}
                     />
                     <Phone className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                   </div>
+                  {phoneError && (
+                    <p className="text-[11px] font-semibold text-red-600 mt-1">{phoneError}</p>
+                  )}
                 </div>
               </div>
 
@@ -236,13 +308,14 @@ export const CheckoutModal: React.FC = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    placeholder="example@email.com"
                     className="w-full pl-8 pr-3 py-2 text-xs border border-neutral-300 rounded-xl outline-none focus:border-[#D8232A]"
                   />
                   <Mail className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div>
                   <label className="block text-xs font-bold text-neutral-700 mb-1">Division</label>
                   <select
@@ -310,131 +383,63 @@ export const CheckoutModal: React.FC = () => {
           )}
 
           {/* STEP 2: Delivery Speed & Pickup */}
-          {step === 2 && (
+          {step === 2 && cart.length > 0 && (
             <form onSubmit={handleStep2Submit} className="space-y-5">
               <h3 className="font-black text-lg text-neutral-900 tracking-tight">
                 Select Your Delivery Preference
               </h3>
 
               <div className="space-y-3">
-                {/* Standard */}
-                <label
-                  className={`p-4 rounded-2xl border transition-all flex items-start justify-between cursor-pointer ${
-                    deliveryMethod === 'standard'
-                      ? 'border-[#D8232A] bg-red-50/40 shadow-xs'
-                      : 'border-neutral-200 hover:border-neutral-300'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="deliveryMethod"
-                      checked={deliveryMethod === 'standard'}
-                      onChange={() => setDeliveryMethod('standard')}
-                      className="mt-1 text-[#D8232A] focus:ring-[#D8232A]"
-                    />
-                    <div>
-                      <div className="font-bold text-xs text-neutral-900 flex items-center gap-2">
-                        <span>Standard Home Delivery Across Bangladesh</span>
-                        {shippingFee === 0 && (
-                          <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.2 rounded font-black">
+                {DELIVERY_ZONES.map((zone) => {
+                  const active = deliveryMethod === zone.id;
+                  const eff = isFreeShip ? 0 : zone.fee;
+                  return (
+                    <button
+                      key={zone.id}
+                      type="button"
+                      onClick={() => setDeliveryMethod(zone.id)}
+                      className={`w-full p-4 rounded-2xl border transition-all flex items-start justify-between text-left cursor-pointer ${
+                        active
+                          ? 'border-[#D8232A] bg-red-50/40 shadow-xs'
+                          : 'border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={`mt-1 w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                            active ? 'border-[#D8232A]' : 'border-neutral-300'
+                          }`}
+                        >
+                          {active && <span className="w-2 h-2 rounded-full bg-[#D8232A]" />}
+                        </span>
+                        <div>
+                          <div className="font-bold text-xs text-neutral-900 flex items-center gap-2">
+                            <span>{zone.en}</span>
+                            <span className="text-[11px] font-semibold text-neutral-500">{zone.bn}</span>
+                          </div>
+                          <p className="text-[11px] text-neutral-500 mt-0.5">
+                            Home delivery — timing confirmed after you place your order.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-black text-neutral-900">
+                        {eff === 0 ? (
+                          <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-black text-[10px]">
                             FREE
                           </span>
+                        ) : (
+                          formatPrice(eff, currency)
                         )}
-                      </div>
-                      <p className="text-[11px] text-neutral-500 mt-0.5">
-                        Delivered in 2-3 days in Dhaka, 3-5 days nationwide via AKS Express Fleet.
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-black text-neutral-900">
-                    {shippingFee === 0 ? '৳0' : formatPrice(120, currency)}
-                  </span>
-                </label>
-
-                {/* Express Dhaka */}
-                <label
-                  className={`p-4 rounded-2xl border transition-all flex items-start justify-between cursor-pointer ${
-                    deliveryMethod === 'express'
-                      ? 'border-[#D8232A] bg-red-50/40 shadow-xs'
-                      : 'border-neutral-200 hover:border-neutral-300'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="deliveryMethod"
-                      checked={deliveryMethod === 'express'}
-                      onChange={() => setDeliveryMethod('express')}
-                      className="mt-1 text-[#D8232A] focus:ring-[#D8232A]"
-                    />
-                    <div>
-                      <div className="font-bold text-xs text-neutral-900 flex items-center gap-2">
-                        <span>Dhaka City Super-Express (24 Hours)</span>
-                        <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.2 rounded font-black">
-                          FASTEST
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-neutral-500 mt-0.5">
-                        Guaranteed next-day priority dispatch from Tongi Central Hub.
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-black text-neutral-900">
-                    {formatPrice(180, currency)}
-                  </span>
-                </label>
-
-                {/* Store Pickup Click & Collect */}
-                <label
-                  className={`p-4 rounded-2xl border transition-all flex items-start justify-between cursor-pointer ${
-                    deliveryMethod === 'pickup'
-                      ? 'border-[#D8232A] bg-red-50/40 shadow-xs'
-                      : 'border-neutral-200 hover:border-neutral-300'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="deliveryMethod"
-                      checked={deliveryMethod === 'pickup'}
-                      onChange={() => setDeliveryMethod('pickup')}
-                      className="mt-1 text-[#D8232A] focus:ring-[#D8232A]"
-                    />
-                    <div>
-                      <div className="font-bold text-xs text-neutral-900 flex items-center gap-2">
-                        <span>Free Click & Collect at AKS Boutique</span>
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.2 rounded font-black">
-                          FREE
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-neutral-500 mt-0.5">
-                        Try on garments in-store and collect at your convenience with free bespoke alteration.
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-black text-emerald-700">FREE</span>
-                </label>
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Pickup store selection */}
-              {deliveryMethod === 'pickup' && (
-                <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200">
-                  <label className="block text-xs font-bold text-neutral-800 mb-1.5">
-                    Select Pickup Store:
-                  </label>
-                  <select
-                    value={pickupStore}
-                    onChange={(e) => setPickupStore(e.target.value)}
-                    className="w-full text-xs p-2 border border-neutral-300 rounded-lg bg-white"
-                  >
-                    {STORE_LOCATIONS.map((st) => (
-                      <option key={st.id} value={st.name}>
-                        {st.name} ({st.area}, {st.division})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {isFreeShip && (
+                <p className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5">
+                  🎉 FREE delivery unlocked on this order!
+                </p>
               )}
 
               <div className="pt-4 flex justify-between">
@@ -457,23 +462,29 @@ export const CheckoutModal: React.FC = () => {
           )}
 
           {/* STEP 3: Payment */}
-          {step === 3 && (
+          {step === 3 && cart.length > 0 && (
             <div className="space-y-5">
               <h3 className="font-black text-lg text-neutral-900 tracking-tight">
-                Select Secure Payment Method
+                Payment Method
               </h3>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {[
-                  { id: 'bkash', label: 'bKash', color: '#D12053', tag: 'Fast & Instant' },
-                  { id: 'nagad', label: 'Nagad', color: '#F7941D', tag: 'Mobile Wallet' },
-                  { id: 'card', label: 'Cards / Visa', color: '#1E3A8A', tag: 'SSLCommerz' },
-                  { id: 'cod', label: 'Cash on Delivery', color: '#18181B', tag: 'Pay on Hand' },
+                  { id: 'cod', label: 'Cash on Delivery', color: '#18181B', tag: 'Recommended', available: true },
+                  { id: 'bkash', label: 'bKash', color: '#D12053', tag: 'Coming Soon', available: false },
+                  { id: 'nagad', label: 'Nagad', color: '#F7941D', tag: 'Coming Soon', available: false },
+                  { id: 'card', label: 'Cards / Visa', color: '#1E3A8A', tag: 'Coming Soon', available: false },
                 ].map((pm) => (
                   <button
                     key={pm.id}
-                    onClick={() => setPaymentMethod(pm.id as any)}
-                    className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                    onClick={() => {
+                      if (pm.available) setPaymentMethod(pm.id as any);
+                    }}
+                    disabled={!pm.available}
+                    title={pm.available ? undefined : 'Online payment coming soon'}
+                    className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
+                      !pm.available ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                    } ${
                       paymentMethod === pm.id
                         ? 'border-[#D8232A] bg-red-50/50 shadow-xs ring-2 ring-[#D8232A]/20'
                         : 'border-neutral-200 hover:border-neutral-300'
@@ -486,87 +497,22 @@ export const CheckoutModal: React.FC = () => {
                       {pm.label.substring(0, 3)}
                     </span>
                     <span className="text-xs font-bold text-neutral-900">{pm.label}</span>
-                    <span className="text-[10px] text-neutral-400">{pm.tag}</span>
+                    <span className={`text-[10px] ${pm.available ? 'text-emerald-600 font-bold' : 'text-neutral-400'}`}>
+                      {pm.tag}
+                    </span>
                   </button>
                 ))}
               </div>
 
-              {/* bKash Interactive Panel */}
-              {paymentMethod === 'bkash' && (
-                <div className="bg-[#D12053]/5 border border-[#D12053]/20 p-4 sm:p-5 rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-xs text-[#D12053]">
-                      bKash Payment Gateway
-                    </span>
-                    <span className="text-xs font-bold text-neutral-800">
-                      Amount: {formatPrice(cartTotal, currency)}
-                    </span>
-                  </div>
-
-                  {bkashStep === 'number' && (
-                    <div className="space-y-2">
-                      <label className="block text-xs font-bold text-neutral-700">
-                        Your bKash Account Number:
-                      </label>
-                      <input
-                        type="text"
-                        value={bkashNumber}
-                        onChange={(e) => setBkashNumber(e.target.value)}
-                        placeholder="01XXXXXXXXX"
-                        className="w-full text-xs p-2.5 border border-neutral-300 rounded-xl bg-white outline-none focus:border-[#D12053]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setBkashStep('otp')}
-                        className="w-full py-2.5 bg-[#D12053] text-white text-xs font-bold rounded-xl"
-                      >
-                        Send Verification Code (OTP)
-                      </button>
-                    </div>
-                  )}
-
-                  {bkashStep === 'otp' && (
-                    <div className="space-y-2">
-                      <label className="block text-xs font-bold text-neutral-700">
-                        Enter 6-digit OTP sent to {bkashNumber}:
-                      </label>
-                      <input
-                        type="text"
-                        value={bkashOtp}
-                        onChange={(e) => setBkashOtp(e.target.value)}
-                        placeholder="1 2 3 4 5 6"
-                        className="w-full text-xs p-2.5 border border-neutral-300 rounded-xl bg-white outline-none text-center font-mono text-base tracking-widest"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setBkashStep('pin')}
-                        className="w-full py-2.5 bg-[#D12053] text-white text-xs font-bold rounded-xl"
-                      >
-                        Verify OTP
-                      </button>
-                    </div>
-                  )}
-
-                  {bkashStep === 'pin' && (
-                    <div className="space-y-2">
-                      <label className="block text-xs font-bold text-neutral-700">
-                        Enter bKash PIN:
-                      </label>
-                      <input
-                        type="password"
-                        value={bkashPin}
-                        onChange={(e) => setBkashPin(e.target.value)}
-                        placeholder="• • • • •"
-                        className="w-full text-xs p-2.5 border border-neutral-300 rounded-xl bg-white outline-none text-center text-lg"
-                      />
-                      <div className="flex items-center gap-1 text-[11px] text-neutral-500">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>256-bit encrypted bKash secure sandbox</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
+              {/* COD explanation */}
+              {paymentMethod === 'cod' && (
+                <p className="text-[11px] text-neutral-500 flex items-start gap-1.5 -mt-1">
+                  <Truck className="w-3.5 h-3.5 shrink-0 mt-px" />
+                  <span>Pay when your order is delivered. Online payment options are coming soon.</span>
+                </p>
               )}
+
+
 
               {/* Order Summary Recap */}
               <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-200 space-y-1.5 text-xs text-neutral-600">
@@ -583,16 +529,27 @@ export const CheckoutModal: React.FC = () => {
                 <div className="flex justify-between">
                   <span>Shipping</span>
                   <span className="font-bold text-neutral-900">
-                    {deliveryMethod === 'pickup' ? 'FREE' : shippingFee === 0 ? 'FREE' : formatPrice(shippingFee, currency)}
+                    {zoneShipping === 0 ? (
+                      <span className="text-emerald-700">FREE</span>
+                    ) : (
+                      formatPrice(zoneShipping, currency)
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm font-black text-neutral-900 pt-2 border-t border-neutral-200">
                   <span>Grand Total to Pay</span>
-                  <span className="text-base text-[#D8232A]">{formatPrice(cartTotal, currency)}</span>
+                  <span className="text-base text-[#D8232A]">{formatPrice(orderTotal, currency)}</span>
                 </div>
               </div>
 
-              <div className="pt-2 flex justify-between items-center">
+              {/* Honest failure message — order was NOT placed */}
+              {orderError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl px-4 py-3">
+                  {orderError}
+                </div>
+              )}
+
+              <div className="pt-2 flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setStep(2)}
@@ -603,10 +560,11 @@ export const CheckoutModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={handlePlaceOrder}
-                  className="py-4 px-8 bg-[#D8232A] hover:bg-[#b51c22] text-white text-sm font-black rounded-xl shadow-lg transition-all cursor-pointer flex items-center gap-2"
+                  disabled={isPlacingOrder || cart.length === 0}
+                  className="w-full sm:w-auto justify-center py-4 px-8 bg-[#D8232A] hover:bg-[#b51c22] text-white text-sm font-black rounded-xl shadow-lg transition-all flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Confirm & Place Order ({formatPrice(cartTotal, currency)})</span>
+                  <span>{isPlacingOrder ? 'Placing Order…' : `Confirm & Place Order (${formatPrice(cartTotal, currency)})`}</span>
                 </button>
               </div>
             </div>
@@ -614,7 +572,7 @@ export const CheckoutModal: React.FC = () => {
 
           {/* STEP 4: Order Confirmation Receipt */}
           {step === 4 && completedOrder && (
-            <div className="text-center py-4 space-y-6">
+            <div className="text-center py-4 space-y-6 print-area">
               <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
@@ -623,49 +581,100 @@ export const CheckoutModal: React.FC = () => {
                 <h3 className="text-2xl font-black text-neutral-900 tracking-tight">
                   Thank You for Your Order!
                 </h3>
-                <p className="text-xs text-neutral-500 mt-1">
-                  We've received your order and are preparing your bespoke garments at AKS Atelier & Central Warehouse.
+                <p className="text-base font-bold text-neutral-700 -mt-3">
+                  আপনার অর্ডারের জন্য ধন্যবাদ!
+                </p>
+                <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
+                  We've received your order. Our team will contact you to confirm the delivery details.
+                  <span className="block mt-1">
+                    আপনার অর্ডার পেয়েছি — ডেলিভারি নিশ্চিত করতে আমাদের টিম শীঘ্রই আপনার সাথে যোগাযোগ করবে।
+                  </span>
                 </p>
               </div>
 
-              {/* Order Reference Box */}
-              <div className="bg-neutral-50 p-5 rounded-2xl border border-neutral-200 text-left space-y-3">
-                <div className="flex flex-wrap items-center justify-between border-b border-neutral-200 pb-3 gap-2">
+              {/* Invoice — international standard layout */}
+              <div className="bg-white rounded-xl border border-neutral-300 text-left">
+                {/* Seller + Invoice meta */}
+                <div className="flex flex-wrap justify-between gap-4 p-5 pb-4 border-b border-neutral-200">
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                      Tracking Reference
-                    </span>
-                    <p className="font-mono font-black text-sm text-[#D8232A]">
-                      {completedOrder.trackingCode}
+                    <div className="flex items-center gap-2.5">
+                      <Logo className="h-9 w-9 rounded-md" />
+                      <p className="font-black text-lg text-neutral-900 tracking-tight">AKS Mart</p>
+                    </div>
+                    <p className="text-[11px] text-neutral-500 mt-1.5">{AKS_MART.address}</p>
+                    <p className="text-[11px] text-neutral-500">
+                      www.{AKS_MART.site} · {AKS_MART.phone}
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                      Payment Mode
-                    </span>
-                    <p className="font-bold text-xs uppercase text-neutral-800">
-                      {completedOrder.paymentMethod} • Paid {formatPrice(completedOrder.total, currency)}
+                    <p className="text-sm font-black uppercase tracking-widest text-[#D8232A]">Invoice</p>
+                    <p className="font-mono text-sm font-bold text-neutral-900 mt-1">
+                      {completedOrder.trackingCode}
+                    </p>
+                    <p className="text-[11px] text-neutral-500 mt-1">
+                      Date: {formatInvoiceDate(completedOrder.createdAt)}
+                    </p>
+                    <p className="text-[11px] font-semibold text-neutral-700 capitalize">
+                      Payment: {completedOrder.paymentMethod === 'cod' ? 'Cash on Delivery' : completedOrder.paymentMethod}
                     </p>
                   </div>
                 </div>
 
-                {/* Items Ordered */}
-                <div className="space-y-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                    Ordered Garments ({completedOrder.items.length} Items)
-                  </span>
-                  <div className="divide-y divide-neutral-100">
-                    {completedOrder.items.map((it) => (
-                      <div key={it.cartItemId} className="py-1.5 flex items-center justify-between text-xs">
-                        <span className="text-neutral-800 font-semibold truncate max-w-xs">
-                          {it.product.name} ({it.selectedSize.size}) x{it.quantity}
-                        </span>
-                        <span className="font-bold text-neutral-900">
-                          {formatPrice(it.product.price * it.quantity, currency)}
-                        </span>
-                      </div>
-                    ))}
+                {/* Bill To / Deliver To */}
+                <div className="grid sm:grid-cols-2 gap-4 px-5 py-4 text-xs border-b border-neutral-100">
+                  <div>
+                    <p className="font-black uppercase tracking-wider text-neutral-400 text-[10px] mb-1">Billed To</p>
+                    <p className="font-bold text-neutral-900">{completedOrder.shippingAddress.fullName}</p>
+                    <p className="text-neutral-600">{completedOrder.shippingAddress.phone}</p>
+                    {completedOrder.shippingAddress.email && (
+                      <p className="text-neutral-500">{completedOrder.shippingAddress.email}</p>
+                    )}
                   </div>
+                  <div>
+                    <p className="font-black uppercase tracking-wider text-neutral-400 text-[10px] mb-1">Deliver To</p>
+                    <p className="text-neutral-600 leading-relaxed">
+                      {completedOrder.shippingAddress.streetAddress}, {completedOrder.shippingAddress.thana},{' '}
+                      {completedOrder.shippingAddress.district}, {completedOrder.shippingAddress.division}
+                      {completedOrder.shippingAddress.postalCode ? ` - ${completedOrder.shippingAddress.postalCode}` : ''}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Items table */}
+                <div className="px-5 py-4 overflow-x-auto">
+                  <table className="w-full text-xs min-w-[430px]">
+                    <thead>
+                      <tr className="border-b border-neutral-300 uppercase tracking-wider text-[10px] text-neutral-500">
+                        <th className="py-2 pr-2 font-bold text-left">#</th>
+                        <th className="py-2 pr-2 font-bold text-left">Item</th>
+                        <th className="py-2 pr-2 font-bold text-left">Size</th>
+                        <th className="py-2 pr-2 font-bold text-center">Qty</th>
+                        <th className="py-2 pr-2 font-bold text-right">Unit Price</th>
+                        <th className="py-2 font-bold text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100">
+                      {completedOrder.items.map((it, idx) => (
+                        <tr key={it.cartItemId}>
+                          <td className="py-2 pr-2 text-neutral-500">{idx + 1}</td>
+                          <td className="py-2 pr-2">
+                            <span className="font-semibold text-neutral-900">{it.product.name}</span>
+                            {PRODUCT_BN[it.product.slug] && (
+                              <span className="block text-[10px] text-neutral-400">{PRODUCT_BN[it.product.slug]}</span>
+                            )}
+                          </td>
+                          <td className="py-2 pr-2 text-neutral-600">{it.selectedSize.size}</td>
+                          <td className="py-2 pr-2 text-center text-neutral-600">{it.quantity}</td>
+                          <td className="py-2 pr-2 text-right text-neutral-600">
+                            {formatPrice(it.product.price, currency)}
+                          </td>
+                          <td className="py-2 text-right font-bold text-neutral-900">
+                            {formatPrice(it.product.price * it.quantity, currency)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
 
                 {/* Shipping info */}
@@ -681,7 +690,7 @@ export const CheckoutModal: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 no-print">
                 <button
                   onClick={() => {
                     setIsCheckoutOpen(false);
@@ -689,7 +698,7 @@ export const CheckoutModal: React.FC = () => {
                   }}
                   className="py-3 px-6 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
                 >
-                  Track Live Order Status
+                  Track Your Order
                 </button>
 
                 <button

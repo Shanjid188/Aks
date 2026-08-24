@@ -10,14 +10,15 @@ import {
   Zap,
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Logo } from './Logo';
 
-export const BataClubModal: React.FC = () => {
-  const { isBataClubOpen, setIsBataClubOpen, addToast } = useStore();
+export const AksMartClubModal: React.FC = () => {
+    const { isAksMartClubOpen, setIsAksMartClubOpen, addToast } = useStore();
   const [activeTab, setActiveTab] = useState<'benefits' | 'rewards' | 'tiers'>('benefits');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isJoined, setIsJoined] = useState(false);
 
-  if (!isBataClubOpen) return null;
+    if (!isAksMartClubOpen) return null;
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +26,7 @@ export const BataClubModal: React.FC = () => {
     setIsJoined(true);
     addToast({
       type: 'success',
-      title: 'Welcome to AKS Privé Club!',
+      title: 'Welcome to AKS Mart Club!',
       message: '500 bonus welcome reward points have been credited to your mobile membership account.',
     });
   };
@@ -36,7 +37,7 @@ export const BataClubModal: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={() => setIsBataClubOpen(false)}
+                onClick={() => setIsAksMartClubOpen(false)}
         className="fixed inset-0 bg-neutral-950/60 backdrop-blur-xs"
       />
 
@@ -55,19 +56,19 @@ export const BataClubModal: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-neutral-900 tracking-tight">
-                  AKS Privé Loyalty Club
+                  AKS Mart Loyalty Club
                 </h2>
                 <span className="text-[10px] uppercase font-bold text-[#D8232A] bg-red-50 px-2 py-0.5 rounded">
-                  Haute Privileges
+                                    Exclusive Member Perks
                 </span>
               </div>
               <p className="text-xs text-neutral-500">
-                Earn points on artisanal bespoke apparel, unlock complimentary alterations & private runway previews
+                                  Earn AKS Mart Points on every purchase, unlock exclusive deals & birthday rewards
               </p>
             </div>
           </div>
           <button
-            onClick={() => setIsBataClubOpen(false)}
+                        onClick={() => setIsAksMartClubOpen(false)}
             className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -77,12 +78,10 @@ export const BataClubModal: React.FC = () => {
         {/* Member Status Banner */}
         <div className="bg-neutral-50 px-6 py-4 border-b border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs font-bold">
-              AKS
-            </div>
+            <Logo className="w-8 h-8 rounded-full shrink-0" />
             <div>
               <p className="text-xs font-semibold text-neutral-900">
-                {isJoined ? 'Active Privé Member • Elite Gold Tier' : 'Not an AKS Privé Member Yet?'}
+                {isJoined ? 'Active Member • AKS Mart Club' : 'Join the AKS Mart Club?'}
               </p>
               <p className="text-[11px] text-neutral-500">
                 {isJoined
@@ -145,7 +144,7 @@ export const BataClubModal: React.FC = () => {
                 {
                   icon: <Zap className="w-4 h-4 text-amber-500" />,
                   title: '1 Reward Point for Every ৳10',
-                  desc: 'Redeem your points directly for discounts on panjabis, formal shirts & festive sarees.',
+                                desc: 'Redeem your points for discounts across SHUDDHO, AKS CRAFT, AKS HOME, AKS BEAUTY & AKS PRINT.',
                 },
                 {
                   icon: <Gift className="w-4 h-4 text-[#D8232A]" />,
@@ -155,12 +154,12 @@ export const BataClubModal: React.FC = () => {
                 {
                   icon: <Sparkles className="w-4 h-4 text-purple-500" />,
                   title: 'Early Eid & Festive Previews',
-                  desc: 'Reserve limited-edition silk panjabis and designer sarees 48 hours before public launch.',
+                                desc: 'Reserve new SHUDDHO essentials, AKS PRINT releases & member-only finds 48 hours before public launch.',
                 },
                 {
                   icon: <Award className="w-4 h-4 text-emerald-500" />,
-                  title: 'Complimentary Master Tailoring',
-                  desc: 'Free sleeve adjustment, fitting, and hem alterations at all AKS Flagship Boutiques.',
+                                title: 'Member-Only Perks',
+                                desc: 'Free express shipping, priority checkout & birthday treats at all AKS Mart stores.',
                 },
               ].map((item, idx) => (
                 <div key={idx} className="p-4 rounded-xl bg-neutral-50 border border-neutral-100 space-y-1">
@@ -177,10 +176,10 @@ export const BataClubModal: React.FC = () => {
           {activeTab === 'rewards' && (
             <div className="space-y-3">
               {[
-                { points: 200, reward: '৳150 Instant Garment Voucher', code: 'AKS150' },
-                { points: 500, reward: '৳400 Festive Shopping Voucher', code: 'AKS400' },
-                { points: 1000, reward: 'Complimentary Silk Pocket Square & Brooch Set', code: 'AKSGIFT' },
-                { points: 2000, reward: '৳2,000 Bespoke Haute Couture Voucher', code: 'AKS2000' },
+                                { points: 200, reward: '৳150 Instant Voucher', code: 'AKS150' },
+                { points: 500, reward: '৳400 Shopping Voucher', code: 'AKS400' },
+                { points: 1000, reward: '৳300 Gift Card', code: 'AKSGIFT' },
+                { points: 2000, reward: '৳2,000 AKS Mart Shopping Voucher', code: 'AKS2000' },
               ].map((r, idx) => (
                 <div
                   key={idx}
@@ -188,7 +187,7 @@ export const BataClubModal: React.FC = () => {
                 >
                   <div>
                     <span className="text-xs font-bold text-neutral-900">{r.reward}</span>
-                    <p className="text-[11px] text-neutral-400 mt-0.5">Required: {r.points} AKS Privé Points</p>
+                    <p className="text-[11px] text-neutral-400 mt-0.5">Required: {r.points} AKS Mart Points</p>
                   </div>
                   <button
                     onClick={() =>
@@ -210,9 +209,9 @@ export const BataClubModal: React.FC = () => {
           {activeTab === 'tiers' && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
-                { name: 'Silver Privé', spend: '৳0 - ৳8,000', rate: '1x Points', perk: 'Seasonal launch invitations' },
-                { name: 'Gold Privé', spend: '৳8,001 - ৳25,000', rate: '1.5x Points', perk: 'Free Dhaka Express Shipping + 2 Free Alterations' },
-                { name: 'Platinum Sovereign', spend: '৳25,000+', rate: '2x Points', perk: 'Dedicated Personal Stylist & Private Atelier Access' },
+                                { name: 'Silver', spend: '৳0 - ৳8,000', rate: '1x Points', perk: 'Member-only flash sales' },
+                { name: 'Gold', spend: '৳8,001 - ৳25,000', rate: '1.5x Points', perk: 'Free Express Shipping + Early Access' },
+                { name: 'Platinum', spend: '৳25,000+', rate: '2x Points', perk: 'Priority Customer Care + Birthday Gift' },
               ].map((tier, idx) => (
                 <div
                   key={idx}

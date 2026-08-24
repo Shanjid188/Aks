@@ -30,7 +30,7 @@ export const OrderTrackerModal: React.FC = () => {
 
   const orderStages = [
     { label: 'Order Confirmed', date: 'Yesterday, 4:30 PM', completed: true },
-    { label: 'Artisanal Finishing & Packed at AKS Atelier', date: 'Today, 9:15 AM', completed: true },
+        { label: 'Picked & Packed at AKS Mart Fulfillment Hub', date: 'Today, 9:15 AM', completed: true },
     { label: 'Handed to AKS Express Logistics', date: 'Today, 2:40 PM', completed: true },
     { label: 'Out for Delivery (Dhaka Hub)', date: 'Expected Tomorrow', completed: false, active: true },
     { label: 'Delivered & Signed', date: 'Pending', completed: false },

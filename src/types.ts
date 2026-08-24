@@ -1,28 +1,44 @@
-export type CategoryType = 'all' | 'men' | 'women' | 'kids' | 'festive' | 'accessories';
+export type CategoryType = 'all' | 'food' | 'craft' | 'home' | 'beauty' | 'print';
 
 export type SubcategoryType =
   | 'All'
-  | 'Panjabis & Kabli'
-  | 'Formal Shirts'
-  | 'Casual Shirts & Polos'
-  | 'Denim & Trousers'
-  | 'Kurtis & Tunics'
-  | 'Salwar Kameez & Suits'
-  | 'Sarees & Festive'
-  | 'Tops & Western'
-  | 'T-Shirts & Polos'
-  | 'Blazers & Waistcoats'
-  | 'Kids Garments'
-  | 'Accessories & Shawls';
+  | 'Rice & Staples'
+  | 'Oils & Ghee'
+  | 'Dal & Pulses'
+  | 'Spices'
+  | 'Honey & Sweet'
+  | 'Pickles & Traditional'
+  | 'Dry Food & Essentials'
+  | 'Nakshi Kantha'
+  | 'Paposh & Shotoronji'
+  | 'Jute Products'
+  | 'Bamboo Products'
+  | 'Handmade Bags'
+  | 'Handmade Décor'
+  | 'Bedding & Linens'
+  | 'Curtains & Drapery'
+  | 'Cushions & Carpets'
+  | 'Kitchen Essentials'
+  | 'Storage & Organization'
+  | 'Home Décor'
+  | 'Soap & Body Care'
+  | 'Hair Care'
+  | 'Face Care'
+  | 'Personal Care'
+  | 'Beauty Accessories'
+  | 'Custom Apparel'
+  | 'Mugs & Drinkware'
+  | 'Cards & Stationery'
+  | 'Posters & Signage'
+  | 'Corporate & Packaging'
+  | 'Custom Design';
 
 export type BrandName =
-  | 'AKS Heritage'
-  | 'AKS Studio'
-  | 'AKS Signature'
-  | 'AKS Riva'
-  | 'AKS Denim Co.'
-  | 'AKS Junior'
-  | 'AKS Essentials';
+  | 'SHUDDHO'
+  | 'AKS CRAFT'
+  | 'AKS HOME'
+  | 'AKS BEAUTY'
+  | 'AKS PRINT';
 
 export interface ProductColor {
   name: string;
@@ -122,7 +138,7 @@ export interface Review {
   date: string;
   verified: boolean;
   helpfulCount: number;
-  fitFeedback: 'runs_small' | 'true_to_size' | 'runs_large';
+  fitFeedback?: 'runs_small' | 'true_to_size' | 'runs_large';
 }
 
 export interface StoreLocation {
@@ -164,7 +180,7 @@ export interface Order {
   id: string;
   items: CartItem[];
   shippingAddress: ShippingAddress;
-  deliveryMethod: 'standard' | 'express' | 'pickup';
+  deliveryMethod: 'standard' | 'express' | 'pickup' | 'inside_dhaka' | 'sub_dhaka' | 'outside_dhaka';
   pickupStore?: string;
   paymentMethod: 'bkash' | 'nagad' | 'card' | 'cod';
   subtotal: number;
