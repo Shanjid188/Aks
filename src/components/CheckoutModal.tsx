@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
 import { Order } from '../types';
+import { AKS_MART } from '../data/aksMart';
+import { PRODUCT_BN } from '../data/bn';
 import Logo from './Logo';
 import {
   X,
@@ -23,6 +25,17 @@ const BD_PHONE_REGEX = /^01[3-9]\d{8}$/;
 const PHONE_ERROR_MESSAGE = 'Please enter a valid Bangladeshi mobile number.';
 /** Neutral delivery wording — we never promise a timeframe we can't guarantee. */
 const ESTIMATED_DELIVERY_NOTE = 'Delivery time will be confirmed after your order is placed.';
+
+const formatInvoiceDate = (createdAt: string): string => {
+  const date = new Date(createdAt);
+  return Number.isNaN(date.getTime())
+    ? createdAt
+    : date.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+};
 
 /** Delivery zones (owner-configurable fees). */
 const DELIVERY_ZONES = [

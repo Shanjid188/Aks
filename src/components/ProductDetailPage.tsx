@@ -145,8 +145,8 @@ export const ProductDetailPage: React.FC = () => {
     <div className="bg-neutral-50/60 min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top Breadcrumbs & Back Navigation */}
-        <div className="flex items-center justify-between mb-6 text-xs text-neutral-500 font-medium">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 text-xs text-neutral-500 font-medium">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
             <button
               onClick={() => setActiveProductPage(null)}
               className="hover:text-[#D8232A] transition-colors cursor-pointer"
@@ -168,7 +168,7 @@ export const ProductDetailPage: React.FC = () => {
 
           <button
             onClick={() => setActiveProductPage(null)}
-            className="flex items-center gap-1.5 font-bold text-neutral-700 hover:text-[#D8232A] transition-colors cursor-pointer bg-white px-3 py-1.5 rounded-full border border-neutral-200 shadow-2xs"
+            className="self-start sm:self-auto flex items-center gap-1.5 font-bold text-neutral-700 hover:text-[#D8232A] transition-colors cursor-pointer bg-white px-3 py-1.5 rounded-full border border-neutral-200 shadow-2xs"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Collection</span>

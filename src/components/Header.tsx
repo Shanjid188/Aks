@@ -171,7 +171,7 @@ export const Header: React.FC = () => {
           </div>
 
           {/* Quick links & Currency */}
-          <div className="flex items-center gap-4 text-neutral-300">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 sm:gap-x-4 text-neutral-300">
             <button
               onClick={() => setIsStoreLocatorOpen(true)}
               className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
@@ -445,7 +445,9 @@ export const Header: React.FC = () => {
                   </span>
                 )}
               </div>
-              <div className="flex flex-col text-left leading-none">
+              {/* Price label hides on very narrow phones so the row always fits;
+                  the bag icon + count badge above stay visible and functional. */}
+              <div className="hidden min-[400px]:flex flex-col text-left leading-none">
                 <span className="text-[10px] font-medium text-red-100 uppercase tracking-tight">Bag</span>
                 <span className="text-xs font-extrabold tracking-tight mt-0.5">
                   {formatPrice(cartSubtotal, currency)}

@@ -63,7 +63,10 @@ export const HeroSlider: React.FC = () => {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="relative h-[335px] sm:h-[415px] lg:h-[485px] flex items-center overflow-hidden">
+      {/* Height adapts to content on phones (min-h); fixed feel kept from sm up.
+          This prevents the tall mobile text stack from clipping / overlapping the
+          arrows & indicators that anchor to this box's bottom edge. */}
+      <div className="relative flex items-center overflow-hidden min-h-[360px] sm:min-h-[415px] lg:min-h-[485px]">
         {/* Background Image Carousel with Fade */}
         <AnimatePresence mode="wait">
           <motion.div
@@ -87,7 +90,7 @@ export const HeroSlider: React.FC = () => {
         </AnimatePresence>
 
         {/* Hero Content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16 w-full">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 sm:py-12 lg:py-16 w-full">
           <div className="max-w-2xl">
             <AnimatePresence mode="wait">
               <motion.div
@@ -96,7 +99,7 @@ export const HeroSlider: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5, delay: 0.15 }}
-                className="space-y-4 sm:space-y-6"
+                className="space-y-3 sm:space-y-6"
               >
                 {/* Badge */}
                 <div className="inline-flex items-center gap-2 px-3.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-bold tracking-widest uppercase">
@@ -108,10 +111,10 @@ export const HeroSlider: React.FC = () => {
                 </div>
 
                 {/* Main Heading */}
-                <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.05]">
+                <h2 className="text-2xl min-[400px]:text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.05]">
                   {slide.title}
                   {titleBn && (
-                    <span className="text-xl sm:text-3xl lg:text-4xl font-bold text-neutral-200 tracking-normal">
+                    <span className="text-lg min-[400px]:text-xl sm:text-3xl lg:text-4xl font-bold text-neutral-200 tracking-normal">
                       {' '}({titleBn})
                     </span>
                   )}
@@ -134,10 +137,10 @@ export const HeroSlider: React.FC = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="pt-2 flex flex-wrap items-center gap-3.5">
+                <div className="pt-2 flex flex-wrap items-center gap-3 sm:gap-3.5">
                   <button
                     onClick={() => handleSlideCta(slide)}
-                    className="px-6 sm:px-8 py-3.5 rounded-full text-white font-extrabold text-sm sm:text-base flex items-center gap-2.5 shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-0.5 cursor-pointer"
+                    className="px-5 py-3 sm:px-8 sm:py-3.5 rounded-full text-white font-extrabold text-sm sm:text-base flex items-center gap-2.5 shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-0.5 cursor-pointer"
                     style={{ backgroundColor: slide.accentColor }}
                   >
                     <span>{slide.ctaText}</span>
@@ -156,7 +159,7 @@ export const HeroSlider: React.FC = () => {
                       const catalogEl = document.getElementById('product-catalog-section');
                       if (catalogEl) catalogEl.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="px-5 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 backdrop-blur-md transition-all cursor-pointer"
+                    className="px-4 py-2.5 sm:px-5 sm:py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 backdrop-blur-md transition-all cursor-pointer"
                   >
                                         View All Deals
                   </button>
