@@ -92,7 +92,8 @@ npm run setup:api
 npm run dev:api
 ```
 
-**Default admin login (seeded):** `admin@aksgarments.com.bd` / `Admin@123`
+**Admin login:** seeded on first boot — **change it immediately** on your server with
+`server/prisma/set-admin-password.ts` (see `docs/DEPLOY_VPS.md`). Never ship default credentials.
 
 Key endpoints:
 

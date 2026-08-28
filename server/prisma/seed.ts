@@ -31,7 +31,7 @@ async function main() {
         role: 'superadmin',
       },
     });
-    console.log(`✅ Admin created → ${DEFAULT_ADMIN_EMAIL} / ${DEFAULT_ADMIN_PASSWORD}`);
+    console.log(`✅ Admin created → ${DEFAULT_ADMIN_EMAIL} (password not shown — set your own via prisma/set-admin-password.ts)`);
   } else {
     console.log('ℹ️  Admin already exists, skipping.');
   }
@@ -220,7 +220,8 @@ async function main() {
   console.log(`✅ Hero slides synced (${HERO_SLIDES_SEED.length}) [${slidesCreated} created]`);
 
   console.log('\n🎉 Seed complete.');
-  console.log('   Admin login →', DEFAULT_ADMIN_EMAIL, '/', DEFAULT_ADMIN_PASSWORD);
+  console.log('   Set your real admin password →');
+  console.log('   ADMIN_EMAIL="..." ADMIN_PASSWORD="..." node node_modules/tsx/dist/cli.mjs prisma/set-admin-password.ts');
 }
 
 main()

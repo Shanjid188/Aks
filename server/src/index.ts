@@ -30,6 +30,27 @@ if (PUBLIC_IMAGES_DIR) {
   app.use('/images', express.static(PUBLIC_IMAGES_DIR));
 }
 
+/* ── Production: serve the built storefront & admin SPAs from this process ──
+   On a VPS the same Node process serves /api plus the compiled frontends, so
+   everything is same-origin (no CORS setup, no VITE_API_BASE needed). Each
+   block is skipped automatically when the dist folder is absent, so the same
+   code still works in API-only or dev setups. */
+const STOREFRONT_DIST = [
+  path.resolve(process.cwd(), '..', 'dist'),
+  path.resolve(process.cwd(), 'dist'),
+].find((dir) => fs.existsSync(path.join(dir, 'index.html')));
+if (STOREFRONT_DIST) {
+  app.use(express.static(STOREFRONT_DIST));
+}
+
+const ADMIN_DIST = [
+  path.resolve(process.cwd(), '..', 'admin', 'dist'),
+  path.resolve(process.cwd(), 'admin', 'dist'),
+].find((dir) => fs.existsSync(path.join(dir, 'index.html')));
+if (ADMIN_DIST) {
+  app.use('/admin', express.static(ADMIN_DIST));
+}
+
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'aks-api', time: new Date().toISOString() });
@@ -45,6 +66,21 @@ app.use('/api', reviewsRouter);
 app.use('/api', statsRouter);
 app.use('/api', heroSlidesRouter);
 app.use('/api', uploadsRouter);
+
+/* ── SPA fallbacks (registered AFTER all /api routes) ───────────────────────
+   Deep links get the right SPA instead of the JSON 404 below. /api/* paths are
+   excluded so unknown API endpoints still return the JSON error. */
+if (ADMIN_DIST) {
+  app.get(['/admin', '/admin/*'], (_req, res) => {
+    res.sendFile(path.join(ADMIN_DIST, 'index.html'));
+  });
+}
+if (STOREFRONT_DIST) {
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+    res.sendFile(path.join(STOREFRONT_DIST, 'index.html'));
+  });
+}
 
 // 404 handler
 app.use((_req, res) => {

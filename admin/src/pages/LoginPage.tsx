@@ -69,8 +69,8 @@ export function LoginPage({ onSuccess }: { onSuccess: (admin: AdminUser) => void
         </Button>
 
         <p className="text-[11px] text-center text-neutral-400 leading-relaxed">
-          Default seeded admin — <span className="font-semibold text-neutral-500">admin@aksgarments.com.bd</span> /{' '}
-          <span className="font-semibold text-neutral-500">Admin@123</span>
+          Authorised staff only. Credentials are issued by the store owner —{' '}
+          <span className="font-semibold text-neutral-500">see docs/DEPLOY_VPS.md</span>.
         </p>
       </form>
     </div>
