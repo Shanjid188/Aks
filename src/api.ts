@@ -144,6 +144,55 @@ export const fetchHeroSlides = () => api<{ slides: ApiHeroSlide[] }>('/hero-slid
 export const fetchProductReviews = (slug: string) =>
   api<{ reviews: ApiReview[] }>(`/products/${slug}/reviews`);
 
+export interface ApiAnnouncement {
+  id: string;
+  text: string;
+  textBn: string | null;
+  link: string | null;
+  bgColor: string;
+  textColor: string;
+  isActive: boolean;
+}
+
+export const fetchAnnouncements = () => api<{ announcements: ApiAnnouncement[] }>('/announcements');
+
+export interface ApiPromotion {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  image: string | null;
+  link: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export const fetchPromotions = () => api<{ promotions: ApiPromotion[] }>('/promotions');
+
+export interface ApiPublicSettings {
+  storeName?: string;
+  storeLogo?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  address?: string;
+  facebook?: string;
+  whatsapp?: string;
+  currency?: string;
+  currencySymbol?: string;
+  freeShippingThreshold?: number;
+  defaultShippingCharge?: number;
+  announcement?: string;
+  announcementBn?: string;
+  announcementBg?: string;
+  announcementText?: string;
+  announcementLink?: string;
+  lowStockThreshold?: number;
+}
+
+export const fetchPublicSettings = () => api<{ settings: ApiPublicSettings }>('/settings/public');
+
 export const validateCoupon = (code: string) =>
   api<{ valid: boolean; message?: string; coupon: ApiCoupon }>(`/coupons/validate`, {
     method: 'POST',

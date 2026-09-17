@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import {
   ShieldCheck,
@@ -9,10 +9,11 @@ import {
   MapPin,
   Globe,
 } from 'lucide-react';
-import { AKS_MART } from '../data/aksMart';
 import { Logo } from './Logo';
 import { Bi } from './Bi';
 import { navigate } from '../lib/router';
+import { dataLoader, DEFAULT_STORE_INFO } from '../lib/dataLoader';
+import type { StoreInfo } from '../lib/dataLoader';
 import type { CategoryType } from '../types';
 
 export const Footer: React.FC = () => {
@@ -23,6 +24,19 @@ export const Footer: React.FC = () => {
     setActiveProductPage,
     addToast,
   } = useStore();
+
+  // Store contact info — DB-driven via /settings/public, bundled AKS_MART as fallback.
+  const [storeInfo, setStoreInfo] = useState<StoreInfo>(DEFAULT_STORE_INFO);
+
+  useEffect(() => {
+    let cancelled = false;
+    dataLoader.loadStoreInfo().then((info) => {
+      if (!cancelled) setStoreInfo(info);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [newsletterEmail, setNewsletterEmail] = useState('');
 
@@ -61,7 +75,7 @@ export const Footer: React.FC = () => {
             <div className="flex items-center gap-2.5">
               <Logo className="h-9 w-9 rounded-md shrink-0" />
               <span className="text-xs uppercase font-bold tracking-widest text-neutral-300">
-                AKS MART BANGLADESH
+                {storeInfo.name.toUpperCase()} BANGLADESH
               </span>
             </div>
             <p className="text-xs text-neutral-400 leading-relaxed max-w-sm">
@@ -70,7 +84,7 @@ export const Footer: React.FC = () => {
             {/* Brand motto */}
             <div className="pt-1 border-l-2 border-[#D8232A] pl-3 max-w-sm">
               <p className="text-[11px] font-bold text-neutral-200 leading-snug">
-                “{AKS_MART.mottoEn}”
+                “{storeInfo.mottoEn}”
               </p>
             </div>
 
@@ -163,7 +177,7 @@ export const Footer: React.FC = () => {
                     addToast({
                       type: 'info',
                       title: 'Customer Support',
-                      message: `Call or WhatsApp us at ${AKS_MART.phone}.`,
+                      message: `Call or WhatsApp us at ${storeInfo.phone}.`,
                     });
                   }}
                   className="hover:text-white transition-colors"
@@ -179,26 +193,26 @@ export const Footer: React.FC = () => {
             <h4 className="text-xs font-bold uppercase tracking-wider text-white"><Bi en="Contact & Order" bn="যোগাযোগ ও অর্ডার" /></h4>
             <div className="space-y-2.5 text-xs text-neutral-400">
               <a
-                href={`tel:${AKS_MART.phoneRaw}`}
+                href={`tel:${storeInfo.phoneRaw}`}
                 className="flex items-center gap-2 hover:text-white transition-colors"
               >
                 <Phone className="w-4 h-4 text-[#D8232A] shrink-0" />
-                <span>WhatsApp / Call: {AKS_MART.phone}</span>
+                <span>WhatsApp / Call: {storeInfo.phone}</span>
               </a>
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-[#D8232A] shrink-0 mt-0.5" />
                 <span>
-                  {AKS_MART.address}
+                  {storeInfo.address}
                 </span>
               </div>
               <a
-                href={`https://${AKS_MART.site}`}
+                href={`https://${storeInfo.site}`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-2 hover:text-white transition-colors"
               >
                 <Globe className="w-4 h-4 text-[#D8232A] shrink-0" />
-                <span>www.{AKS_MART.site}</span>
+                <span>www.{storeInfo.site}</span>
               </a>
             </div>
           </div>
@@ -207,7 +221,7 @@ export const Footer: React.FC = () => {
         {/* Bottom Bar: Payment Logos & Copyright */}
         <div className="pt-8 border-t border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
           <div className="flex items-center gap-2">
-            <span>© {new Date().getFullYear()} AKS Mart (Bangladesh). All rights reserved. aksmartbd.com</span>
+            <span>© {new Date().getFullYear()} {storeInfo.name} (Bangladesh). All rights reserved. {storeInfo.site}</span>
           </div>
 
           {/* Payment Gateways Badges */}

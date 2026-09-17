@@ -19,6 +19,7 @@ export interface Product {
   id: string;
   legacyId: string | null;
   sku: string;
+  barcode: string | null;
   name: string;
   slug: string;
   brand: string;

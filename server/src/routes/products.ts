@@ -39,6 +39,7 @@ router.get(
         { category: { contains: term } },
         { tags: { contains: term } },
         { sku: { contains: term } },
+        { barcode: { contains: term } },
       ];
     }
 
@@ -95,6 +96,7 @@ router.get(
       where.OR = [
         { name: { contains: term } },
         { sku: { contains: term } },
+        { barcode: { contains: term } },
         { brand: { contains: term } },
         { subcategory: { contains: term } },
       ];

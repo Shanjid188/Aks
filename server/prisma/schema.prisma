@@ -130,6 +130,8 @@ model Product {
   reviews            Review[]
   orderItems         OrderItem[]
   stockMovements     StockMovement[]
+
+  @@unique([barcode]) // business rule: machine barcode is unique (SQLite: multiple NULLs allowed)
 }
 
 model Order {
@@ -181,6 +183,7 @@ model Order {
   @@index([source])
   @@index([paymentStatus])
   @@index([createdAt])
+  @@unique([invoiceNumber]) // printable invoice reference must be unique (SQLite: multiple NULLs allowed)
 }
 
 model OrderItem {
@@ -189,6 +192,8 @@ model OrderItem {
   productId   String?
   productName String
   productSku  String
+  variantId   String? // product variant id captured at sale time (snapshot field; no Variant table yet)
+  barcode     String? // item barcode captured at sale time (snapshot field)
   unitCost    Float? // per-unit cost snapshot — for future inventory/COGS reporting
   size        String
   color       String

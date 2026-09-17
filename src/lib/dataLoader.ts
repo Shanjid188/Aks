@@ -3,8 +3,9 @@
 import * as API from '../api';
 import * as adapter from './apiAdapter';
 import { INITIAL_PRODUCTS, INITIAL_REVIEWS } from '../data/products';
-import { HERO_SLIDES } from '../data/promos';
-import type { HeroSlide } from '../data/promos';
+import { HERO_SLIDES, DEFAULT_ANNOUNCEMENTS } from '../data/promos';
+import type { HeroSlide, Announcement } from '../data/promos';
+import { AKS_MART } from '../data/aksMart';
 import { Product, Review } from '../types';
 
 const USE_API = import.meta.env.VITE_USE_API !== 'false';
@@ -65,6 +66,88 @@ export const dataLoader = {
       return INITIAL_REVIEWS;
     }
   },
+
+  /** Active announcement ticker from the DB, falling back to the original
+   *  hardcoded header strings if the API fails or returns nothing. */
+  async loadAnnouncements(): Promise<Announcement[]> {
+    if (!USE_API) return DEFAULT_ANNOUNCEMENTS;
+    try {
+      const { announcements } = await API.fetchAnnouncements();
+      if (announcements.length === 0) return DEFAULT_ANNOUNCEMENTS;
+      return announcements.map((a) => ({
+        id: a.id,
+        text: a.text,
+        textBn: a.textBn ?? undefined,
+        link: a.link ?? undefined,
+        bgColor: a.bgColor,
+        textColor: a.textColor,
+      }));
+    } catch (e) {
+      console.warn('[dataLoader] API announcements failed, falling back to hardcoded strings:', e);
+      return DEFAULT_ANNOUNCEMENTS;
+    }
+  },
+
+  /** Active promotions from the DB. No bundled promotion data exists, so an
+   *  API failure falls back to an empty list (the banner section is hidden). */
+  async loadPromotions(): Promise<API.ApiPromotion[]> {
+    if (!USE_API) return [];
+    try {
+      const { promotions } = await API.fetchPromotions();
+      return promotions;
+    } catch (e) {
+      console.warn('[dataLoader] API promotions failed (no bundled fallback — hiding banner):', e);
+      return [];
+    }
+  },
+
+  /** Public store info for the storefront (footer/contact) — API values win,
+   *  every field falls back to the bundled AKS_MART defaults. */
+  async loadStoreInfo(): Promise<StoreInfo> {
+    const fallback: StoreInfo = DEFAULT_STORE_INFO;
+    if (!USE_API) return fallback;
+    try {
+      const { settings } = await API.fetchPublicSettings();
+      return {
+        name: settings.storeName ?? fallback.name,
+        phone: settings.phone ?? fallback.phone,
+        // phoneRaw is a bare tel:/wa.me number; derive from the API phone if present
+        phoneRaw: settings.phone ? settings.phone.replace(/[^+\d]/g, '') : fallback.phoneRaw,
+        address: settings.address ?? fallback.address,
+        site: settings.website ?? fallback.site,
+        mottoEn: fallback.mottoEn,
+        mottoBn: fallback.mottoBn,
+        addressBn: fallback.addressBn,
+      };
+    } catch (e) {
+      console.warn('[dataLoader] API store settings failed, falling back to bundled store info:', e);
+      return fallback;
+    }
+  },
+};
+
+/** Store info surfaced on the storefront (footer / contact block). */
+export interface StoreInfo {
+  name: string;
+  phone: string;
+  phoneRaw: string;
+  address: string;
+  site: string;
+  mottoEn: string;
+  mottoBn: string;
+  addressBn: string;
+}
+
+/** Bundled defaults used when the API is unavailable. */
+export const DEFAULT_STORE_INFO: StoreInfo = {
+  name: AKS_MART.name,
+  phone: AKS_MART.phone,
+  phoneRaw: AKS_MART.phoneRaw,
+  address: AKS_MART.address,
+  site: AKS_MART.site,
+  mottoEn: AKS_MART.mottoEn,
+  mottoBn: AKS_MART.mottoBn,
+  addressBn: AKS_MART.addressBn,
 };
 
 export { USE_API };

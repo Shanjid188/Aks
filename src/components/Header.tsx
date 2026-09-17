@@ -22,10 +22,20 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BRAND_INFOS } from '../data/promos';
+import { BRAND_INFOS, DEFAULT_ANNOUNCEMENTS } from '../data/promos';
+import type { Announcement } from '../data/promos';
+import { dataLoader } from '../lib/dataLoader';
 import { Bi } from './Bi';
 import { Link, navigate } from '../lib/router';
 import { useLanguage } from '../context/LanguageContext';
+
+/** Icon cycle for the announcement ticker — DB announcements carry no icon,
+ *  so the header rotates through a small curated set. */
+const ANNOUNCEMENT_ICONS = [
+  <Truck className="w-3.5 h-3.5" key="truck" />,
+  <Sparkles className="w-3.5 h-3.5" key="sparkles" />,
+  <ShieldCheck className="w-3.5 h-3.5" key="shield" />,
+];
 
 
 export const Header: React.FC = () => {
@@ -57,13 +67,20 @@ export const Header: React.FC = () => {
   const [activeMegaMenu, setActiveMegaMenu] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Announcement rotation — English only
-  const announcements = [
-    { icon: <Truck className="w-3.5 h-3.5" />, text: 'Free delivery across Bangladesh on orders above ৳2,500' },
-    { icon: <Sparkles className="w-3.5 h-3.5" />, text: 'AKS Mart — Food · Craft · Home · Beauty · Print' },
-    { icon: <ShieldCheck className="w-3.5 h-3.5" />, text: 'Cash on Delivery — pay when your order arrives' },
-  ];
+  // Announcement rotation — DB-driven; hardcoded strings remain as offline fallback.
+  const [announcements, setAnnouncements] = useState<Announcement[]>(DEFAULT_ANNOUNCEMENTS);
   const [announcementIndex, setAnnouncementIndex] = useState(0);
+
+  // Load active announcements from the API (falls back to the bundled strings).
+  useEffect(() => {
+    let cancelled = false;
+    dataLoader.loadAnnouncements().then((loaded) => {
+      if (!cancelled && loaded.length > 0) setAnnouncements(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -147,10 +164,10 @@ export const Header: React.FC = () => {
       {/* Top Utility Announcement Bar */}
       <div className="bg-neutral-900 text-white text-[10px] py-0.5 px-4 border-b border-neutral-800/50">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1">
-          {/* Rotating ticker */}
+          {/* Rotating ticker — DB-driven announcements, hardcoded strings as offline fallback */}
           <div className="flex items-center gap-2 font-medium tracking-wide">
             <span className="inline-flex items-center justify-center p-0.5 rounded bg-[#D8232A] text-white text-[10px]">
-              {announcements[announcementIndex].icon}
+              {ANNOUNCEMENT_ICONS[announcementIndex % ANNOUNCEMENT_ICONS.length]}
             </span>
             <AnimatePresence mode="wait">
               <motion.span
@@ -160,8 +177,21 @@ export const Header: React.FC = () => {
                 exit={{ opacity: 0, y: -5 }}
                 transition={{ duration: 0.3 }}
                 className="text-neutral-200"
+                onClick={
+                  announcements[announcementIndex % announcements.length]?.link
+                    ? () => {
+                        const link = announcements[announcementIndex % announcements.length].link!;
+                        if (link.startsWith('/')) navigate(link);
+                        else window.open(link, '_blank');
+                      }
+                    : undefined
+                }
               >
-                {announcements[announcementIndex].text}
+                {announcements[announcementIndex % announcements.length]
+                  ? language === 'bn' && announcements[announcementIndex % announcements.length].textBn
+                    ? announcements[announcementIndex % announcements.length].textBn
+                    : announcements[announcementIndex % announcements.length].text
+                  : ''}
               </motion.span>
             </AnimatePresence>
           </div>

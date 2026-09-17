@@ -1,6 +1,32 @@
 import { Coupon } from '../types';
 import { DIVISIONS } from './aksMart';
 
+/** Storefront announcement ticker item — DB-driven, with offline fallback below. */
+export interface Announcement {
+  id: string;
+  text: string;
+  textBn?: string;
+  link?: string;
+  bgColor?: string;
+  textColor?: string;
+}
+
+/** Offline fallback announcements — the original hardcoded header ticker strings. */
+export const DEFAULT_ANNOUNCEMENTS: Announcement[] = [
+  {
+    id: 'fallback-free-delivery',
+    text: 'Free delivery across Bangladesh on orders above ৳2,500',
+  },
+  {
+    id: 'fallback-akm',
+    text: 'AKS Mart — Food · Craft · Home · Beauty · Print',
+  },
+  {
+    id: 'fallback-cod',
+    text: 'Cash on Delivery — pay when your order arrives',
+  },
+];
+
 export interface HeroSlide {
   id: string;
   badge: string;

@@ -18,6 +18,7 @@ const SUBCATEGORIES = [
 interface FormState {
   name: string;
   sku: string;
+  barcode: string;
   brand: string;
   category: string;
   subcategory: string;
@@ -47,7 +48,7 @@ interface FormState {
 }
 
 const emptyForm: FormState = {
-  name: '', sku: '', brand: 'SHUDDHO', category: 'food', subcategory: SUBCATEGORIES[0],
+  name: '', sku: '', barcode: '', brand: 'SHUDDHO', category: 'food', subcategory: SUBCATEGORIES[0],
   price: '', originalPrice: '', discountPercent: '', rating: '4.5', reviewsCount: '0', featuredOrder: '',
   description: '', features: '', materials: '', colors: '', sizes: '', images: '', tags: '',
   fit: 'Regular Fit', pattern: 'Solid', sleeve: 'Full Sleeve', occasion: '', cushionTech: '',
@@ -56,7 +57,7 @@ const emptyForm: FormState = {
 
 function fromProduct(p: Product): FormState {
   return {
-    name: p.name, sku: p.sku, brand: p.brand, category: p.category, subcategory: p.subcategory,
+    name: p.name, sku: p.sku, barcode: p.barcode || '', brand: p.brand, category: p.category, subcategory: p.subcategory,
     price: String(p.price), originalPrice: p.originalPrice != null ? String(p.originalPrice) : '',
     discountPercent: p.discountPercent != null ? String(p.discountPercent) : '',
     rating: String(p.rating), reviewsCount: String(p.reviewsCount),
@@ -162,6 +163,7 @@ function toPayload(f: FormState): Record<string, unknown> {
   return {
     name: f.name.trim(),
     sku: f.sku.trim(),
+    barcode: f.barcode.trim() || null,
     brand: f.brand,
     category: f.category,
     subcategory: f.subcategory,
@@ -369,6 +371,9 @@ export function ProductsPage() {
             </Field>
             <Field label="SKU">
               <TextInput value={form.sku} onChange={(e) => set('sku', e.target.value)} placeholder="auto-generated" />
+            </Field>
+            <Field label="Barcode (EAN/UPC)" hint="Unique per product — used for POS scanning">
+              <TextInput value={form.barcode} onChange={(e) => set('barcode', e.target.value)} placeholder="e.g. 89694 00001" />
             </Field>
             <Field label="Brand">
               <Select value={form.brand} onChange={(e) => set('brand', e.target.value)}>

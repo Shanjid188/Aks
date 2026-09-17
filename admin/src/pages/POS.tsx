@@ -6,7 +6,7 @@ import { Calculator, Minus, Pause, Plus, Printer, RefreshCw, Search, ShoppingCar
 const bdt = (n: number) => `BDT ${Number(n || 0).toLocaleString('en-IN')}`;
 
 interface PosProduct {
-  id: string; name: string; sku: string; brand: string; category: string;
+  id: string; name: string; sku: string; barcode: string | null; brand: string; category: string;
   price: number; image: string; trackStock: boolean; stockQuantity: number; available: number;
 }
 
@@ -82,7 +82,7 @@ export function PosPage() {
     setLoading(true); setError(null);
     try {
       const [prodRes, invRes] = await Promise.all([
-        api.get<{ products: { id: string; name: string; sku: string; brand: string; category: string; price: number; images: string[] }[] }>('/admin/products?all=true'),
+        api.get<{ products: { id: string; name: string; sku: string; barcode: string | null; brand: string; category: string; price: number; images: string[] }[] }>('/admin/products?all=true'),
         api.get<{ items: { id: string; trackStock: boolean; stockQuantity: number; available: number }[] }>('/admin/inventory'),
       ]);
       const stock = new Map((invRes.items || []).map((i) => [i.id, i]));
@@ -93,6 +93,7 @@ export function PosPage() {
             id: p.id,
             name: p.name,
             sku: p.sku,
+            barcode: p.barcode ?? null,
             brand: p.brand,
             category: p.category,
             price: p.price,
@@ -124,7 +125,11 @@ export function PosPage() {
     const q = search.trim().toLowerCase();
     return catalog.filter((p) =>
       (category === 'all' || p.category === category) &&
-      (!q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q))
+      (!q ||
+        p.name.toLowerCase().includes(q) ||
+        p.sku.toLowerCase().includes(q) ||
+        (p.barcode ? p.barcode.toLowerCase().includes(q) : false) ||
+        p.brand.toLowerCase().includes(q))
     );
   }, [catalog, search, category]);
 
@@ -302,7 +307,7 @@ export function PosPage() {
             <div className="flex-1 flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, SKU or brand…" className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border border-neutral-300 outline-none focus:border-[#D8232A]" />
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, SKU, barcode or brand…" className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border border-neutral-300 outline-none focus:border-[#D8232A]" />
               </div>
               <Select value={category} onChange={(e) => setCategory(e.target.value)} className="!w-40">
                 {categories.map((c) => <option key={c} value={c}>{c === 'all' ? 'All categories' : c}</option>)}
@@ -318,7 +323,7 @@ export function PosPage() {
                     className="text-left rounded-xl border border-neutral-200 hover:border-[#D8232A]/40 hover:shadow-md transition-all p-2.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white group">
                     {p.image ? <img src={p.image} alt="" className="w-full h-20 object-cover rounded-lg bg-neutral-100 mb-2" /> : <div className="w-full h-20 rounded-lg bg-neutral-100 mb-2 flex items-center justify-center text-neutral-300 text-[10px] font-bold">NO IMAGE</div>}
                     <p className="text-[11px] font-bold text-neutral-900 leading-tight truncate">{p.name}</p>
-                    <p className="text-[9px] text-neutral-400 font-mono truncate mt-0.5">{p.sku}</p>
+                    <p className="text-[9px] text-neutral-400 font-mono truncate mt-0.5">{p.sku}{p.barcode ? ` · ${p.barcode}` : ''}</p>
                     <div className="flex items-center justify-between mt-1.5">
                       <span className="text-xs font-black text-[#D8232A]">{bdt(p.price)}</span>
                       {p.trackStock ? (
