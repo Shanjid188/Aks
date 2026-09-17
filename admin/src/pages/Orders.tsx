@@ -13,7 +13,7 @@ import {
   StatusBadge,
   formatDate,
 } from '../components/ui';
-import { Package, Search, Plus, Minus, Trash2, Loader2, ClipboardList, PackageCheck } from 'lucide-react';
+import { Package, Search, Plus, Minus, Trash2, Loader2, ClipboardList, PackageCheck, Activity } from 'lucide-react';
 import { ManageOrder } from './ManageOrder';
 
 const bdt = (n: number) => `BDT ${n.toLocaleString('en-IN')}`;
@@ -79,6 +79,11 @@ export function OrdersPage({ initialFilter }: { initialFilter?: string } = {}) {
   const [manageId, setManageId] = useState<string | null>(null);
   // Order currently being sent to Packaging (shows a spinner on its row button)
   const [sendingId, setSendingId] = useState<string | null>(null);
+
+  // Activity log for the order currently open in the detail modal (audit trail).
+  interface LogEntry { id: string; adminName: string | null; adminEmail: string | null; action: string; details: string; createdAt: string }
+  const [activity, setActivity] = useState<LogEntry[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   // Item editor state (only used while the detail modal is open)
   const [draft, setDraft] = useState<DraftItem[]>([]);
@@ -165,6 +170,14 @@ export function OrdersPage({ initialFilter }: { initialFilter?: string } = {}) {
     setDetail(order);
     setDirty(false);
     setSaveError(null);
+    // Fetch the audit trail for this order (who did what, when).
+    setActivity([]);
+    setActivityLoading(true);
+    api
+      .get<{ logs: LogEntry[] }>(`/admin/activity?entity=order&entityId=${order.id}`)
+      .then((res) => setActivity(res.logs))
+      .catch(() => setActivity([]))
+      .finally(() => setActivityLoading(false));
     setDraft(
       order.items.map((it) => ({
         key: it.id,
@@ -615,6 +628,36 @@ return (
               <div className="flex justify-end gap-2 mt-3">
                 <Button variant="ghost" onClick={() => setDetail(null)}>Close</Button>
               </div>
+            </div>
+
+            {/* Activity / audit trail — read only: who did what, when */}
+            <div className="border-t border-neutral-100 pt-3">
+              <p className="text-[11px] font-bold uppercase text-neutral-400 mb-2 flex items-center gap-1.5">
+                <Activity className="w-3.5 h-3.5" /> Activity Log
+              </p>
+              {activityLoading ? (
+                <p className="text-xs text-neutral-400 px-1 py-2">Loading…</p>
+              ) : activity.length === 0 ? (
+                <p className="text-xs text-neutral-400 px-1 py-2">No activity recorded for this order.</p>
+              ) : (
+                <ol className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {activity.map((log) => (
+                    <li key={log.id} className="flex gap-3 text-xs">
+                      <span className="flex flex-col items-center pt-0.5">
+                        <span className="w-2 h-2 rounded-full bg-[#D8232A] shrink-0" />
+                        <span className="w-px flex-1 bg-neutral-200 mt-1" />
+                      </span>
+                      <span className="flex-1 min-w-0 pb-2">
+                        <span className="block font-bold text-neutral-900">{log.action.replace(/[._]/g, ' ')}</span>
+                        {log.details && <span className="block text-neutral-500 capitalize">{log.details}</span>}
+                        <span className="block text-[10px] text-neutral-400 mt-0.5">
+                          {log.adminName || log.adminEmail || 'System'} · {formatDate(log.createdAt)}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
           </div>
         )}

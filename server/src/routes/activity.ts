@@ -14,6 +14,8 @@ router.get(
     const where: Record<string, unknown> = {};
     if (q.action) where.action = { contains: String(q.action) };
     if (q.admin) where.adminName = { contains: String(q.admin) };
+    if (q.entity) where.entity = String(q.entity);
+    if (q.entityId) where.entityId = String(q.entityId);
 
     const logs = await prisma.auditLog.findMany({
       where,
