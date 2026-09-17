@@ -11,4 +11,20 @@ coverage/
 server/prisma/dev.db
 server/prisma/dev.db-journal
 
+# Local dev/debug artifacts (logs, PIDs, command-output captures, DB backups)
+*.pid
+server/prisma/dev.db.bak-*
+*-build-out.txt
+*-build-run.txt
+*-run.txt
+*-run-*.txt
+prisma-push.txt
+prisma-validate.txt
+uniqueness-out.txt
+sf-tsc.txt
+_schema_*.txt
+_fix_toasts.ps1
+server/scripts/_*.ts
+server/scripts/_*.mjs
+
 # Admin panel build output is gitignored via dist/ above
