@@ -13,7 +13,7 @@ import {
   StatusBadge,
   formatDate,
 } from '../components/ui';
-import { Package, Search, Plus, Minus, Trash2, Loader2, ClipboardList } from 'lucide-react';
+import { Package, Search, Plus, Minus, Trash2, Loader2, ClipboardList, PackageCheck } from 'lucide-react';
 import { ManageOrder } from './ManageOrder';
 
 const bdt = (n: number) => `BDT ${n.toLocaleString('en-IN')}`;
@@ -77,6 +77,8 @@ export function OrdersPage() {
   const [detail, setDetail] = useState<Order | null>(null);
   // POS-style full-page Manage Order view (null = normal list)
   const [manageId, setManageId] = useState<string | null>(null);
+  // Order currently being sent to Packaging (shows a spinner on its row button)
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   // Item editor state (only used while the detail modal is open)
   const [draft, setDraft] = useState<DraftItem[]>([]);
@@ -300,6 +302,19 @@ const saveItems = async () => {
     );
   }
 
+  /** Move a confirmed order into the Packaging queue (status → processing). */
+  const sendToPackaging = async (id: string) => {
+    setSendingId(id);
+    try {
+      const res = await api.patch<{ order: Order }>(`/admin/orders/${id}`, { status: 'processing' });
+      setOrders((prev) => prev.map((o) => (o.id === res.order.id ? res.order : o)));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSendingId(null);
+    }
+  };
+
 return (
     <div className="space-y-4">
       {/* Header + search */}
@@ -402,6 +417,18 @@ return (
                             </Button>
                           </span>
                         )}
+                        {o.status === 'confirmed' && (
+                          <span onClick={(e) => e.stopPropagation()} className="inline-flex">
+                            <Button
+                              className="px-2.5 py-1 text-[11px]"
+                              onClick={() => sendToPackaging(o.id)}
+                              disabled={sendingId === o.id}
+                            >
+                              {sendingId === o.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PackageCheck className="w-3.5 h-3.5" />}
+                              {sendingId === o.id ? 'Sending…' : 'Send to Packaging'}
+                            </Button>
+                          </span>
+                        )}
                         <Button variant="secondary" className="px-2.5 py-1 text-[11px]">Detail</Button>
                       </div>
                     </td>
@@ -438,6 +465,20 @@ return (
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#D8232A]/10 text-[#D8232A] text-[11px] font-bold cursor-pointer hover:bg-[#D8232A] hover:text-white transition-colors"
                     >
                       <ClipboardList className="w-3.5 h-3.5" /> Manage
+                    </span>
+                  </div>
+                )}
+                {o.status === 'confirmed' && (
+                  <div className="flex gap-1.5 pt-1">
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); sendToPackaging(o.id); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); sendToPackaging(o.id); } }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#D8232A] text-white text-[11px] font-bold cursor-pointer hover:bg-[#B91C1C] transition-colors"
+                    >
+                      {sendingId === o.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PackageCheck className="w-3.5 h-3.5" />}
+                      {sendingId === o.id ? 'Sending…' : 'Send to Packaging'}
                     </span>
                   </div>
                 )}

@@ -208,7 +208,7 @@ export const ORDER_STATUS_META: Record<
     dot: 'bg-blue-500',
   },
   processing: {
-    label: 'Processing',
+    label: 'Packaging',
     badge: 'bg-violet-50 text-violet-800 ring-1 ring-violet-200',
     dot: 'bg-violet-500',
   },

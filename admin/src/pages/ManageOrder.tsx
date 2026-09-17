@@ -269,8 +269,8 @@ export function ManageOrder({
     return true;
   };
 
-  /** pending → saves items + customer, confirms, then moves the order straight
-   *  into Processing so it lands in the Packaging queue (slip prints from there). */
+  /** pending → saves items + customer, then confirms the order.
+   *  The order stays Confirmed in the Orders list until it is sent to Packaging. */
   const updateAndConfirm = async () => {
     if (!order) return;
     setBusy(true);
@@ -279,8 +279,7 @@ export function ManageOrder({
       if (!(await saveItems())) return;
       if (!(await saveCustomer())) return;
       if (!(await setStatus('confirmed'))) return;
-      if (!(await setStatus('processing'))) return;
-      // Confirmed & moved to Processing (Packaging queue) — Manage work is done.
+      // Confirmed — the Manage Order work is done; go back to the Orders list.
       onBack();
     } catch (e) {
       setActionError((e as Error).message);
@@ -306,8 +305,8 @@ export function ManageOrder({
   };
 
   /**
-   * Print a document. Printing either document from a *confirmed* order
-   * automatically moves the order into processing (the packing stage).
+   * (Deprecated in this workflow — packaging slip/invoice are now printed from the
+   * Packaging page after the order is sent there. Kept for direct access if needed.)
    */
   const printAndAdvance = async (kind: 'slip' | 'invoice') => {
     if (!order) return;
@@ -318,7 +317,7 @@ export function ManageOrder({
       try {
         await setStatus('processing');
       } catch (e) {
-        setActionError(`Printed, but could not auto-move to Processing: ${(e as Error).message}`);
+        setActionError(`Printed, but could not auto-move to Packaging: ${(e as Error).message}`);
       }
     }
   };
@@ -463,21 +462,6 @@ export function ManageOrder({
               </Button>
             </>
           )}
-          {(status === 'confirmed' || status === 'processing' || status === 'packed') && (
-            <>
-              <Button variant="secondary" onClick={() => printAndAdvance('slip')}>
-                <PackageCheck className="w-4 h-4" /> Print Packaging Slip
-              </Button>
-              <Button variant="secondary" onClick={() => printAndAdvance('invoice')}>
-                <FileText className="w-4 h-4" /> Print Invoice
-              </Button>
-              {(status === 'processing' || status === 'packed') && (
-                <Button onClick={shipOrder} disabled={busy}>
-                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Truck className="w-4 h-4" />} Ship
-                </Button>
-              )}
-            </>
-          )}
           {status === 'shipped' && (
             <Button onClick={markDelivered} disabled={busy}>
               {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Mark Delivered
@@ -496,7 +480,7 @@ export function ManageOrder({
         {(['pending', 'confirmed', 'processing', 'shipped', 'delivered'] as const).map((s, i, arr) => (
           <span key={s} className="flex items-center gap-1.5">
             <span className={`px-2 py-0.5 rounded-full ${status === s ? 'bg-[#D8232A] text-white' : 'bg-neutral-100 text-neutral-500'}`}>
-              {ORDER_STATUS_META[s]?.label || s}
+              {s === 'processing' ? 'Packaging' : (ORDER_STATUS_META[s]?.label || s)}
             </span>
             {i < arr.length - 1 && <span className="text-neutral-300">→</span>}
           </span>

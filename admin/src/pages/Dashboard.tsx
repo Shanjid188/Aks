@@ -239,7 +239,7 @@ export function Dashboard() {
     {
       key: 'confirmed',
       count: stats.confirmedOrdersCount,
-      en: 'Awaiting Processing',
+      en: 'Awaiting Packaging',
       desc: 'Confirmed orders ready to be packed',
       actionEn: 'View Orders',
       onClick: () => goOrders('confirmed'),
