@@ -1,183 +1,664 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
-import type { Order } from '../types';
-import { Badge, Button, EmptyState, Modal, Select, Spinner, statusColors, formatDate } from '../components/ui';
-import { Package, Search } from 'lucide-react';
+import type { Order, OrderItem, Product } from '../types';
+import {
+  Button,
+  ConfirmDialog,
+  EmptyState,
+  LIFECYCLE_STATUSES,
+  Modal,
+  ORDER_STATUS_META,
+  Select,
+  Spinner,
+  StatusBadge,
+  formatDate,
+} from '../components/ui';
+import { Package, Search, Plus, Minus, Trash2, Loader2 } from 'lucide-react';
 
-const STATUSES = ['confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'];
-const bdt = (n: number) => `৳${n.toLocaleString('en-IN')}`;
+const bdt = (n: number) => `BDT ${n.toLocaleString('en-IN')}`;
 const addr = (o: Order, key: string) => (o.customerAddress as Record<string, string>)?.[key] || '';
+
+/** OrderItem.product.images may arrive as a parsed array or a raw TEXT
+ *  string (older payloads) — normalize defensively. */
+function parseJsonArr(raw: unknown): unknown[] {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function parseVariant<T>(raw: unknown): T[] {
+  return parseJsonArr(raw) as T[];
+}
+
+function itemImage(item: OrderItem): string | null {
+  const imgs = item.product ? parseJsonArr((item.product as { images?: unknown }).images) : [];
+  const first = imgs[0];
+  return typeof first === 'string' ? first : null;
+}
+
+interface OrderSizeInput {
+  size: string;
+  inStock?: boolean;
+  stockCount?: number;
+}
+
+interface OrderColorInput {
+  name: string;
+  hex: string;
+}
+
+interface DraftItem {
+  key: string;
+  productId: string | null;
+  name: string;
+  image: string | null;
+  size: string;
+  color: string;
+  quantity: number;
+  price: number;
+  sizes: OrderSizeInput[];
+  colors: OrderColorInput[];
+}
 
 export function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [detail, setDetail] = useState<Order | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = () => {
+  // Item editor state (only used while the detail modal is open)
+  const [draft, setDraft] = useState<DraftItem[]>([]);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addQuery, setAddQuery] = useState('');
+  const [addResults, setAddResults] = useState<Product[]>([]);
+  const [addSearching, setAddSearching] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [statusSaving, setStatusSaving] = useState(false);
+
+  const addSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    const params = new URLSearchParams();
-    if (search.trim()) params.set('search', search.trim());
-    if (statusFilter) params.set('status', statusFilter);
     api
-      .get<{ orders: Order[] }>(`/admin/orders?${params.toString()}`)
-      .then((res) => setOrders(res.orders))
+      .get<{ orders: Order[] }>('/admin/orders')
+      .then((res) => {
+        setOrders(res.orders);
+        // Publish the live pending count so the sidebar badge stays current.
+        window.dispatchEvent(
+          new CustomEvent('aks-admin-pending-count', {
+            detail: res.orders.filter((o) => o.status === 'pending').length,
+          })
+        );
+      })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, [statusFilter]);
+  }, [load]);
 
-  const changeStatus = async (order: Order, status: string) => {
-    const res = await api.patch<{ order: Order }>(`/admin/orders/${order.id}`, { status });
-    setOrders((prev) => prev.map((o) => (o.id === order.id ? res.order : o)));
-    setDetail((prev) => (prev && prev.id === order.id ? res.order : prev));
+  // Open a specific order / apply a status filter (Dashboard → "View" action)
+  useEffect(() => {
+    const openFromStorage = () => {
+      const presetFilter = window.localStorage.getItem('aks_admin_order_filter');
+      if (presetFilter) {
+        window.localStorage.removeItem('aks_admin_order_filter');
+        setStatusFilter(presetFilter);
+      }
+      const id = window.localStorage.getItem('aks_admin_open_order');
+      if (id) {
+        window.localStorage.removeItem('aks_admin_open_order');
+        api
+          .get<{ order: Order }>(`/admin/orders/${id}`)
+          .then((res) => setDetail(res.order))
+          .catch(() => undefined);
+      }
+    };
+    let t: ReturnType<typeof setTimeout> | null = null;
+    if (orders.length > 0) openFromStorage();
+    else t = setTimeout(openFromStorage, 800);
+    const onOpen = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      api
+        .get<{ order: Order }>(`/admin/orders/${id}`)
+        .then((res) => setDetail(res.order))
+        .catch(() => undefined);
+    };
+    window.addEventListener('aks-open-order', onOpen);
+    return () => {
+      if (t) clearTimeout(t);
+      window.removeEventListener('aks-open-order', onOpen);
+    };
+  }, [orders.length]);
+
+  const openDetail = (order: Order) => {
+    setDetail(order);
+    setDirty(false);
+    setSaveError(null);
+    setDraft(
+      order.items.map((it) => ({
+        key: it.id,
+        productId: it.productId,
+        name: it.productName,
+        image: itemImage(it),
+        size: it.size,
+        color: it.color,
+        quantity: it.quantity,
+        price: it.price,
+        sizes: parseVariant<OrderSizeInput>((it.product as { sizes?: unknown }).sizes),
+        colors: parseVariant<OrderColorInput>((it.product as { colors?: unknown }).colors),
+      }))
+    );
   };
 
-  return (
+  // ── Filters (client-side over the full list — instant + counts) ──────────────
+const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return orders.filter((o) => {
+      if (statusFilter && o.status !== statusFilter) return false;
+      if (!term) return true;
+      return (
+        o.orderNumber.toLowerCase().includes(term) ||
+        o.trackingCode.toLowerCase().includes(term) ||
+        o.customerName.toLowerCase().includes(term) ||
+        o.customerPhone.includes(term)
+      );
+    });
+  }, [orders, statusFilter, search]);
+
+const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const o of orders) counts[o.status] = (counts[o.status] || 0) + 1;
+    return counts;
+  }, [orders]);
+
+const changeStatus = async () => {
+    if (!detail || !pendingStatus || pendingStatus === detail.status) {
+      setPendingStatus(null);
+      return;
+    }
+    setStatusSaving(true);
+    try {
+      const res = await api.patch<{ order: Order }>(`/admin/orders/${detail.id}`, { status: pendingStatus });
+      setDetail(res.order);
+      setOrders((prev) => prev.map((o) => (o.id === res.order.id ? res.order : o)));
+    } catch (e) {
+      setSaveError((e as Error).message);
+    } finally {
+      setStatusSaving(false);
+      setPendingStatus(null);
+    }
+  };
+
+// ── Item editor actions (recomputed server-side on Save) ─────────────────────
+const updateDraftItem = (key: string, patch: Partial<DraftItem>) => {
+    setDraft((prev) => prev.map((d) => (d.key === key ? { ...d, ...patch } : d)));
+    setDirty(true);
+  };
+
+const removeDraftItem = (key: string) => {
+    setDraft((prev) => prev.filter((d) => d.key !== key));
+    setDirty(true);
+  };
+
+const addDraftItem = (p: Product) => {
+    const sizes = parseVariant<OrderSizeInput>(p.sizes);
+    const colors = parseVariant<OrderColorInput>(p.colors);
+    const firstSize = sizes.find((s) => s.inStock !== false) || sizes[0];
+    const firstColor = colors[0];
+    const key = `new-${p.id}-${Date.now()}`;
+    setDraft((prev) => [
+      ...prev,
+      {
+        key,
+        productId: p.id,
+        name: p.name,
+        image: parseJsonArr(p.images as unknown)[0] as string || null,
+        size: firstSize?.size || '',
+        color: firstColor?.name || '',
+        quantity: 1,
+        price: p.price,
+        sizes,
+        colors,
+      },
+    ]);
+    setDirty(true);
+    setAddOpen(false);
+    setAddQuery('');
+    setAddResults([]);
+  };
+
+const searchProducts = (term: string) => {
+    setAddQuery(term);
+    if (addSearchTimer.current) clearTimeout(addSearchTimer.current);
+    if (!term.trim()) {
+      setAddResults([]);
+      return;
+    }
+    addSearchTimer.current = setTimeout(() => {
+      setAddSearching(true);
+      api
+        .get<{ products: Product[] }>(`/admin/products?search=${encodeURIComponent(term.trim())}`)
+        .then((res) => setAddResults(res.products.slice(0, 6)))
+        .catch(() => setAddResults([]))
+        .finally(() => setAddSearching(false));
+    }, 350);
+  };
+
+const saveItems = async () => {
+    if (!detail) return;
+    if (draft.length === 0) {
+      setSaveError('Order must contain at least one item.');
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await api.put<{ order: Order }>(`/admin/orders/${detail.id}/items`, {
+        items: draft.map((d) => ({
+          productId: d.productId,
+          quantity: d.quantity,
+          size: d.size,
+          color: d.color,
+        })),
+      });
+      setDetail(res.order);
+      setDirty(false);
+      setOrders((prev) => prev.map((o) => (o.id === res.order.id ? res.order : o)));
+    } catch (e) {
+      setSaveError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      {/* Header + search */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-black text-neutral-900">Orders</h2>
-          <p className="text-xs text-neutral-400">{orders.length} orders</p>
+          <p className="text-xs text-neutral-400">
+            {orders.length} orders · {statusCounts.pending || 0} pending
+          </p>
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-60">
+        <div className="flex w-full sm:w-auto items-center gap-2">
+          <div className="relative flex-1 sm:w-64">
             <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && load()}
-              placeholder="Search name / phone / code…"
+              placeholder="Search order ID / name / phone…"
               className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-neutral-300 outline-none focus:border-[#D8232A]"
             />
           </div>
-          <Button onClick={() => load()}>Filter</Button>
         </div>
-        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="">All statuses</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s} className="capitalize">{s.replace(/_/g, ' ')}</option>
-          ))}
-        </Select>
+      </div>
+
+      {/* Status filter pills */}
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          onClick={() => setStatusFilter('')}
+          className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer ${
+            statusFilter === '' ? 'bg-neutral-900 text-white border-neutral-900' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300'
+          }`}
+        >
+          All ({orders.length})
+        </button>
+        {LIFECYCLE_STATUSES.map((s) => (
+          <button
+            key={s}
+            onClick={() => setStatusFilter(statusFilter === s ? '' : s)}
+            className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer ${
+              statusFilter === s ? 'bg-neutral-900 text-white border-neutral-900' : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-300'
+            }`}
+          >
+            {ORDER_STATUS_META[s]?.label || s} ({statusCounts[s] || 0})
+          </button>
+        ))}
       </div>
 
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
       {loading ? (
         <Spinner />
-      ) : orders.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-neutral-200">
-          <EmptyState icon={<Package className="w-6 h-6" />} title="No orders found" />
+          <EmptyState icon={<Package className="w-6 h-6" />} title="No orders found" hint="Try a different status or search term." />
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-neutral-200 overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-neutral-50 text-neutral-500 uppercase tracking-wider text-[10px]">
-              <tr>
-                <th className="py-3 px-4">Order</th>
-                <th className="py-3 px-4">Customer</th>
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4">Payment</th>
-                <th className="py-3 px-4">Total</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">View</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {orders.map((o) => (
-                <tr key={o.id} className="hover:bg-neutral-50/60">
-                  <td className="px-4 py-3">
-                    <p className="font-bold text-neutral-900">{o.orderNumber}</p>
-                    <p className="text-[10px] font-mono text-neutral-400">{o.trackingCode}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-bold text-neutral-900">{o.customerName}</p>
-                    <p className="text-[11px] text-neutral-400">{o.customerPhone}</p>
-                  </td>
-                  <td className="px-4 py-3 text-neutral-500">{formatDate(o.createdAt)}</td>
-                  <td className="px-4 py-3 uppercase text-neutral-600">{o.paymentMethod}</td>
-                  <td className="px-4 py-3 font-black text-neutral-900">{bdt(o.total)}</td>
-                  <td className="px-4 py-3">
-                    <Badge color={statusColors[o.status] || 'bg-neutral-100 text-neutral-600'}>{o.status}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button variant="secondary" onClick={() => setDetail(o)} className="px-2.5 py-1 text-[11px]">
-                      Detail
-                    </Button>
-                  </td>
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white rounded-2xl border border-neutral-200 overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-neutral-50 text-neutral-500 uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th className="py-3 px-4">Order</th>
+                  <th className="py-3 px-4">Customer</th>
+                  <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4">Payment</th>
+                  <th className="py-3 px-4">Total</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">View</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {filtered.map((o) => (
+                  <tr
+                    key={o.id}
+                    onClick={() => openDetail(o)}
+                    className={`hover:bg-neutral-50/60 cursor-pointer ${o.status === 'pending' ? 'bg-amber-50/40' : ''}`}
+                  >
+                    <td className="px-4 py-3">
+                      <p className="font-bold text-neutral-900">{o.orderNumber}</p>
+                      <p className="text-[10px] font-mono text-neutral-400">{o.trackingCode}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="font-bold text-neutral-900">{o.customerName}</p>
+                      <p className="text-[11px] text-neutral-400">{o.customerPhone}</p>
+                    </td>
+                    <td className="px-4 py-3 text-neutral-500">{formatDate(o.createdAt)}</td>
+                    <td className="px-4 py-3 uppercase text-neutral-600">{o.paymentMethod}</td>
+                    <td className="px-4 py-3 font-black text-neutral-900">{bdt(o.total)}</td>
+                    <td className="px-4 py-3"><StatusBadge status={o.status} /></td>
+                    <td className="px-4 py-3 text-right">
+                      <Button variant="secondary" className="px-2.5 py-1 text-[11px]">Detail</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-2.5">
+            {filtered.map((o) => (
+              <button
+                key={o.id}
+                onClick={() => openDetail(o)}
+                className={`w-full text-left bg-white rounded-2xl border p-4 space-y-2 cursor-pointer hover:border-neutral-300 transition-colors ${o.status === 'pending' ? 'border-amber-200 bg-amber-50/30' : 'border-neutral-200'}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-bold text-sm text-neutral-900">{o.orderNumber}</p>
+                  <StatusBadge status={o.status} />
+                </div>
+                <p className="text-xs text-neutral-600">{o.customerName} · {o.customerPhone}</p>
+                <div className="flex items-center justify-between text-[11px] text-neutral-400">
+                  <span>{formatDate(o.createdAt)}</span>
+                  <span className="font-black text-neutral-900">{bdt(o.total)}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
-      <Modal open={!!detail} onClose={() => setDetail(null)} title={detail ? `${detail.orderNumber} — ${detail.customerName}` : ''} wide>
+      {/* Order detail modal */}
+      <Modal
+        open={!!detail}
+        onClose={() => setDetail(null)}
+        title={detail ? `${detail.orderNumber} — ${detail.customerName}` : ''}
+        wide
+      >
         {detail && (
           <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-100">
-                <p className="text-[11px] font-bold uppercase text-neutral-400">Tracking</p>
-                <p className="font-mono text-sm font-bold text-neutral-900">{detail.trackingCode}</p>
-                <p className="text-[11px] text-neutral-400 mt-1">{formatDate(detail.createdAt)}</p>
+            {/* Customer info cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
+                <p className="text-[10px] font-bold uppercase text-neutral-400">Order ID</p>
+                <p className="font-mono text-sm font-bold text-neutral-900 mt-0.5">{detail.orderNumber}</p>
+                <p className="text-[10px] text-neutral-400 mt-0.5">{formatDate(detail.createdAt)}</p>
               </div>
-              <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-100">
-                <p className="text-[11px] font-bold uppercase text-neutral-400">Delivery</p>
-                <p className="text-xs font-bold text-neutral-900 capitalize">{detail.deliveryMethod}</p>
-                <p className="text-[11px] text-neutral-400 mt-1">
-                  {detail.pickupStore ? `Pickup: ${detail.pickupStore}` : detail.estimatedDelivery || '—'}
+              <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
+                <p className="text-[10px] font-bold uppercase text-neutral-400">Tracking</p>
+                <p className="font-mono text-sm font-bold text-neutral-900 mt-0.5">{detail.trackingCode}</p>
+              </div>
+              <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
+                <p className="text-[10px] font-bold uppercase text-neutral-400">Delivery</p>
+                <p className="text-xs font-bold text-neutral-900 capitalize mt-0.5">{detail.deliveryMethod}</p>
+                <p className="text-[10px] text-neutral-400 mt-0.5">
+                  {detail.estimatedDelivery || '—'}
                 </p>
+              </div>
+              <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
+                <p className="text-[10px] font-bold uppercase text-neutral-400">Payment</p>
+                <p className="text-xs font-bold text-neutral-900 uppercase mt-0.5">{detail.paymentMethod}</p>
+                <p className="text-[10px] text-neutral-400 mt-0.5">{detail.couponCode ? `Coupon: ${detail.couponCode}` : '—'}</p>
               </div>
             </div>
 
+            {/* Customer + shipping address */}
             <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-100">
-              <p className="text-[11px] font-bold uppercase text-neutral-400">Shipping Address</p>
-              <p className="text-xs font-semibold text-neutral-800 mt-1">{addr(detail, 'fullName')} · {addr(detail, 'phone')}</p>
+              <p className="text-[10px] font-bold uppercase text-neutral-400 mb-1">Customer & Shipping Address</p>
+              <p className="text-xs font-semibold text-neutral-800">
+                {addr(detail, 'fullName')} · {addr(detail, 'phone')}
+                {addr(detail, 'email') ? ` · ${addr(detail, 'email')}` : ''}
+              </p>
               <p className="text-xs text-neutral-500">
                 {addr(detail, 'streetAddress')}, {addr(detail, 'thana')}, {addr(detail, 'district')}, {addr(detail, 'division')}
+                {addr(detail, 'postalCode') ? ` - ${addr(detail, 'postalCode')}` : ''}
               </p>
             </div>
 
-            <Select value={detail.status} onChange={(e) => changeStatus(detail, e.target.value)}>
-              {STATUSES.map((s) => (
-                <option key={s} value={s} className="capitalize">{s.replace(/_/g, ' ')}</option>
-              ))}
-            </Select>
+            {/* Status changer */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-neutral-50 rounded-xl p-4 border border-neutral-100">
+              <div>
+                <p className="text-[10px] font-bold uppercase text-neutral-400">Order Status</p>
+                <div className="mt-1"><StatusBadge status={detail.status} /></div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={pendingStatus ?? detail.status}
+                  onChange={(e) => setPendingStatus(e.target.value)}
+                  className="w-48"
+                >
+                  {LIFECYCLE_STATUSES.map((s) => (
+                    <option key={s} value={s}>{ORDER_STATUS_META[s]?.label || s}</option>
+                  ))}
+                </Select>
+                <Button
+                  variant="secondary"
+                  disabled={!pendingStatus || pendingStatus === detail.status}
+                  onClick={() => changeStatus()}
+                >
+                  Update
+                </Button>
+              </div>
+            </div>
 
+            {/* Item editor */}
             <div className="border-t border-neutral-100 pt-3">
-              <p className="text-[11px] font-bold uppercase text-neutral-400 mb-2">Items ({detail.items.length})</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] font-bold uppercase text-neutral-400">
+                  Items ({draft.length})
+                </p>
+                <Button onClick={() => setAddOpen(true)} className="px-2.5 py-1 text-[11px]">
+                  <Plus className="w-3.5 h-3.5" /> Add Product
+                </Button>
+              </div>
+
+              {addOpen && (
+                <div className="mb-3 bg-neutral-50 border border-neutral-200 rounded-xl p-3">
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      autoFocus
+                      value={addQuery}
+                      onChange={(e) => searchProducts(e.target.value)}
+                      placeholder="Search products to add…"
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-neutral-300 outline-none focus:border-[#D8232A] bg-white"
+                    />
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    {addSearching && (
+                      <p className="text-[11px] text-neutral-400 flex items-center gap-1.5 px-1">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Searching…
+                      </p>
+                    )}
+                    {!addSearching &&
+                      addResults.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => addDraftItem(p)}
+                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white text-left cursor-pointer"
+                        >
+                          <span className="w-8 h-8 rounded-md bg-neutral-200 overflow-hidden shrink-0">
+                            {parseJsonArr(p.images as unknown)[0] ? (
+                              <img src={String(parseJsonArr(p.images as unknown)[0])} alt="" className="w-full h-full object-cover" />
+                            ) : null}
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-xs font-bold text-neutral-800 truncate">{p.name}</span>
+                            <span className="block text-[10px] text-neutral-400">{bdt(p.price)}</span>
+                          </span>
+                          <Plus className="w-3.5 h-3.5 text-neutral-400" />
+                        </button>
+                      ))}
+                    {!addSearching && addQuery.trim() && addResults.length === 0 && (
+                      <p className="text-[11px] text-neutral-400 px-1">No products match "{addQuery}".</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
-                {detail.items.map((it) => (
-                  <div key={it.id} className="flex items-center justify-between text-xs">
-                    <span className="text-neutral-800 truncate">
-                      {it.productName} <span className="text-neutral-400">· {it.size} · {it.color} × {it.quantity}</span>
+                {draft.length === 0 && (
+                  <p className="text-xs text-neutral-400 text-center py-6">No items — add a product to this order.</p>
+                )}
+                {draft.map((d) => (
+                  <div key={d.key} className="flex items-center gap-2.5 bg-white border border-neutral-200 rounded-xl p-2.5">
+                    <span className="w-10 h-10 rounded-lg bg-neutral-100 overflow-hidden shrink-0">
+                      {d.image ? (
+                        <img src={d.image} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="flex items-center justify-center h-full text-neutral-300">
+                          <Package className="w-4 h-4" />
+                        </span>
+                      )}
                     </span>
-                    <span className="font-bold text-neutral-900">{bdt(it.price * it.quantity)}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-neutral-900 truncate">{d.name}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        {d.colors.length > 1 && (
+                          <select
+                            value={d.color}
+                            onChange={(e) => updateDraftItem(d.key, { color: e.target.value })}
+                            className="text-[10px] border border-neutral-300 rounded-md px-1 py-0.5 bg-white"
+                          >
+                            {d.colors.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+                          </select>
+                        )}
+                        {d.sizes.length > 0 && (
+                          <select
+                            value={d.size}
+                            onChange={(e) => updateDraftItem(d.key, { size: e.target.value })}
+                            className="text-[10px] border border-neutral-300 rounded-md px-1 py-0.5 bg-white"
+                          >
+                            {d.sizes.map((s) => (
+                              <option key={s.size} value={s.size} disabled={s.inStock === false}>
+                                {s.size} {s.inStock === false ? '(out)' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        <span className="text-[10px] text-neutral-400">{bdt(d.price)} each</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => updateDraftItem(d.key, { quantity: Math.max(1, d.quantity - 1) })}
+                        className="w-6 h-6 rounded-md border border-neutral-200 flex items-center justify-center text-neutral-600 hover:bg-neutral-50 cursor-pointer"
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="w-8 text-center text-xs font-black text-neutral-900">{d.quantity}</span>
+                      <button
+                        onClick={() => updateDraftItem(d.key, { quantity: d.quantity + 1 })}
+                        className="w-6 h-6 rounded-md border border-neutral-200 flex items-center justify-center text-neutral-600 hover:bg-neutral-50 cursor-pointer"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="w-20 text-right">
+                      <p className="text-xs font-black text-neutral-900">{bdt(d.price * d.quantity)}</p>
+                    </div>
+                    <button
+                      onClick={() => removeDraftItem(d.key)}
+                      className="p-1.5 rounded-lg text-neutral-300 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                      aria-label="Remove item"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="flex justify-between pt-2 border-t border-neutral-100 text-xs">
-              <div className="text-neutral-500">
-                <p>Subtotal {bdt(detail.subtotal)}</p>
-                {detail.discount > 0 && <p className="text-emerald-700">Discount −{bdt(detail.discount)}</p>}
-                <p>Shipping {detail.shippingFee === 0 ? 'FREE' : bdt(detail.shippingFee)}</p>
+            {/* Totals + save */}
+            <div className="border-t border-neutral-100 pt-3">
+              <div className="flex justify-end gap-6 text-xs mb-3">
+                <div className="text-neutral-500 space-y-0.5 text-right">
+                  <p>Subtotal</p>
+                  {detail.discount > 0 && <p className="text-emerald-700">Discount</p>}
+                  <p>Shipping</p>
+                </div>
+                <div className="text-neutral-900 font-bold space-y-0.5 text-right">
+                  <p>{bdt(detail.subtotal)}</p>
+                  {detail.discount > 0 && <p className="text-emerald-700">−{bdt(detail.discount)}</p>}
+                  <p>{detail.shippingFee === 0 ? 'FREE' : bdt(detail.shippingFee)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-bold uppercase text-neutral-400">Total</p>
+                  <p className="text-lg font-black text-[#D8232A]">{bdt(detail.total)}</p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-[11px] text-neutral-400 uppercase font-bold">Total</p>
-                <p className="text-lg font-black text-[#D8232A]">{bdt(detail.total)}</p>
+
+              {saveError && (
+                <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2">{saveError}</p>
+              )}
+
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setDetail(null)}>Close</Button>
+                <Button variant="secondary" disabled={!dirty || saving || draft.length === 0} onClick={() => saveItems()}>
+                  {saving ? 'Saving…' : 'Save Changes & Recalculate'}
+                </Button>
               </div>
             </div>
           </div>
         )}
       </Modal>
+
+      {/* Status change confirmation */}
+      <ConfirmDialog
+        open={!!pendingStatus && !!detail && pendingStatus !== detail.status}
+        title="Change order status?"
+        message={
+          <>
+            Move <b>{detail?.orderNumber}</b> from <b>{ORDER_STATUS_META[detail?.status || '']?.label || detail?.status}</b> to{' '}
+            <b>{ORDER_STATUS_META[pendingStatus || '']?.label || pendingStatus}</b>?
+          </>
+        }
+        confirmLabel="Change Status"
+        busy={statusSaving}
+        onConfirm={() => changeStatus()}
+        onCancel={() => setPendingStatus(null)}
+      />
     </div>
   );
 }

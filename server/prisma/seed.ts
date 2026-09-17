@@ -2,8 +2,8 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { INITIAL_PRODUCTS, INITIAL_REVIEWS } from '../../src/data/products.ts';
-import { STORE_LOCATIONS } from '../../src/data/stores.ts';
 import { DIVISIONS } from '../../src/data/aksMart.ts';
+import { ALL_PERMISSIONS, PERM } from '../src/lib/permissions.ts';
 
 const prisma = new PrismaClient();
 
@@ -17,8 +17,113 @@ const COUPONS = [
 const DEFAULT_ADMIN_EMAIL = 'admin@aksgarments.com.bd';
 const DEFAULT_ADMIN_PASSWORD = 'Admin@123';
 
+// Default RBAC roles seeded on every boot; Super Admin is immutable & full-access.
+const DEFAULT_ROLES: { name: string; description: string; isSuper?: boolean; permissions: (keyof typeof PERM)[] | 'all' }[] = [
+  {
+    name: 'Super Admin',
+    description: 'Full access to every module. This role cannot be deleted or edited.',
+    isSuper: true,
+    permissions: 'all',
+  },
+  {
+    name: 'Admin',
+    description: 'Full storefront control — orders, products, coupons, content and reports.',
+    permissions: [
+      'DASHBOARD_VIEW', 'DASHBOARD_ANALYTICS',
+      'ORDERS_VIEW', 'ORDERS_DETAILS', 'ORDERS_EDIT', 'ORDERS_STATUS', 'ORDERS_CANCEL',
+      'PRODUCTS_VIEW', 'PRODUCTS_CREATE', 'PRODUCTS_EDIT', 'PRODUCTS_DELETE', 'PRODUCTS_UPLOAD',
+      'CUSTOMERS_VIEW', 'CUSTOMERS_DETAILS', 'CUSTOMERS_EDIT',
+      'COUPONS_VIEW', 'COUPONS_CREATE', 'COUPONS_EDIT', 'COUPONS_DELETE',
+      'REVIEWS_VIEW', 'REVIEWS_MODERATE',
+      'SLIDES_VIEW', 'SLIDES_CREATE', 'SLIDES_EDIT', 'SLIDES_DELETE',
+      'ROLES_VIEW', 'SETTINGS_VIEW',
+    ],
+  },
+  {
+    name: 'Order Manager',
+    description: 'Can manage customer orders but cannot modify products.',
+    permissions: [
+      'DASHBOARD_VIEW',
+      'ORDERS_VIEW', 'ORDERS_DETAILS', 'ORDERS_EDIT', 'ORDERS_STATUS', 'ORDERS_CANCEL',
+      'CUSTOMERS_VIEW', 'CUSTOMERS_DETAILS',
+    ],
+  },
+  {
+    name: 'Product Manager',
+    description: 'Manages the catalog — products, divisions and their content.',
+    permissions: [
+      'DASHBOARD_VIEW',
+      'PRODUCTS_VIEW', 'PRODUCTS_CREATE', 'PRODUCTS_EDIT', 'PRODUCTS_DELETE', 'PRODUCTS_UPLOAD',
+      'CUSTOMERS_VIEW',
+    ],
+  },
+  {
+    name: 'Content Manager',
+    description: 'Curates hero slides and moderates customer reviews.',
+    permissions: [
+      'DASHBOARD_VIEW',
+      'REVIEWS_VIEW', 'REVIEWS_MODERATE',
+      'SLIDES_VIEW', 'SLIDES_CREATE', 'SLIDES_EDIT', 'SLIDES_DELETE',
+      'CUSTOMERS_VIEW',
+    ],
+  },
+  {
+    name: 'Support Staff',
+    description: 'Answers customer queries — can view orders and customers.',
+    permissions: [
+      'DASHBOARD_VIEW',
+      'ORDERS_VIEW', 'ORDERS_DETAILS',
+      'CUSTOMERS_VIEW', 'CUSTOMERS_DETAILS',
+    ],
+  },
+  {
+    name: 'Accountant',
+    description: 'Reviews sales and revenue reports.',
+    permissions: [
+      'DASHBOARD_VIEW', 'DASHBOARD_ANALYTICS',
+      'ORDERS_VIEW', 'ORDERS_DETAILS',
+      'CUSTOMERS_VIEW',
+    ],
+  },
+];
+
+async function seedRoles() {
+  let rolesCreated = 0;
+  for (const def of DEFAULT_ROLES) {
+    const existing = await prisma.role.findUnique({ where: { name: def.name } });
+    const perms = def.permissions === 'all' ? ALL_PERMISSIONS : def.permissions.map((key) => PERM[key]);
+    if (existing) {
+      // Refresh permissions on every seed (idempotent), but never touch Super Admin.
+      if (!(def.isSuper ?? false)) {
+        await prisma.$transaction([
+          prisma.rolePermission.deleteMany({ where: { roleId: existing.id } }),
+          prisma.rolePermission.createMany({
+            data: perms.map((permission) => ({ roleId: existing.id, permission })),
+          }),
+        ]);
+      }
+    } else {
+      await prisma.role.create({
+        data: {
+          name: def.name,
+          description: def.description,
+          isSuper: def.isSuper ?? false,
+          isSystem: true,
+          permissions: { create: perms.map((permission) => ({ permission })) },
+        },
+      });
+      rolesCreated += 1;
+    }
+  }
+  console.log(`✅ Roles synced (${DEFAULT_ROLES.length}) [${rolesCreated} created]`);
+}
+
 async function main() {
   console.log('🔄 Seeding AKS database...\n');
+
+  await seedRoles();
+
+  const superRole = await prisma.role.findUnique({ where: { name: 'Super Admin' } });
 
   // ---------- Admin users ----------
   const existingAdmin = await prisma.adminUser.findUnique({ where: { email: DEFAULT_ADMIN_EMAIL } });
@@ -29,10 +134,15 @@ async function main() {
         passwordHash: await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10),
         name: 'AKS Super Admin',
         role: 'superadmin',
+        roleId: superRole?.id ?? null,
       },
     });
     console.log(`✅ Admin created → ${DEFAULT_ADMIN_EMAIL} (password not shown — set your own via prisma/set-admin-password.ts)`);
   } else {
+    await prisma.adminUser.update({
+      where: { id: existingAdmin.id },
+      data: { roleId: superRole?.id ?? null },
+    });
     console.log('ℹ️  Admin already exists, skipping.');
   }
 
@@ -147,32 +257,6 @@ async function main() {
     });
   }
   console.log(`✅ Coupons synced (${COUPONS.length})`);
-
-  // ---------- Store locations ----------
-  let storesCreated = 0;
-  for (const s of STORE_LOCATIONS) {
-    const data = {
-      name: s.name,
-      division: s.division,
-      district: s.district,
-      area: s.area,
-      address: s.address,
-      phone: s.phone,
-      openingHours: s.openingHours,
-      features: JSON.stringify(s.features),
-      lat: s.lat,
-      lng: s.lng,
-      isFlagship: s.isFlagship ?? false,
-    };
-    const found = await prisma.store.findUnique({ where: { name: s.name } });
-    if (found) {
-      await prisma.store.update({ where: { name: s.name }, data });
-    } else {
-      await prisma.store.create({ data });
-      storesCreated += 1;
-    }
-  }
-  console.log(`✅ Stores synced (${STORE_LOCATIONS.length}) [${storesCreated} created]`);
 
   // ---------- Hero slides (storefront carousel) ----------
   // Images are served from /public/images so they work in dev and production.

@@ -9,6 +9,7 @@ import {
   ShoppingBag,
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Bi } from './Bi';
 
 export const CompareModal: React.FC = () => {
   const {
@@ -134,7 +135,7 @@ export const CompareModal: React.FC = () => {
                             className="w-full py-2 bg-neutral-900 hover:bg-[#D8232A] text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             <ShoppingBag className="w-3.5 h-3.5" />
-                            <span>Add to Bag</span>
+                            <span><Bi en="Add to Bag" bn="ব্যাগে যোগ করুন" /></span>
                           </button>
                         </div>
                       </th>

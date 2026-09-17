@@ -1,7 +1,7 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
-import { PRODUCT_BN } from '../data/bn';
+import { Bi } from './Bi';
 import { X, Trash2, ShoppingBag, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Product } from '../types';
@@ -51,7 +51,7 @@ export const WishlistDrawer: React.FC = () => {
           <div className="flex items-center gap-2">
             <Heart className="w-5 h-5 text-[#D8232A]" />
             <h2 className="font-black text-base text-neutral-900 tracking-tight">
-              My Wishlist ({wishlist.length})
+              <Bi en="My Wishlist" bn="আমার পছন্দের তালিকা" /> ({wishlist.length})
             </h2>
           </div>
 
@@ -61,7 +61,7 @@ export const WishlistDrawer: React.FC = () => {
                 onClick={clearWishlist}
                 className="text-xs text-neutral-400 hover:text-red-600 font-semibold transition-colors mr-2 cursor-pointer"
               >
-                Clear
+                <Bi en="Clear" bn="মুছুন" />
               </button>
             )}
             <button
@@ -87,7 +87,7 @@ export const WishlistDrawer: React.FC = () => {
               onClick={() => setIsWishlistDrawerOpen(false)}
               className="mt-2 py-2.5 px-5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
             >
-              Continue Shopping
+              <Bi en="Continue Shopping" bn="কেনাকাটা চালিয়ে যান" />
             </button>
           </div>
         ) : (
@@ -119,11 +119,6 @@ export const WishlistDrawer: React.FC = () => {
                       <h3 className="text-sm font-bold text-neutral-900 leading-snug line-clamp-1">
                         {p.name}
                       </h3>
-                      {PRODUCT_BN[p.slug] && (
-                        <p className="text-[11px] font-medium text-neutral-500 truncate">
-                          {PRODUCT_BN[p.slug]}
-                        </p>
-                      )}
                       <p className="text-sm font-black text-[#D8232A] mt-1">
                         {formatPrice(p.price, currency)}
                       </p>
@@ -134,7 +129,7 @@ export const WishlistDrawer: React.FC = () => {
                           className="flex items-center gap-1.5 py-1.5 px-3 bg-neutral-900 hover:bg-[#D8232A] text-white text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
                         >
                           <ShoppingBag className="w-3.5 h-3.5" />
-                          Add to Bag
+                          <Bi en="Add to Bag" bn="ব্যাগে যোগ করুন" />
                         </button>
                         <button
                           onClick={() => toggleWishlist(p)}

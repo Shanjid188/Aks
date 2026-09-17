@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
-import { asyncHandler, requireAuth } from '../lib/auth.ts';
+import { asyncHandler, requirePermission } from '../lib/auth.ts';
+import { PERM } from '../lib/permissions.ts';
 
 const router = Router();
 
@@ -20,7 +21,7 @@ router.get(
 
 router.get(
   '/admin/hero-slides',
-  requireAuth,
+  requirePermission(PERM.SLIDES_VIEW),
   asyncHandler(async (_req, res) => {
     const slides = await prisma.heroSlide.findMany({
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
@@ -31,7 +32,7 @@ router.get(
 
 router.post(
   '/admin/hero-slides',
-  requireAuth,
+  requirePermission(PERM.SLIDES_CREATE),
   asyncHandler(async (req, res) => {
     const body = (req.body || {}) as Record<string, unknown>;
     if (!body.title || !body.image) {
@@ -59,7 +60,7 @@ router.post(
 
 router.patch(
   '/admin/hero-slides/:id',
-  requireAuth,
+  requirePermission(PERM.SLIDES_EDIT),
   asyncHandler(async (req, res) => {
     const id = req.params.id;
     const existing = await prisma.heroSlide.findUnique({ where: { id } });
@@ -83,7 +84,7 @@ router.patch(
 
 router.delete(
   '/admin/hero-slides/:id',
-  requireAuth,
+  requirePermission(PERM.SLIDES_DELETE),
   asyncHandler(async (req, res) => {
     const id = req.params.id;
     const existing = await prisma.heroSlide.findUnique({ where: { id } });

@@ -15,6 +15,7 @@ import {
   Check,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Bi } from './Bi';
 
 export const ProductGrid: React.FC = () => {
   const { products, filters, setFilters, resetFilters } = useStore();
@@ -141,17 +142,17 @@ export const ProductGrid: React.FC = () => {
               <div className="flex items-center gap-2">
                 <h2 className="text-2xl sm:text-3xl font-black text-neutral-900 tracking-tight capitalize">
                   {filters.searchQuery
-                    ? `Search Results for "${filters.searchQuery}"`
+                    ? `Search results for "${filters.searchQuery}"`
                     : filters.category === 'all'
-                    ? 'All Departments'
+                    ? 'All Products'
                     : `${CATEGORY_LABELS[filters.category] ?? filters.category} Collection`}
                 </h2>
-                <span className="text-xs font-bold text-neutral-500 bg-neutral-200/80 px-2.5 py-1 rounded-full">
-                  {sortedProducts.length} Products
+                <span className="text-xs font-bold text-neutral-500 bg-neutral-200/80 px-2.5 py-1 rounded-full whitespace-nowrap">
+                  {sortedProducts.length} products
                 </span>
               </div>
               <p className="text-xs text-neutral-500 mt-1">
-                SHUDDHO food · AKS CRAFT handiwork · AKS HOME comfort · AKS BEAUTY care · AKS PRINT print — one mart, many choices.
+                SHUDDHO food · AKS CRAFT handiwork · AKS HOME comfort · AKS BEAUTY care · AKS PRINT custom print — one mart, many choices.
               </p>
             </div>
 
@@ -317,7 +318,7 @@ export const ProductGrid: React.FC = () => {
                 onClick={resetFilters}
                 className="text-xs text-[#D8232A] font-bold hover:underline ml-2 flex items-center gap-1 cursor-pointer"
               >
-                <RotateCcw className="w-3 h-3" /> Clear All Filters
+                <RotateCcw className="w-3 h-3" /> <Bi en="Clear All Filters" bn="সব ফিল্টার মুছুন" />
               </button>
             </div>
           )}
@@ -330,14 +331,14 @@ export const ProductGrid: React.FC = () => {
             <div className="bg-white p-5 rounded-2xl border border-neutral-200 shadow-xs space-y-6">
               <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
                 <span className="font-extrabold text-sm text-neutral-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <SlidersHorizontal className="w-4 h-4 text-[#D8232A]" /> Refine Collection
+                  <SlidersHorizontal className="w-4 h-4 text-[#D8232A]" /> <Bi en="Refine Collection" bn="ফিল্টার করুন" />
                 </span>
                 {activeFilterCount > 0 && (
                   <button
                     onClick={resetFilters}
                     className="text-xs text-[#D8232A] font-semibold hover:underline cursor-pointer"
                   >
-                    Reset
+                    <Bi en="Reset" bn="রিসেট" />
                   </button>
                 )}
               </div>
@@ -345,7 +346,7 @@ export const ProductGrid: React.FC = () => {
               {/* Department */}
               <div>
                 <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2.5">
-                  Department
+                  <Bi en="Department" bn="বিভাগ" />
                 </h4>
                 <div className="space-y-1.5">
                                     {[
@@ -377,7 +378,7 @@ export const ProductGrid: React.FC = () => {
               {/* Brands */}
               <div className="border-t border-neutral-100 pt-4">
                 <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2.5">
-                  House of Brands
+                  <Bi en="House of Brands" bn="ব্র্যান্ড" />
                 </h4>
                 <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                   {BRAND_INFOS.map((brand) => {
@@ -407,7 +408,7 @@ export const ProductGrid: React.FC = () => {
               {/* Available Sizess */}
               <div className="border-t border-neutral-100 pt-4">
                 <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2.5">
-                  Available Sizes
+                  <Bi en="Available Sizes" bn="সাইজ" />
                 </h4>
                 <div className="grid grid-cols-2 gap-1.5">
                   {availableSizes.map((sz) => {
@@ -441,7 +442,7 @@ export const ProductGrid: React.FC = () => {
                     }
                     className="rounded border-neutral-300 text-[#D8232A] focus:ring-[#D8232A]"
                   />
-                  <span className="text-red-600">Deals & On Sale</span>
+                  <span className="text-red-600"><Bi en="Deals & On Sale" bn="অফার ও ছাড়" /></span>
                 </label>
               </div>
             </div>
@@ -480,7 +481,7 @@ export const ProductGrid: React.FC = () => {
                   onClick={resetFilters}
                   className="mt-5 px-5 py-2.5 bg-[#D8232A] hover:bg-[#b51c22] text-white text-xs font-bold rounded-full transition-colors cursor-pointer"
                 >
-                  Reset All Filters
+                  <Bi en="Reset All Filters" bn="সব ফিল্টার মুছুন" />
                 </button>
               </div>
             )}
@@ -508,7 +509,7 @@ export const ProductGrid: React.FC = () => {
             >
               <div>
                 <div className="flex items-center justify-between border-b border-neutral-100 pb-3 mb-4">
-                  <span className="font-black text-sm text-neutral-900 uppercase">Filters</span>
+                  <span className="font-black text-sm text-neutral-900 uppercase"><Bi en="Filters" bn="ফিল্টার" /></span>
                   <button
                     onClick={() => setIsMobileFilterOpen(false)}
                     className="p-1 rounded-lg text-neutral-500 hover:bg-neutral-100 cursor-pointer"
@@ -520,7 +521,7 @@ export const ProductGrid: React.FC = () => {
                 {/* Brands Mobile */}
                 <div className="mb-4">
                   <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">
-                    House of Brands
+                    <Bi en="House of Brands" bn="ব্র্যান্ড" />
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
                     {BRAND_INFOS.map((b) => {
@@ -545,7 +546,7 @@ export const ProductGrid: React.FC = () => {
                 {/* Sizes Mobile */}
                 <div className="mb-4">
                   <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">
-                    Sizes
+                    <Bi en="Sizes" bn="সাইজ" />
                   </h4>
                   <div className="grid grid-cols-2 gap-1.5">
                     {availableSizes.map((sz) => {
@@ -571,13 +572,13 @@ export const ProductGrid: React.FC = () => {
                   onClick={resetFilters}
                   className="flex-1 py-2.5 bg-neutral-100 text-neutral-700 text-xs font-bold rounded-xl cursor-pointer"
                 >
-                  Reset
+                  <Bi en="Reset" bn="রিসেট" />
                 </button>
                 <button
                   onClick={() => setIsMobileFilterOpen(false)}
                   className="flex-1 py-2.5 bg-[#D8232A] text-white text-xs font-bold rounded-xl cursor-pointer"
                 >
-                  Apply ({sortedProducts.length})
+                  <Bi en={`Apply (${sortedProducts.length})`} bn="দেখুন" />
                 </button>
               </div>
             </motion.div>

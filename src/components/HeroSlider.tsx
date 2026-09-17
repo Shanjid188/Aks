@@ -4,14 +4,15 @@ import { dataLoader } from '../lib/dataLoader';
 import { useStore } from '../context/StoreContext';
 import { ArrowRight, ChevronLeft, ChevronRight, ShieldCheck, Sparkles, Zap, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BRAND_BN, SLIDER_DESC_BN } from '../data/bn';
-import { FEATURE_STRIP_BN } from '../data/bn';
+import { useLanguage } from '../context/LanguageContext';
 
 export const HeroSlider: React.FC = () => {
   const { setFilters, setActiveProductPage } = useStore();
+  const { language } = useLanguage();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [slides, setSlides] = useState<HeroSlide[]>(HERO_SLIDES);
+  const [direction, setDirection] = useState(1);
 
   // Admin-managed slides from the API; keeps bundled slides as fallback.
   useEffect(() => {
@@ -27,20 +28,38 @@ export const HeroSlider: React.FC = () => {
   useEffect(() => {
     if (isPaused || slides.length === 0) return;
     const interval = setInterval(() => {
-            setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 6000);
+      setDirection(1);
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 2000);
     return () => clearInterval(interval);
   }, [isPaused, slides.length]);
 
   if (slides.length === 0) return null;
 
   const slide = slides[currentSlide % slides.length];
-  const titleBn =
-    BRAND_BN[slide.ctaBrand ?? ''] ?? BRAND_BN[(slide.title || '').toUpperCase()] ?? '';
-  const descBn =
-    SLIDER_DESC_BN[slide.ctaBrand ?? ''] ??
-    SLIDER_DESC_BN[(slide.title || '').toUpperCase()] ??
-    '';
+
+  const goTo = (idx: number) => {
+    setDirection(idx > currentSlide ? 1 : -1);
+    setCurrentSlide(idx);
+  };
+
+  const goNext = () => {
+    setDirection(1);
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
+  };
+
+  const goPrev = () => {
+    setDirection(-1);
+    setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+  };
+
+  // Honest, verifiable trust points (no invented claims).
+  const FEATURE_STRIP = [
+    '100% Quality Checked',
+    'Home Delivery Across Bangladesh',
+    'Cash on Delivery Available',
+    'bKash, Nagad & Cash on Delivery',
+  ];
 
   const handleSlideCta = (current: HeroSlide) => {
     setActiveProductPage(null);
@@ -49,7 +68,7 @@ export const HeroSlider: React.FC = () => {
       category: (current.ctaCategory as any) || 'all',
       subcategory: current.ctaSubcategory || 'All',
       brand: current.ctaBrand ? [current.ctaBrand] : [],
-            searchQuery: '',
+      searchQuery: '',
     }));
     const catalogEl = document.getElementById('product-catalog-section');
     if (catalogEl) {
@@ -63,29 +82,25 @@ export const HeroSlider: React.FC = () => {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Height adapts to content on phones (min-h); fixed feel kept from sm up.
-          This prevents the tall mobile text stack from clipping / overlapping the
-          arrows & indicators that anchor to this box's bottom edge. */}
       <div className="relative flex items-center overflow-hidden min-h-[360px] sm:min-h-[415px] lg:min-h-[485px]">
-        {/* Background Image Carousel with Fade */}
-        <AnimatePresence mode="wait">
+        {/* Background Image Carousel — smooth crossfade + subtle zoom */}
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={slide.id}
-            initial={{ opacity: 0, scale: 1.02 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.99 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
+            initial={{ opacity: 0, scale: 1.03 }}
+            animate={{ opacity: 0.6, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.02 }}
+            transition={{ duration: 0.9, ease: [0.22, 0.61, 0.36, 1] }}
             className="absolute inset-0 z-0"
           >
             <img
               src={slide.image}
               alt={slide.title}
               referrerPolicy="no-referrer"
-              className="w-full h-full object-cover object-center opacity-60"
+              className="w-full h-full object-cover object-center"
             />
-            {/* Gradient Overlays for optimal typography legibility */}
-            <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/80 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/90 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/90 via-neutral-950/40 to-neutral-950/70" />
+            <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/60 via-transparent to-transparent" />
           </motion.div>
         </AnimatePresence>
 
@@ -95,10 +110,10 @@ export const HeroSlider: React.FC = () => {
             <AnimatePresence mode="wait">
               <motion.div
                 key={slide.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5, delay: 0.15 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 0.61, 0.36, 1] }}
                 className="space-y-3 sm:space-y-6"
               >
                 {/* Badge */}
@@ -107,33 +122,23 @@ export const HeroSlider: React.FC = () => {
                     className="w-2 h-2 rounded-full animate-pulse"
                     style={{ backgroundColor: slide.accentColor }}
                   />
-                  {slide.badge}
+                  {language === 'bn' && slide.badgeBn ? slide.badgeBn : slide.badge}
                 </div>
 
                 {/* Main Heading */}
                 <h2 className="text-2xl min-[400px]:text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.05]">
-                  {slide.title}
-                  {titleBn && (
-                    <span className="text-lg min-[400px]:text-xl sm:text-3xl lg:text-4xl font-bold text-neutral-200 tracking-normal">
-                      {' '}({titleBn})
-                    </span>
-                  )}
+                  {language === 'bn' && slide.titleBn ? slide.titleBn : slide.title}
                 </h2>
 
                 {/* Subtitle */}
-                <p className="text-sm sm:text-base lg:text-lg text-neutral-300 font-normal leading-relaxed max-w-xl">
-                  {slide.subtitle}
+                <p className="text-base sm:text-lg lg:text-xl text-neutral-300 font-normal leading-relaxed max-w-xl">
+                  {language === 'bn' && slide.subtitleBn ? slide.subtitleBn : slide.subtitle}
                 </p>
-                {descBn && (
-                  <p className="text-xs sm:text-sm text-neutral-300/90 font-medium leading-relaxed max-w-xl mt-1.5">
-                    {descBn}
-                  </p>
-                )}
 
                 {/* Tagline pill */}
-                <div className="text-xs text-neutral-400 font-semibold tracking-wide flex items-center gap-2">
+                <div className="text-sm text-neutral-400 font-semibold tracking-wide flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>{slide.tagline}</span>
+                  <span>{language === 'bn' && slide.taglineBn ? slide.taglineBn : slide.tagline}</span>
                 </div>
 
                 {/* Actions */}
@@ -204,19 +209,16 @@ export const HeroSlider: React.FC = () => {
         </div>
       </div>
 
-      {/* Feature Strip under Hero (bilingual) */}
+      {/* Feature Strip under Hero */}
       <div className="bg-neutral-950/90 border-t border-neutral-800 text-neutral-300 py-3 px-4">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-medium">
-          {FEATURE_STRIP_BN.map((f, i) => (
-            <div key={f.en} className="flex items-center gap-2.5">
+          {FEATURE_STRIP.map((f, i) => (
+            <div key={f} className="flex items-center gap-2.5">
               {i === 0 && <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />}
               {i === 1 && <Zap className="w-4 h-4 text-amber-400 shrink-0" />}
               {i === 2 && <Award className="w-4 h-4 text-rose-400 shrink-0" />}
               {i === 3 && <Sparkles className="w-4 h-4 text-sky-400 shrink-0" />}
-              <span>
-                <span className="block leading-tight">{f.en}</span>
-                <span className="block text-neutral-500 leading-tight">{f.bn}</span>
-              </span>
+              <span className="leading-tight">{f}</span>
             </div>
           ))}
         </div>

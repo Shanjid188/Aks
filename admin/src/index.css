@@ -1,10 +1,101 @@
 @import "tailwindcss";
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   AKS Mart Admin — Unified Color System (Tailwind v4 @theme)
+   Modern, professional dashboard palette — consistent with storefront
+   ══════════════════════════════════════════════════════════════════════════════ */
+@theme {
+  /* ── Brand scale (shared with storefront) ──────────────────────────────── */
+  --color-brand-50:  #FEF2F2;
+  --color-brand-100: #FEE2E2;
+  --color-brand-500: #D8232A;   /* ← Primary brand */
+  --color-brand-600: #B91C1C;   /* ← Primary hover */
+  --color-brand-700: #991B1B;   /* ← Primary active */
+
+  /* ── Neutral scale ────────────────────────────────────────────────────── */
+  --color-neutral-50:  #F8FAFC;  /* Admin page background */
+  --color-neutral-100: #F1F5F9;  /* Light background */
+  --color-neutral-200: #E2E8F0;  /* Borders, dividers */
+  --color-neutral-300: #CBD5E1;  /* Border hover */
+  --color-neutral-400: #94A3B8;  /* Muted text */
+  --color-neutral-500: #64748B;  /* Secondary text */
+  --color-neutral-600: #475569;  /* Body text */
+  --color-neutral-700: #334155;  /* Strong text */
+  --color-neutral-800: #1E293B;  /* Darkest text */
+  --color-neutral-900: #0F172A;  /* Darkest text */
+
+  /* ── Sidebar dark scale ───────────────────────────────────────────────── */
+  --color-sidebar-50:  #262626;   /* Sidebar hover */
+  --color-sidebar-100: #1A1A1A;   /* Sidebar end gradient */
+  --color-sidebar-200: #111111;   /* Dark emphasis */
+  --color-sidebar-300: #0A0A0A;   /* Deepest dark */
+
+  /* ── Semantic colors ─────────────────────────────────────────────────── */
+  --color-success-50:  #F0FDF4;
+  --color-success-100: #D1FAE5;
+  --color-success-500: #10B981;   /* Success text/icon */
+  --color-success-600: #059669;   /* Success hover */
+
+  --color-warning-50:  #FFFBEB;
+  --color-warning-100: #FEF3C7;
+  --color-warning-500: #F59E0B;   /* Warning text/icon */
+  --color-warning-600: #D97706;   /* Warning hover */
+
+  --color-error-50:  #FEF2F2;
+  --color-error-100: #FEE2E2;
+  --color-error-500: #EF4444;     /* Error text/icon */
+  --color-error-600: #DC2626;     /* Error hover */
+
+  --color-info-50:  #EFF6FF;
+  --color-info-100: #DBEAFE;
+  --color-info-500: #3B82F6;      /* Info text/icon */
+  --color-info-600: #2563EB;      /* Info hover */
+
+  /* ── Order status colors ─────────────────────────────────────────────── */
+  --color-status-pending:    #F59E0B;
+  --color-status-confirmed:  #3B82F6;
+  --color-status-processing: #6366F1;
+  --color-status-shipped:    #8B5CF6;
+  --color-status-delivered:  #10B981;
+  --color-status-cancelled:  #EF4444;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   CSS Custom Properties (for runtime access)
+   ══════════════════════════════════════════════════════════════════════════════ */
+:root {
+  --color-brand: #D8232A;
+  --color-brand-hover: #B91C1C;
+  --color-bg: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-text: #1E293B;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748B;
+  --color-border: #E2E8F0;
+  --color-border-hover: #CBD5E1;
+}
+
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: #171717;
-    background-color: #f5f5f5;
+    color: #1E293B;
+    background-color: #F8FAFC;
     -webkit-font-smoothing: antialiased;
   }
+}
+
+/* Slim, subtle scrollbars for the admin sidebar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(120, 113, 108, 0.35);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 113, 108, 0.55);
 }

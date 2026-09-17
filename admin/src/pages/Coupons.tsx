@@ -120,9 +120,9 @@ export function CouponsPage() {
                   <td className="px-4 py-3 font-mono font-bold text-neutral-900">{c.code}</td>
                   <td className="px-4 py-3 capitalize text-neutral-600">{c.discountType}</td>
                   <td className="px-4 py-3 font-bold text-neutral-900">
-                    {c.discountType === 'percent' ? `${c.value}%` : `৳${c.value}`}
+                    {c.discountType === 'percent' ? `${c.value}%` : `BDT ${c.value}`}
                   </td>
-                  <td className="px-4 py-3 text-neutral-500">৳{c.minSpend.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-neutral-500">BDT {c.minSpend.toLocaleString()}</td>
                   <td className="px-4 py-3 text-neutral-500">{c.usedCount}</td>
                   <td className="px-4 py-3">
                     {c.active ? (
@@ -160,14 +160,14 @@ export function CouponsPage() {
             <Field label="Type">
               <Select value={form.discountType} onChange={(e) => setForm({ ...form, discountType: e.target.value })}>
                 <option value="percent">Percent %</option>
-                <option value="fixed">Fixed ৳</option>
+                <option value="fixed">Fixed (BDT)</option>
               </Select>
             </Field>
-            <Field label={form.discountType === 'percent' ? 'Value (%)' : 'Value (৳)'}>
+            <Field label={form.discountType === 'percent' ? 'Value (%)' : 'Value (BDT)'}>
               <TextInput required type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} />
             </Field>
           </div>
-          <Field label="Minimum spend (৳)">
+          <Field label="Minimum spend (BDT)">
             <TextInput type="number" value={form.minSpend} onChange={(e) => setForm({ ...form, minSpend: e.target.value })} />
           </Field>
           <Field label="Description">

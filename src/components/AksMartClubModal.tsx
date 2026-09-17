@@ -159,7 +159,7 @@ export const AksMartClubModal: React.FC = () => {
                 {
                   icon: <Award className="w-4 h-4 text-emerald-500" />,
                                 title: 'Member-Only Perks',
-                                desc: 'Free express shipping, priority checkout & birthday treats at all AKS Mart stores.',
+                                desc: 'Free express shipping, priority checkout & birthday treats from your favorite divisions.',
                 },
               ].map((item, idx) => (
                 <div key={idx} className="p-4 rounded-xl bg-neutral-50 border border-neutral-100 space-y-1">

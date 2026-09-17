@@ -36,15 +36,12 @@ async function main() {
   const health = await api('/api/health');
   check('GET /api/health', health.status === 200 && health.data.status === 'ok', health.data);
 
-  const cat = await api('/api/products?category=men');
-  check('GET /api/products?category=men', cat.status === 200 && Array.isArray(cat.data.products) && cat.data.products.length > 0, { count: cat.data.count });
+  const cat = await api('/api/products');
+  check('GET /api/products', cat.status === 200 && Array.isArray(cat.data.products) && cat.data.products.length > 0, { count: cat.data.count });
 
   const single = cat.data.products[0];
   const slugRes = await api(`/api/products/${single.slug}`);
   check('GET /api/products/:slug', slugRes.status === 200 && slugRes.data.slug === single.slug, slugRes.status);
-
-  const stores = await api('/api/stores');
-  check('GET /api/stores', stores.status === 200 && stores.data.stores.length === 8, { count: stores.data.stores?.length });
 
   const reviews = await api(`/api/products/${single.slug}/reviews`);
   check('GET /api/products/:slug/reviews', reviews.status === 200 && Array.isArray(reviews.data.reviews));

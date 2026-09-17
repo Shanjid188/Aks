@@ -16,14 +16,60 @@ datasource db {
 }
 
 model AdminUser {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  role         String   @default("admin") // "superadmin" | "admin"
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  name           String
+  role           String   @default("admin") // legacy role label; RBAC uses the @relation Role
+  roleId         String?
+  roleRef        Role?    @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  posOrders      Order[]  @relation("OrderCashier")
+  assignedOrders Order[]  @relation("AssignedOrders")
+}
+
+/**
+ * RBAC — a named set of permissions assignable to AdminUsers.
+ */
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String           @default("")
+  isSuper     Boolean          @default(false) // Super Admin — immutable, full access
+  isSystem    Boolean          @default(false) // seeded role — cannot be deleted
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  permissions RolePermission[]
+  users       AdminUser[]
+}
+
+/**
+ * One assignable permission string (e.g. "orders.status") per role.
+ */
+model RolePermission {
+  id         String @id @default(cuid())
+  roleId     String
+  permission String
+  role       Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permission])
+}
+
+/**
+ * Audit trail for sensitive admin actions.
+ */
+model AuditLog {
+  id         String   @id @default(cuid())
+  adminId    String?
+  adminName  String?
+  adminEmail String?
+  action     String
+  entity     String
+  entityId   String?
+  details    String   @default("")
+  createdAt  DateTime @default(now())
 }
 
 model Category {
@@ -36,64 +82,105 @@ model Category {
 }
 
 model Product {
-  id              String    @id @default(cuid())
-  legacyId        String?   @unique // carries the original frontend product id (e.g. "prod-m-01")
-  sku             String    @unique
-  name            String
-  slug            String    @unique
-  brand           String
-  category        String
-  subcategory     String
-  price           Float
-  originalPrice   Float?
-  discountPercent Int?
-  rating          Float     @default(0)
-  reviewsCount    Int       @default(0)
-  isNewArrival    Boolean   @default(false)
-  isBestSeller    Boolean   @default(false)
-  isTrending      Boolean   @default(false)
-  isClearance     Boolean   @default(false)
-  featuredOrder   Int?
-  description     String
-  features        String // JSON string[]
-  materials       String // JSON object
-  colors          String // JSON array
-  sizes           String // JSON array
-  images          String // JSON string[]
-  tags            String // JSON string[]
-  fit             String?
-  pattern         String?
-  sleeve          String?
-  occasion        String
-  cushionTech     String?
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  reviews         Review[]
-  orderItems      OrderItem[]
+  id                 String          @id @default(cuid())
+  legacyId           String?         @unique // carries the original frontend product id (e.g. "prod-m-01")
+  sku                String          @unique
+  barcode            String? // machine-readable barcode / EAN — added Phase 2 (future POS)
+  costPrice          Float? // last-known cost price (BDT) — inventory margin calcs
+  stockQuantity      Int             @default(0) // product-level stock count for inventory tracking
+  lowStockThreshold  Int             @default(0) // quantity at/below which the item is flagged low stock
+  trackStock         Boolean         @default(false) // inventory tracking enabled/disabled for this product
+  name               String
+  nameBn             String? // Bangla product name
+  slug               String          @unique
+  brand              String
+  category           String
+  subcategory        String
+  shortDescription   String? // short English description
+  shortDescriptionBn String? // short Bangla description
+  description        String
+  descriptionBn      String? // full Bangla description
+  price              Float
+  originalPrice      Float?
+  discountPercent    Int?
+  taxPercent         Float           @default(0) // VAT/tax % applied at checkout and POS
+  weight             Float? // per-unit weight (kg)
+  isFeatured         Boolean         @default(false)
+  isNewArrival       Boolean         @default(false)
+  isBestSeller       Boolean         @default(false)
+  isTrending         Boolean         @default(false)
+  isClearance        Boolean         @default(false)
+  featuredOrder      Int?
+  rating             Float           @default(0)
+  reviewsCount       Int             @default(0)
+  features           String // JSON string[]
+  materials          String // JSON object
+  colors             String // JSON array
+  sizes              String // JSON array
+  images             String // JSON string[]
+  tags               String // JSON string[]
+  fit                String?
+  pattern            String?
+  sleeve             String?
+  occasion           String
+  cushionTech        String?
+  isActive           Boolean         @default(true)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  reviews            Review[]
+  orderItems         OrderItem[]
+  stockMovements     StockMovement[]
 }
 
 model Order {
-  id                String      @id @default(cuid())
-  orderNumber       String      @unique
-  trackingCode      String      @unique
-  status            String      @default("confirmed") // confirmed | processing | shipped | out_for_delivery | delivered | cancelled
+  id                String          @id @default(cuid())
+  orderNumber       String          @unique
+  trackingCode      String          @unique
+  status            String          @default("pending") // pending (new orders) → confirmed | processing | packed | shipped | out_for_delivery (legacy) | delivered | completed | cancelled | returned | refunded
+  source            String          @default("online") // online (storefront) | pos (counter sale)
+  invoiceNumber     String? // printable invoice reference — assigned when invoice module ships
   customerName      String
   customerPhone     String
   customerEmail     String
-  customerAddress   String      // JSON — mirrors ShippingAddress from src/types.ts
-  deliveryMethod    String      // standard | express | pickup
+  customerAddress   String          @default("{}") // JSON — mirrors ShippingAddress from src/types.ts
+  customerId        String? // optional Customer model link (POS / registered customers)
+  customer          Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  deliveryMethod    String          @default("standard") // standard | express | pickup
   pickupStore       String?
-  paymentMethod     String      // bkash | nagad | card | cod
+  paymentMethod     String          @default("cod") // bkash | nagad | card | cod | cash | rocket | bank
+  paymentStatus     String          @default("unpaid") // unpaid | partial | paid | failed | refunded | due
+  paidAmount        Float           @default(0)
+  dueAmount         Float           @default(0)
+  cashierId         String? // admin who recorded/POS-sold the order
+  cashier           AdminUser?      @relation("OrderCashier", fields: [cashierId], references: [id], onDelete: SetNull)
+  assignedAdminId   String? // admin currently responsible for processing
+  assignedAdmin     AdminUser?      @relation("AssignedOrders", fields: [assignedAdminId], references: [id], onDelete: SetNull)
   subtotal          Float
-  discount          Float       @default(0)
-  shippingFee       Float       @default(0)
+  discount          Float           @default(0)
+  shippingFee       Float           @default(0)
+  tax               Float           @default(0)
   total             Float
   couponCode        String?
+  customerNote      String?
+  adminNote         String?
   estimatedDelivery String?
+  packedStatus      String          @default("not_packed") // not_packed | packing | packed | shipped
+  packedAt          DateTime?
+  packedBy          String? // admin name/email who packed (snapshot, survives admin deletion)
+  dispatchedAt      DateTime?
+  receivedAt        DateTime?
+  heldAt            DateTime? // POS hold/resume
   items             OrderItem[]
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  payments          Payment[]
+  returnRequests    ReturnRequest[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([customerPhone])
+  @@index([status])
+  @@index([source])
+  @@index([paymentStatus])
+  @@index([createdAt])
 }
 
 model OrderItem {
@@ -102,12 +189,223 @@ model OrderItem {
   productId   String?
   productName String
   productSku  String
+  unitCost    Float? // per-unit cost snapshot — for future inventory/COGS reporting
   size        String
   color       String
   quantity    Int
   price       Float
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product     Product? @relation(fields: [productId], references: [id])
+}
+
+/**
+ * Inventory stock movement ledger — one row per stock change (+/-).
+ */
+model StockMovement {
+  id            String   @id @default(cuid())
+  productId     String
+  change        Int // positive = stock in, negative = stock out
+  reason        String   @default("") // e.g. "manual adjustment", "order", "purchase", "return"
+  referenceType String? // e.g. "order", "adjustment", "purchase", "return" (future modules)
+  referenceId   String? // id of the reference entity, if any
+  createdBy     String? // admin id/email who made the change (snapshot)
+  createdAt     DateTime @default(now())
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([createdAt])
+}
+
+/**
+ * Registered / walk-in customer (POS + customer module).
+ */
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  city      String?
+  notes     String?
+  type      String   @default("regular") // walkin | regular | wholesale | vip
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+
+  @@index([name])
+  @@index([phone])
+}
+
+/**
+ * One receipt along the way for an order (cash, bkash, card, …).
+ */
+model Payment {
+  id         String   @id @default(cuid())
+  orderId    String
+  amount     Float
+  method     String   @default("cash") // cash | card | bkash | nagad | rocket | bank | cod
+  reference  String?
+  note       String?
+  receivedBy String? // admin id/email snapshot
+  createdAt  DateTime @default(now())
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+/**
+ * Vendors / suppliers for the Purchases module.
+ */
+model Supplier {
+  id        String     @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  company   String?
+  notes     String?
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  purchases Purchase[]
+}
+
+/**
+ * Purchase order — when received it increases inventory and logs movements.
+ */
+model Purchase {
+  id             String         @id @default(cuid())
+  purchaseNumber String         @unique
+  supplierId     String?
+  supplier       Supplier?      @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  status         String         @default("pending") // pending | received | cancelled
+  totalCost      Float          @default(0)
+  paidAmount     Float          @default(0)
+  dueAmount      Float          @default(0)
+  purchaseDate   DateTime       @default(now())
+  notes          String?
+  createdBy      String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  items          PurchaseItem[]
+}
+
+model PurchaseItem {
+  id          String   @id @default(cuid())
+  purchaseId  String
+  productId   String?
+  productName String   @default("")
+  sku         String?
+  quantity    Int
+  costPrice   Float
+  total       Float
+  purchase    Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+/**
+ * Business expense (delivery, rent, marketing, …).
+ */
+model Expense {
+  id            String   @id @default(cuid())
+  title         String
+  category      String   @default("Other")
+  amount        Float
+  expenseDate   DateTime @default(now())
+  paymentMethod String   @default("cash")
+  note          String?
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([category])
+  @@index([expenseDate])
+}
+
+/**
+ * Homepage marketing promo banners (DB-backed).
+ */
+model Promotion {
+  id        String    @id @default(cuid())
+  title     String
+  subtitle  String?
+  image     String?
+  link      String?
+  startDate DateTime?
+  endDate   DateTime?
+  isActive  Boolean   @default(true)
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+/**
+ * Storefront announcement bar — DB-backed.
+ */
+model Announcement {
+  id        String   @id @default(cuid())
+  text      String
+  textBn    String?
+  link      String?
+  bgColor   String   @default("#D8232A")
+  textColor String   @default("#ffffff")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/**
+ * Key/value store for site-wide settings (store name, currency, tax, …).
+ */
+model StoreSetting {
+  key       String   @id
+  value     String // JSON-encoded value
+  updatedAt DateTime @updatedAt
+}
+
+/**
+ * Customer returns / refunds workflow.
+ */
+model ReturnRequest {
+  id            String    @id @default(cuid())
+  returnNumber  String    @unique @default(cuid())
+  orderId       String?
+  order         Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  customerName  String?
+  customerPhone String?
+  productId     String?
+  productName   String?
+  variant       String?
+  quantity      Int       @default(1)
+  reason        String
+  customerNote  String?
+  adminNote     String?
+  status        String    @default("requested") // requested | approved | rejected | received | refunded | cancelled
+  refundAmount  Float     @default(0)
+  refundMethod  String    @default("store_credit") // store_credit | cash | bkash | nagad | bank
+  approvedById  String?
+  approvedAt    DateTime?
+  receivedAt    DateTime?
+  refundedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  refunds       Refund[]
+
+  @@index([orderId])
+  @@index([status])
+}
+
+model Refund {
+  id            String         @id @default(cuid())
+  returnId      String?
+  returnRequest ReturnRequest? @relation(fields: [returnId], references: [id], onDelete: SetNull)
+  orderId       String?
+  amount        Float
+  method        String         @default("store_credit")
+  note          String?
+  refundedBy    String?
+  createdAt     DateTime       @default(now())
 }
 
 model Coupon {

@@ -14,6 +14,8 @@ import {
   Tag,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Bi } from './Bi';
+import { navigate } from '../lib/router';
 
 export const CartDrawer: React.FC = () => {
   const {
@@ -31,7 +33,6 @@ export const CartDrawer: React.FC = () => {
     removeCoupon,
     freeShippingThreshold,
     currency,
-    setIsCheckoutOpen,
     clearCart,
   } = useStore();
 
@@ -56,7 +57,7 @@ export const CartDrawer: React.FC = () => {
 
   const handleProceedToCheckout = () => {
     setIsCartDrawerOpen(false);
-    setIsCheckoutOpen(true);
+    navigate('/checkout');
   };
 
   return (
@@ -111,7 +112,9 @@ export const CartDrawer: React.FC = () => {
             <span className="flex items-center gap-1.5">
               <Truck className="w-3.5 h-3.5 text-[#D8232A]" />
               {amountNeededForFreeShipping === 0 ? (
-                <span className="text-emerald-700 font-black">🎉 You have unlocked FREE Delivery across Bangladesh!</span>
+                <span className="text-emerald-700 font-black">
+                  You have unlocked FREE Delivery across Bangladesh!
+                </span>
               ) : (
                 <span>
                   Add <strong className="text-[#D8232A]">{formatPrice(amountNeededForFreeShipping, currency)}</strong> more for Free Delivery
@@ -135,15 +138,15 @@ export const CartDrawer: React.FC = () => {
               <div className="w-16 h-16 bg-red-50 text-[#D8232A] rounded-full flex items-center justify-center mx-auto mb-4">
                 <ShoppingBag className="w-8 h-8" />
               </div>
-              <h3 className="text-base font-bold text-neutral-900">Your shopping bag is empty</h3>
-              <p className="text-xs text-neutral-500 mt-1 max-w-xs mx-auto">
-                              Explore everyday essentials, artisan crafts, home & living, beauty and custom prints across AKS Mart.
+              <h3 className="text-base font-bold text-neutral-900">Your cart is empty</h3>
+              <p className="text-xs text-neutral-500 mt-2 max-w-xs mx-auto">
+                Find something you'll love.
               </p>
               <button
                 onClick={() => setIsCartDrawerOpen(false)}
                 className="mt-6 px-6 py-2.5 bg-[#D8232A] text-white text-xs font-bold rounded-full hover:bg-[#b51c22] transition-colors cursor-pointer"
               >
-                Start Shopping
+                Continue Shopping
               </button>
             </div>
           ) : (
@@ -181,7 +184,7 @@ export const CartDrawer: React.FC = () => {
                     </h4>
 
                     <div className="flex items-center gap-2 mt-1 text-[11px] text-neutral-500 font-medium">
-                      <span>Size: <strong className="text-neutral-800">{item.selectedSize.size}</strong></span>
+                      Size: <strong className="text-neutral-800">{item.selectedSize.size}</strong>
                       <span>•</span>
                       <span className="truncate max-w-[100px]">{item.selectedColor.name}</span>
                     </div>
@@ -226,7 +229,9 @@ export const CartDrawer: React.FC = () => {
                 <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-2 rounded-xl text-xs font-bold">
                   <div className="flex items-center gap-2">
                     <Tag className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Coupon "{appliedCoupon.code}" Active ({appliedCoupon.description})</span>
+                    <span>
+                      Coupon "{appliedCoupon.code}" Active ({appliedCoupon.description})
+                    </span>
                   </div>
                   <button
                     onClick={removeCoupon}

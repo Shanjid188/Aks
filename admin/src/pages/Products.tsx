@@ -49,7 +49,7 @@ interface FormState {
 const emptyForm: FormState = {
   name: '', sku: '', brand: 'SHUDDHO', category: 'food', subcategory: SUBCATEGORIES[0],
   price: '', originalPrice: '', discountPercent: '', rating: '4.5', reviewsCount: '0', featuredOrder: '',
-  description: '', features: '', materials: '{}', colors: '[]', sizes: '[]', images: '', tags: '',
+  description: '', features: '', materials: '', colors: '', sizes: '', images: '', tags: '',
   fit: 'Regular Fit', pattern: 'Solid', sleeve: 'Full Sleeve', occasion: '', cushionTech: '',
   isNewArrival: false, isBestSeller: false, isTrending: false, isClearance: false, isActive: true,
 };
@@ -62,8 +62,8 @@ function fromProduct(p: Product): FormState {
     rating: String(p.rating), reviewsCount: String(p.reviewsCount),
     featuredOrder: p.featuredOrder != null ? String(p.featuredOrder) : '',
     description: p.description, features: p.features.join('\n'),
-    materials: JSON.stringify(p.materials, null, 2), colors: JSON.stringify(p.colors, null, 2),
-    sizes: JSON.stringify(p.sizes, null, 2), images: p.images.join('\n'), tags: p.tags.join(', '),
+    materials: materialsJsonToText(p.materials), colors: colorsJsonToText(p.colors),
+    sizes: sizesJsonToText(p.sizes), images: p.images.join('\n'), tags: p.tags.join(', '),
     fit: p.fit || 'Regular Fit', pattern: p.pattern || 'Solid', sleeve: p.sleeve || 'Full Sleeve',
     occasion: p.occasion, cushionTech: p.cushionTech || '',
     isNewArrival: p.isNewArrival, isBestSeller: p.isBestSeller, isTrending: p.isTrending,
@@ -73,6 +73,88 @@ function fromProduct(p: Product): FormState {
 
 function splitLines(v: string): string[] {
   return v.split(/\n|,/).map((s) => s.trim()).filter(Boolean);
+}
+
+// Convert user-friendly materials text to JSON object
+function materialsTextToJson(text: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!text.trim()) return result;
+  // Try parsing as JSON first (backward compat)
+  try {
+    const parsed = JSON.parse(text);
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch { /* not JSON, parse as key:value lines */ }
+  text.split('\n').forEach((line) => {
+    line = line.trim();
+    if (!line) return;
+    const sep = line.indexOf(':');
+    if (sep > -1) {
+      const key = line.slice(0, sep).trim();
+      const val = line.slice(sep + 1).trim();
+      if (key) result[key] = val;
+    }
+  });
+  return result;
+}
+
+// Convert materials JSON object to user-friendly text
+function materialsJsonToText(obj: Record<string, string>): string {
+  return Object.entries(obj).map(([k, v]) => `${k}: ${v}`).join('\n');
+}
+
+// Convert user-friendly colors text to JSON array
+function colorsTextToJson(text: string): Array<{ name: string; hex?: string; image?: string }> {
+  if (!text.trim()) return [];
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) return parsed;
+  } catch { /* not JSON, parse as lines */ }
+  return text.split('\n').map((line) => {
+    line = line.trim();
+    if (!line) return null;
+    const parts = line.split(/\s+(?=#)/);
+    const name = parts[0] || line;
+    const hex = parts[1] || undefined;
+    return { name, hex };
+  }).filter(Boolean) as Array<{ name: string; hex?: string }>;
+}
+
+// Convert colors JSON array to user-friendly text
+function colorsJsonToText(arr: Array<{ name: string; hex?: string }>): string {
+  return arr.map((c) => c.hex ? `${c.name} ${c.hex}` : c.name).join('\n');
+}
+
+// Convert user-friendly sizes text to JSON array
+function sizesTextToJson(text: string): Array<{ size: string; inStock?: boolean; stockCount?: number }> {
+  if (!text.trim()) return [];
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) return parsed;
+  } catch { /* not JSON, parse as lines */ }
+  return text.split('\n').map((line) => {
+    line = line.trim();
+    if (!line) return null;
+    const parts = line.split(/\s*-\s*/);
+    const size = parts[0].trim();
+    let stockCount: number | undefined;
+    let inStock = true;
+    if (parts[1]) {
+      const numMatch = parts[1].match(/(\d+)/);
+      if (numMatch) stockCount = parseInt(numMatch[1]);
+      inStock = !parts[1].toLowerCase().includes('out');
+    }
+    return { size, inStock, stockCount };
+  }).filter(Boolean) as Array<{ size: string; inStock: boolean; stockCount?: number }>;
+}
+
+// Convert sizes JSON array to user-friendly text
+function sizesJsonToText(arr: Array<{ size: string; inStock?: boolean; stockCount?: number }>): string {
+  return arr.map((s) => {
+    if (s.stockCount != null) return `${s.size} - ${s.stockCount} in stock`;
+    return s.size;
+  }).join('\n');
 }
 
 function toPayload(f: FormState): Record<string, unknown> {
@@ -91,9 +173,9 @@ function toPayload(f: FormState): Record<string, unknown> {
     featuredOrder: num(f.featuredOrder),
     description: f.description.trim(),
     features: splitLines(f.features),
-    materials: JSON.parse(f.materials || '{}'),
-    colors: JSON.parse(f.colors || '[]'),
-    sizes: JSON.parse(f.sizes || '[]'),
+    materials: materialsTextToJson(f.materials),
+    colors: colorsTextToJson(f.colors),
+    sizes: sizesTextToJson(f.sizes),
     images: splitLines(f.images),
     tags: splitLines(f.tags),
     fit: f.fit,
@@ -310,8 +392,8 @@ export function ProductsPage() {
               </Select>
             </Field>
             <div className="grid grid-cols-3 gap-2">
-              <Field label="Price (৳)"><TextInput required type="number" value={form.price} onChange={(e) => set('price', e.target.value)} /></Field>
-              <Field label="Was (৳)"><TextInput type="number" value={form.originalPrice} onChange={(e) => set('originalPrice', e.target.value)} /></Field>
+              <Field label="Price (BDT)"><TextInput required type="number" value={form.price} onChange={(e) => set('price', e.target.value)} /></Field>
+              <Field label="Was (BDT)"><TextInput type="number" value={form.originalPrice} onChange={(e) => set('originalPrice', e.target.value)} /></Field>
               <Field label="Discount %"><TextInput type="number" value={form.discountPercent} onChange={(e) => set('discountPercent', e.target.value)} /></Field>
             </div>
             <div className="grid grid-cols-4 gap-2">
@@ -360,13 +442,39 @@ export function ProductsPage() {
             <Field label="Tags (comma / newline separated)">
               <TextArea value={form.tags} onChange={(e) => set('tags', e.target.value)} />
             </Field>
-            <Field label="Images (one URL per line)" hint="Paste URLs or upload images from your PC">
+            <Field
+              label="Images (one URL per line)"
+              hint="The FIRST line is shown on the storefront product card. Uploaded images are placed at the top automatically — remember to press Save changes."
+            >
               <TextArea value={form.images} onChange={(e) => set('images', e.target.value)} />
               <UploadImageButton
                 className="mt-2"
                 label="Upload image"
                 onUploaded={(url) =>
-                  set('images', form.images.trim() ? `${form.images.replace(/\s+$/, '')}\n${url}` : url)
+                  setForm((prev) => {
+                    // 1. Prepend to the images list (storefront gallery + card source)
+                    const existingImgs = prev.images
+                      .split(/\n|,/)
+                      .map((s) => s.trim())
+                      .filter(Boolean);
+                    const nextImgs = existingImgs.filter((u) => u !== url);
+                    const images = [url, ...nextImgs].join('\n');
+
+                    // 2. Keep the product card in sync: the card shows colors[0].image first.
+                    //    Update the first color's image to the newly uploaded one when it's valid JSON.
+                    let colors = prev.colors;
+                    try {
+                      const arr = JSON.parse(prev.colors);
+                      if (Array.isArray(arr) && arr.length > 0 && typeof arr[0] === 'object') {
+                        arr[0] = { ...arr[0], image: url };
+                        colors = JSON.stringify(arr, null, 2);
+                      }
+                    } catch {
+                      // colors is free-form text — leave it untouched
+                    }
+
+                    return { ...prev, images, colors };
+                  })
                 }
               />
             </Field>

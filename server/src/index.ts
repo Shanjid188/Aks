@@ -8,11 +8,24 @@ import authRouter from './routes/auth.ts';
 import productsRouter from './routes/products.ts';
 import ordersRouter from './routes/orders.ts';
 import couponsRouter from './routes/coupons.ts';
-import storesRouter from './routes/stores.ts';
 import reviewsRouter from './routes/reviews.ts';
 import statsRouter from './routes/stats.ts';
 import heroSlidesRouter from './routes/heroSlides.ts';
 import uploadsRouter from './routes/uploads.ts';
+import rolesRouter from './routes/roles.ts';
+import adminsRouter from './routes/admins.ts';
+import settingsRouter from './routes/settings.ts';
+import inventoryRouter from './routes/inventory.ts';
+import posRouter from './routes/pos.ts';
+import invoicesRouter from './routes/invoices.ts';
+import packagingRouter from './routes/packaging.ts';
+import returnsRouter from './routes/returns.ts';
+import suppliersRouter from './routes/suppliers.ts';
+import purchasesRouter from './routes/purchases.ts';
+import expensesRouter from './routes/expenses.ts';
+import reportsRouter from './routes/reports.ts';
+import activityRouter from './routes/activity.ts';
+import storefrontRouter from './routes/storefront.ts';
 
 const app = express();
 
@@ -61,11 +74,24 @@ app.use('/api', authRouter);
 app.use('/api', productsRouter);
 app.use('/api', ordersRouter);
 app.use('/api', couponsRouter);
-app.use('/api', storesRouter);
 app.use('/api', reviewsRouter);
 app.use('/api', statsRouter);
 app.use('/api', heroSlidesRouter);
 app.use('/api', uploadsRouter);
+app.use('/api', rolesRouter);
+app.use('/api', adminsRouter);
+app.use('/api', settingsRouter);
+app.use('/api', inventoryRouter);
+app.use('/api', posRouter);
+app.use('/api', invoicesRouter);
+app.use('/api', packagingRouter);
+app.use('/api', returnsRouter);
+app.use('/api', suppliersRouter);
+app.use('/api', purchasesRouter);
+app.use('/api', expensesRouter);
+app.use('/api', reportsRouter);
+app.use('/api', activityRouter);
+app.use('/api', storefrontRouter);
 
 /* ── SPA fallbacks (registered AFTER all /api routes) ───────────────────────
    Deep links get the right SPA instead of the JSON 404 below. /api/* paths are

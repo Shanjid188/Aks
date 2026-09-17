@@ -1,12 +1,11 @@
-// Safe API wrapper with fallback - used for optional data like products/stores.
+// Safe API wrapper with fallback - used for optional data like products.
 // Order creation lives in StoreContext (it needs cart + state access).
 import * as API from '../api';
 import * as adapter from './apiAdapter';
 import { INITIAL_PRODUCTS, INITIAL_REVIEWS } from '../data/products';
-import { STORE_LOCATIONS } from '../data/stores';
 import { HERO_SLIDES } from '../data/promos';
 import type { HeroSlide } from '../data/promos';
-import { Product, Review, StoreLocation } from '../types';
+import { Product, Review } from '../types';
 
 const USE_API = import.meta.env.VITE_USE_API !== 'false';
 
@@ -20,18 +19,6 @@ export const dataLoader = {
     } catch (e) {
       console.warn('[dataLoader] API products failed, falling back to local data:', e);
       return INITIAL_PRODUCTS;
-    }
-  },
-
-  /** Load stores from API, falling back to bundled data on any failure */
-  async loadStores(): Promise<StoreLocation[]> {
-    if (!USE_API) return STORE_LOCATIONS;
-    try {
-      const { stores } = await API.fetchStores();
-      return stores.map(adapter.adaptStore);
-    } catch (e) {
-      console.warn('[dataLoader] API stores failed, falling back:', e);
-      return STORE_LOCATIONS;
     }
   },
 

@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
-import { asyncHandler, requireAuth } from '../lib/auth.ts';
+import { asyncHandler, requirePermission, currentAdmin } from '../lib/auth.ts';
+import { PERM } from '../lib/permissions.ts';
+import { logAudit } from '../lib/audit.ts';
 
 const router = Router();
 
@@ -27,7 +29,7 @@ router.get(
 
 router.get(
   '/admin/reviews',
-  requireAuth,
+  requirePermission(PERM.REVIEWS_VIEW),
   asyncHandler(async (req, res) => {
     const q = req.query as Record<string, string | undefined>;
     const where: Record<string, unknown> = {};
@@ -46,7 +48,7 @@ router.get(
 
 router.patch(
   '/admin/reviews/:id',
-  requireAuth,
+  requirePermission(PERM.REVIEWS_MODERATE),
   asyncHandler(async (req, res) => {
     const id = req.params.id;
     const existing = await prisma.review.findUnique({ where: { id } });
@@ -64,12 +66,19 @@ router.patch(
 
 router.delete(
   '/admin/reviews/:id',
-  requireAuth,
+  requirePermission(PERM.REVIEWS_MODERATE),
   asyncHandler(async (req, res) => {
     const id = req.params.id;
     const existing = await prisma.review.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'Review not found' });
     await prisma.review.delete({ where: { id } });
+    await logAudit({
+      admin: currentAdmin(req),
+      action: 'review.deleted',
+      entity: 'review',
+      entityId: id,
+      details: `${existing.title} by ${existing.author}`,
+    });
     res.json({ deleted: true });
   })
 );

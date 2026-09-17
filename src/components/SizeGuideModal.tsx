@@ -157,9 +157,8 @@ export const SizeGuideModal: React.FC = () => {
             <HelpCircle className="w-4 h-4 text-[#D8232A]" /> Need more help?
           </h5>
           <p>
-            Visit any AKS Mart store for hands-on advice, or chat with our team via
-            the Support tab in your account. Reference your order number for
-            product-specific care instructions.
+            Chat with our team via the Support tab in your account. Reference your
+            order number for product-specific care instructions.
           </p>
         </div>
       </motion.div>

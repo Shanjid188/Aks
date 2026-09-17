@@ -4,7 +4,12 @@ import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
 import { Heart, Eye, ShoppingBag, Star, Check, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { PRODUCT_BN } from '../data/bn';
+import { navigate } from '../lib/router';
+
+interface ProductCardProps {
+  product: Product;
+  layout?: 'grid' | 'list';
+}
 
 interface ProductCardProps {
   product: Product;
@@ -41,8 +46,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
   };
 
   const handleCardClick = () => {
-    setActiveProductPage(product);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate(`/products/${product.slug}`);
   };
 
   // Determine current display image (never blank — always fall back to the first image)
@@ -98,9 +102,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
             <h3 className="text-base sm:text-lg font-bold text-neutral-900 mt-1 group-hover:text-[#D8232A] transition-colors">
               {product.name}
             </h3>
-            {PRODUCT_BN[product.slug] && (
-              <p className="text-[11px] font-medium text-neutral-500 mt-0.5 truncate">{PRODUCT_BN[product.slug]}</p>
-            )}
 
             <p className="text-xs text-neutral-500 mt-2 line-clamp-2 leading-relaxed">
               {product.description}
@@ -279,7 +280,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
               className="w-full py-2 px-3 bg-neutral-900/90 hover:bg-[#D8232A] text-white backdrop-blur-md rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>+ Quick Add Size</span>
+              <span>+ Quick Add</span>
             </button>
           ) : (
             <motion.div
@@ -350,9 +351,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
           <h3 className="text-sm font-bold text-neutral-900 group-hover:text-[#D8232A] transition-colors line-clamp-1 leading-snug">
             {product.name}
           </h3>
-          {PRODUCT_BN[product.slug] && (
-            <p className="text-[11px] font-medium text-neutral-500 mt-0.5 truncate">{PRODUCT_BN[product.slug]}</p>
-          )}
 
           {/* Rating */}
           <div className="flex items-center gap-1.5 mt-1.5 text-xs text-neutral-500">

@@ -8,7 +8,7 @@ import { PrismaClient } from '@prisma/client';
  */
 const prisma = new PrismaClient();
 
-function toLocal(u) {
+function toLocal(u: unknown): unknown {
   if (typeof u !== 'string') return u;
   const m = /images\.unsplash\.com\/(?:photo-)?([0-9a-f][0-9a-f-]{13,})/.exec(u);
   return m ? `/images/products/${m[1]}.jpg` : u;

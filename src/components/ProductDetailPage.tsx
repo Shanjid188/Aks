@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
-import { ProductColor, ProductSize } from '../types';
+import { ProductColor, ProductSize, Product } from '../types';
 import { ProductCard } from './ProductCard';
 import {
   Star,
@@ -20,6 +20,8 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Bi } from './Bi';
+import { navigate } from '../lib/router';
 
 export const ProductDetailPage: React.FC = () => {
   const {
@@ -34,7 +36,6 @@ export const ProductDetailPage: React.FC = () => {
     isInWishlist,
     setIsCartDrawerOpen,
     setIsSizeGuideOpen,
-    setIsCheckoutOpen,
     addToast,
   } = useStore();
 
@@ -44,17 +45,15 @@ export const ProductDetailPage: React.FC = () => {
     product.colors[0] || { name: 'Default', hex: '#000', image: product.images[0] }
   );
   const [selectedSize, setSelectedSize] = useState<ProductSize>(
-    product.sizes.find((s) => s.inStock) || product.sizes[0]
+    product.sizes.find((s) => s.inStock) || product.sizes[0] || {
+      size: 'One Size',
+      inStock: true,
+      stockCount: 0,
+    }
   );
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'details' | 'reviews' | 'care'>('details');
-
-  // Bundle Add-on State (Stole & Cufflinks)
-  const [bundleIncluded, setBundleIncluded] = useState<{ stole: boolean; accessory: boolean }>({
-    stole: true,
-    accessory: true,
-  });
 
   // Review Form State
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -81,38 +80,36 @@ export const ProductDetailPage: React.FC = () => {
     .filter((p) => p.id !== product.id && (p.category === product.category || p.brand === product.brand))
     .slice(0, 4);
 
-  // Bundle pricing
-  const stolePrice = 1450;
-  const accessoryPrice = 850;
-  const bundleDiscountPercent = 10;
-  let bundleSubtotal = product.price;
-  if (bundleIncluded.stole) bundleSubtotal += stolePrice;
-  if (bundleIncluded.accessory) bundleSubtotal += accessoryPrice;
-  const bundleTotal = Math.round(bundleSubtotal * (1 - bundleDiscountPercent / 100));
+  // Real "goes well with" picks from the same category (beyond the related grid)
+  const pairsWell = relatedProducts.slice(4, 7);
+
+  // At-a-glance highlight chips — only shown when the data actually exists
+  const highlights: string[] = [];
+  const fabricLabel = product.materials?.fabric || product.materials?.upper || '';
+  if (fabricLabel) highlights.push(fabricLabel);
+  if (product.cushionTech) highlights.push(product.cushionTech);
+  if (product.pattern) highlights.push(product.pattern);
+  if (product.fit) highlights.push(product.fit);
 
   const handleAddToCart = () => {
     addToCart(product, selectedColor, selectedSize, quantity);
     setIsCartDrawerOpen(true);
   };
 
-  const handleAddBundleToCart = () => {
-    // Add main product
-    addToCart(product, selectedColor, selectedSize, 1);
-    // Add bundle items if found
-    const stoleProd = products.find((p) => p.id === 'prod-acc-01');
-    const accProd = products.find((p) => p.id === 'prod-acc-02');
-    if (bundleIncluded.stole && stoleProd) {
-      addToCart(stoleProd, stoleProd.colors[0], stoleProd.sizes[0], 1);
-    }
-    if (bundleIncluded.accessory && accProd) {
-      addToCart(accProd, accProd.colors[0], accProd.sizes[0], 1);
-    }
+  // Quick-add a real companion product to the bag
+  const handleQuickAddPair = (p: Product) => {
+    const color = p.colors[0] || { name: 'Default', hex: '#000', image: p.images[0] };
+    const size = p.sizes.find((s) => s.inStock) || p.sizes[0] || {
+      size: 'One Size',
+      inStock: true,
+      stockCount: 0,
+    };
+    addToCart(p, color, size, 1);
     addToast({
       type: 'success',
-      title: 'Ensemble Added to Bag!',
-      message: 'Complete Festive Ensemble & Matching Accents added with 10% combo discount.',
+      title: 'Added to Bag',
+      message: `${p.name} has been added to your shopping bag.`,
     });
-    setIsCartDrawerOpen(true);
   };
 
   const handleReviewSubmit = (e: React.FormEvent) => {
@@ -148,14 +145,14 @@ export const ProductDetailPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 text-xs text-neutral-500 font-medium">
           <div className="flex items-center gap-2 flex-wrap min-w-0">
             <button
-              onClick={() => setActiveProductPage(null)}
+              onClick={() => navigate('/')}
               className="hover:text-[#D8232A] transition-colors cursor-pointer"
             >
               Home
             </button>
             <ChevronRight className="w-3.5 h-3.5" />
             <button
-              onClick={() => setActiveProductPage(null)}
+              onClick={() => navigate('/products')}
               className="hover:text-[#D8232A] transition-colors capitalize cursor-pointer"
             >
               {product.category}
@@ -167,11 +164,11 @@ export const ProductDetailPage: React.FC = () => {
           </div>
 
           <button
-            onClick={() => setActiveProductPage(null)}
+            onClick={() => navigate('/products')}
             className="self-start sm:self-auto flex items-center gap-1.5 font-bold text-neutral-700 hover:text-[#D8232A] transition-colors cursor-pointer bg-white px-3 py-1.5 rounded-full border border-neutral-200 shadow-2xs"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Collection</span>
+            <span>Back to Products</span>
           </button>
         </div>
 
@@ -223,31 +220,40 @@ export const ProductDetailPage: React.FC = () => {
               </div>
 
               {/* Trust highlights */}
-              <div className="grid grid-cols-3 gap-3 pt-4 border-t border-neutral-100 text-center text-xs">
-                <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-100">
-                  <ShieldCheck className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
-                  <p className="font-bold text-neutral-800">100% Authentic</p>
-                  <p className="text-[10px] text-neutral-400">AKS Mart Certified</p>
+              <div className="grid grid-cols-3 gap-3 pt-5 border-t border-neutral-100 text-center text-xs">
+                <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600 mx-auto mb-1.5" />
+                  <p className="font-extrabold text-neutral-800">100% Authentic</p>
+                  <p className="text-[10px] text-neutral-500 mt-0.5">AKS Mart Certified</p>
                 </div>
-                <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-100">
-                  <Truck className="w-5 h-5 text-sky-600 mx-auto mb-1" />
-                  <p className="font-bold text-neutral-800">Express Delivery</p>
-                  <p className="text-[10px] text-neutral-400">24-48h in Dhaka</p>
+                <div className="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-100">
+                  <Truck className="w-5 h-5 text-sky-600 mx-auto mb-1.5" />
+                  <p className="font-extrabold text-neutral-800">Express Delivery</p>
+                  <p className="text-[10px] text-neutral-500 mt-0.5">24-48h in Dhaka</p>
                 </div>
-                <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-100">
-                  <RotateCcw className="w-5 h-5 text-rose-600 mx-auto mb-1" />
-                                    <p className="font-bold text-neutral-800">AKS Mart Pickup & Returns</p>
-                  <p className="text-[10px] text-neutral-400">At Any AKS Mart Location</p>
+                <div className="p-3.5 rounded-2xl bg-rose-50/70 border border-rose-100">
+                  <RotateCcw className="w-5 h-5 text-rose-600 mx-auto mb-1.5" />
+                  <p className="font-extrabold text-neutral-800">Easy Returns</p>
+                  <p className="text-[10px] text-neutral-500 mt-0.5">30-Day Policy</p>
                 </div>
               </div>
             </div>
 
-            {/* Right: Purchase Controls & Specs (6 cols) */}
-            <div className="lg:col-span-6 flex flex-col justify-between">
+            {/* Right: Purchase Controls & Specs (6 cols, sticky on desktop) */}
+            <div className="lg:col-span-6 lg:sticky lg:top-24 self-start">
               <div>
-                <div className="flex items-center justify-between text-xs text-neutral-400 font-bold uppercase tracking-wider mb-2">
-                  <span className="text-[#D8232A] font-black">{product.brand}</span>
-                  <span>SKU: {product.sku}</span>
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white bg-[#D8232A] px-2.5 py-1 rounded-full">
+                    {product.brand}
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 bg-neutral-100 px-2.5 py-1 rounded-full">
+                    SKU {product.sku}
+                  </span>
+                  {product.isNewArrival && (
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                      New Arrival
+                    </span>
+                  )}
                 </div>
 
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-neutral-900 tracking-tight leading-tight">
@@ -296,18 +302,20 @@ export const ProductDetailPage: React.FC = () => {
                   {product.description}
                 </p>
 
-                {/* Fabric & Fit Pill */}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200/60 text-xs font-bold text-amber-900">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Fabric: {product.materials.fabric || product.materials.upper}</span>
+                {/* At-a-glance highlight chips (only when the data exists) */}
+                {highlights.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {highlights.map((h) => (
+                      <div
+                        key={h}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-50 border border-neutral-200 text-xs font-semibold text-neutral-700"
+                      >
+                        <Sparkles className="w-3 h-3 text-[#D8232A]" />
+                        <span>{h}</span>
+                      </div>
+                    ))}
                   </div>
-                  {product.fit && (
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-neutral-100 text-xs font-bold text-neutral-800">
-                      <span>Cut: {product.fit}</span>
-                    </div>
-                  )}
-                </div>
+                )}
 
                 {/* Colorway Picker */}
                 <div className="mt-6">
@@ -408,7 +416,7 @@ export const ProductDetailPage: React.FC = () => {
                     className="flex-1 py-4 px-6 bg-[#D8232A] hover:bg-[#b51c22] text-white font-extrabold text-base rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer"
                   >
                     <ShoppingBag className="w-5 h-5" />
-                    <span>Add to Shopping Bag</span>
+                    <span><Bi en="Add to Shopping Bag" bn="ব্যাগে যোগ করুন" /></span>
                   </button>
 
                   <button
@@ -427,145 +435,104 @@ export const ProductDetailPage: React.FC = () => {
                 <button
                   onClick={() => {
                     addToCart(product, selectedColor, selectedSize, quantity);
-                    setIsCheckoutOpen(true);
+                    navigate('/checkout');
                   }}
                   className="w-full py-3.5 bg-neutral-900 hover:bg-neutral-800 text-white font-extrabold text-sm rounded-2xl transition-all shadow-sm cursor-pointer"
                 >
-                  Instant Buy (bKash / Cash on Delivery)
+                  <span><Bi en="Buy Now (Cash on Delivery)" bn="এখনই কিনুন (ক্যাশ অন ডেলিভারি)" /></span>
                 </button>
               </div>
             </div>
           </div>
 
-          {/* "Frequently Bought Together" Bundle Box */}
-          <div className="mt-12 p-6 rounded-2xl bg-neutral-50 border border-neutral-200/80">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest bg-amber-200 text-amber-900 px-2 py-0.5 rounded">
-                  COMPLETE THE LOOK
+          {/* Goes well with — real companion products from the same category */}
+          {pairsWell.length > 0 && (
+            <div className="mt-10 p-6 rounded-3xl bg-neutral-50 border border-neutral-200/80">
+              <div className="flex items-center gap-2.5 mb-5">
+                <span className="text-[10px] font-black uppercase tracking-widest bg-[#D8232A] text-white px-2.5 py-1 rounded-full">
+                  PAIRS WELL WITH
                 </span>
                 <h3 className="text-base font-black text-neutral-900 tracking-tight">
-                  Frequently Styled Together
+                  Complete your order
                 </h3>
               </div>
-              <span className="text-xs font-bold text-emerald-700">Save 10% on Ensemble</span>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-              {/* Bundle items list (8 cols) */}
-              <div className="md:col-span-8 flex flex-col sm:flex-row items-center gap-4">
-                {/* Main Product */}
-                <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-neutral-200 flex-1 w-full">
-                  <img
-                    src={selectedColor.image}
-                    alt={product.name}
-                    referrerPolicy="no-referrer"
-                    className="w-14 h-14 object-cover rounded-lg border shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-neutral-900 truncate">{product.name}</p>
-                    <p className="text-xs text-[#D8232A] font-bold mt-0.5">
-                      {formatPrice(product.price, currency)}
-                    </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {pairsWell.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-neutral-200 hover:border-[#D8232A]/40 transition-colors"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/products/${p.slug}`)}
+                      className="shrink-0 cursor-pointer"
+                      aria-label={`View ${p.name}`}
+                    >
+                      <img
+                        src={p.colors[0]?.image || p.images[0]}
+                        alt={p.name}
+                        referrerPolicy="no-referrer"
+                        className="w-14 h-14 object-cover rounded-xl border border-neutral-100"
+                      />
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/products/${p.slug}`)}
+                        className="block w-full text-left text-xs font-bold text-neutral-900 truncate hover:text-[#D8232A] transition-colors cursor-pointer"
+                      >
+                        {p.name}
+                      </button>
+                      <p className="text-xs text-[#D8232A] font-bold mt-0.5">
+                        {formatPrice(p.price, currency)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickAddPair(p)}
+                      title="Quick add to bag"
+                      className="shrink-0 p-2 rounded-full bg-neutral-900 text-white hover:bg-[#D8232A] transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
                   </div>
-                </div>
-
-                <Plus className="w-5 h-5 text-neutral-400 shrink-0 hidden sm:block" />
-
-                {/* Stole / Shawl */}
-                <label className="flex items-center gap-3 bg-white p-3 rounded-xl border border-neutral-200 flex-1 w-full cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={bundleIncluded.stole}
-                    onChange={(e) =>
-                      setBundleIncluded((prev) => ({ ...prev, stole: e.target.checked }))
-                    }
-                    className="rounded text-[#D8232A] focus:ring-[#D8232A]"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-neutral-900 truncate">AKS Handloom Silk Stole</p>
-                    <p className="text-xs text-neutral-500 font-semibold mt-0.5">
-                      {formatPrice(stolePrice, currency)}
-                    </p>
-                  </div>
-                </label>
-
-                <Plus className="w-5 h-5 text-neutral-400 shrink-0 hidden sm:block" />
-
-                {/* Cufflinks / Brooch */}
-                <label className="flex items-center gap-3 bg-white p-3 rounded-xl border border-neutral-200 flex-1 w-full cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={bundleIncluded.accessory}
-                    onChange={(e) =>
-                      setBundleIncluded((prev) => ({ ...prev, accessory: e.target.checked }))
-                    }
-                    className="rounded text-[#D8232A] focus:ring-[#D8232A]"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-neutral-900 truncate">Brass Brooch & Cufflink Set</p>
-                    <p className="text-xs text-neutral-500 font-semibold mt-0.5">
-                      {formatPrice(accessoryPrice, currency)}
-                    </p>
-                  </div>
-                </label>
-              </div>
-
-              {/* Bundle Checkout (4 cols) */}
-              <div className="md:col-span-4 bg-white p-4 rounded-xl border border-neutral-200 text-center sm:text-right">
-                <div className="text-xs text-neutral-500">Combo Total:</div>
-                <div className="text-xl font-black text-neutral-900 mt-0.5">
-                  {formatPrice(bundleTotal, currency)}
-                  <span className="text-xs text-neutral-400 line-through ml-2 font-normal">
-                    {formatPrice(bundleSubtotal, currency)}
-                  </span>
-                </div>
-                <button
-                  onClick={handleAddBundleToCart}
-                  className="mt-2.5 w-full py-2 px-4 bg-neutral-900 hover:bg-[#D8232A] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
-                >
-                  Add Ensemble to Bag
-                </button>
+                ))}
               </div>
             </div>
-          </div>
+          )}
 
           {/* Deep Tabs (Specs, Customer Reviews, Care Guidelines) */}
           <div className="mt-12 border-t border-neutral-200 pt-8">
-            <div className="flex items-center gap-4 border-b border-neutral-200 pb-2">
-              <button
-                onClick={() => setActiveTab('details')}
-                className={`pb-2 text-sm font-extrabold transition-all cursor-pointer ${
-                  activeTab === 'details'
-                    ? 'text-[#D8232A] border-b-2 border-[#D8232A]'
-                    : 'text-neutral-500 hover:text-neutral-900'
-                }`}
-              >
-                Product Specifications
-              </button>
-              <button
-                onClick={() => setActiveTab('reviews')}
-                className={`pb-2 text-sm font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeTab === 'reviews'
-                    ? 'text-[#D8232A] border-b-2 border-[#D8232A]'
-                    : 'text-neutral-500 hover:text-neutral-900'
-                }`}
-              >
-                <span>Customer Reviews</span>
-                <span className="text-xs bg-neutral-200 px-2 py-0.5 rounded-full font-bold">
-                  {productReviews.length}
-                </span>
-              </button>
-              <button
-                onClick={() => setActiveTab('care')}
-                className={`pb-2 text-sm font-extrabold transition-all cursor-pointer ${
-                  activeTab === 'care'
-                    ? 'text-[#D8232A] border-b-2 border-[#D8232A]'
-                    : 'text-neutral-500 hover:text-neutral-900'
-                }`}
-              >
-                Fabric Care & Alterations
-              </button>
+            <div className="inline-flex flex-wrap items-center gap-1 p-1.5 rounded-2xl bg-neutral-100 border border-neutral-200">
+              {([
+                { id: 'details' as const, label: 'Details & Specifications', count: undefined },
+                { id: 'reviews' as const, label: 'Customer Reviews', count: productReviews.length },
+                { id: 'care' as const, label: 'Care & Delivery', count: undefined },
+              ]).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                    activeTab === tab.id
+                      ? 'bg-white text-neutral-900 shadow-sm'
+                      : 'text-neutral-500 hover:text-neutral-900'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  {tab.count !== undefined && (
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                        activeTab === tab.id
+                          ? 'bg-[#D8232A] text-white'
+                          : 'bg-neutral-200 text-neutral-600'
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
 
             <div className="pt-6">
@@ -587,29 +554,26 @@ export const ProductDetailPage: React.FC = () => {
 
                   <div>
                     <h4 className="text-xs font-black uppercase tracking-wider text-neutral-400 mb-3">
-                      Fabric & Tailoring Specifications
+                      Specifications
                     </h4>
-                    <div className="space-y-2 text-xs text-neutral-700 bg-neutral-50 p-4 rounded-xl border border-neutral-100">
-                      <div className="flex justify-between py-1 border-b border-neutral-200/60">
-                        <span className="font-bold">Fabric Composition</span>
-                        <span className="text-neutral-600">{product.materials.fabric || product.materials.upper}</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-neutral-200/60">
-                        <span className="font-bold">Weave & Finish</span>
-                        <span className="text-neutral-600">{product.materials.weave || product.pattern || 'Jacquard / 2-Ply'}</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-neutral-200/60">
-                        <span className="font-bold">Tailored Fit</span>
-                        <span className="text-neutral-600">{product.fit || 'Regular Fit'}</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-neutral-200/60">
-                        <span className="font-bold">Collar / Neck Style</span>
-                        <span className="text-neutral-600">{product.collar || 'Mandarin / Band Collar'}</span>
-                      </div>
-                      <div className="flex justify-between py-1">
-                        <span className="font-bold">Occasion</span>
-                        <span className="text-neutral-600">{product.occasion}</span>
-                      </div>
+                    <div className="space-y-1 text-xs text-neutral-700 bg-neutral-50 p-4 rounded-2xl border border-neutral-100">
+                      {([
+                        ['Material', product.materials?.fabric || product.materials?.upper || ''],
+                        ['Finish / Craft', product.materials?.weave || product.pattern || ''],
+                        ['Best for', product.occasion || ''],
+                        ['Care', product.materials?.care || ''],
+                        ['SKU', product.sku],
+                      ])
+                        .filter(([, v]) => v)
+                        .map(([k, v]) => (
+                          <div
+                            key={k}
+                            className="flex justify-between gap-6 py-1.5 border-b border-neutral-200/60 last:border-b-0"
+                          >
+                            <span className="font-bold shrink-0">{k}</span>
+                            <span className="text-neutral-600 text-right">{v}</span>
+                          </div>
+                        ))}
                     </div>
                   </div>
                 </div>
@@ -634,7 +598,9 @@ export const ProductDetailPage: React.FC = () => {
                         </div>
                       </div>
                       <p className="text-xs text-neutral-500 mt-1">
-                        Based on {product.reviewsCount} customer ratings • 98% true to size
+                        Based on {product.reviewsCount} customer ratings •{' '}
+                        {productReviews.length} written{' '}
+                        {productReviews.length === 1 ? 'review' : 'reviews'}
                       </p>
                     </div>
 
@@ -646,6 +612,37 @@ export const ProductDetailPage: React.FC = () => {
                       <span>Write a Review</span>
                     </button>
                   </div>
+
+                  {/* Rating breakdown from real customer reviews */}
+                  {productReviews.length > 0 && (
+                    <div className="bg-white p-5 rounded-2xl border border-neutral-200">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-neutral-400 mb-3">
+                        Rating breakdown
+                      </h4>
+                      <div className="space-y-2">
+                        {[5, 4, 3, 2, 1].map((star) => {
+                          const count = productReviews.filter((r) => r.rating === star).length;
+                          const pct = Math.round((count / productReviews.length) * 100);
+                          return (
+                            <div key={star} className="flex items-center gap-3">
+                              <span className="w-10 text-[11px] font-bold text-neutral-500 shrink-0">
+                                {star} ★
+                              </span>
+                              <div className="flex-1 h-2 rounded-full bg-neutral-100 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-amber-400 transition-all"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                              <span className="w-8 text-[11px] font-bold text-neutral-400 text-right shrink-0">
+                                {count}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Review Submission Form */}
                   <AnimatePresence>
@@ -717,16 +714,16 @@ export const ProductDetailPage: React.FC = () => {
 
                           <div>
                             <label className="block text-xs font-bold text-neutral-700 mb-1">
-                              Fit Assessment:
+                              Your Overall Feedback:
                             </label>
                             <select
                               value={newReviewFit}
                               onChange={(e) => setNewReviewFit(e.target.value as any)}
                               className="text-xs p-2 border border-neutral-300 rounded-lg w-full"
                             >
-                              <option value="true_to_size">True to Size (Tailored Fit)</option>
-                              <option value="runs_small">Runs Slightly Small</option>
-                              <option value="runs_large">Relaxed / Loose Fit</option>
+                              <option value="true_to_size">Excellent — would buy again</option>
+                              <option value="runs_small">Good value for money</option>
+                              <option value="runs_large">Could be better</option>
                             </select>
                           </div>
                         </div>
@@ -823,28 +820,50 @@ export const ProductDetailPage: React.FC = () => {
               )}
 
               {activeTab === 'care' && (
-                <div className="space-y-4 text-xs text-neutral-700 bg-neutral-50 p-6 rounded-2xl border border-neutral-200">
-                  <h4 className="font-bold text-sm text-neutral-900">
-                                        Product Care Guide
-                  </h4>
-                  <ul className="space-y-2 list-disc list-inside text-neutral-600 leading-relaxed">
-                                        <li>Keep dry goods airtight; store in a cool, dry place away from direct sunlight.</li>
-                                        <li>Keep crafted & jute items dry; wipe with a dry microfiber cloth only.</li>
-                                        <li>Custom-print items: handle by edges; avoid creasing or rubbing the print surface.</li>
-                                                          <li>Free returns within 30 days at any AKS Mart pickup point. Shop happy — we cover return shipping.</li>
-                  </ul>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="p-5 rounded-2xl bg-white border border-neutral-200">
+                    <ShieldCheck className="w-5 h-5 text-emerald-600 mb-2" />
+                    <h4 className="font-bold text-xs text-neutral-900 mb-2">Care & Storage</h4>
+                    <p className="text-xs text-neutral-600 leading-relaxed">
+                      {product.materials?.care ||
+                        'Keep dry goods airtight and store in a cool, dry place away from direct sunlight. Wipe crafted & jute items with a dry cloth only.'}
+                    </p>
+                  </div>
+                  <div className="p-5 rounded-2xl bg-white border border-neutral-200">
+                    <Truck className="w-5 h-5 text-sky-600 mb-2" />
+                    <h4 className="font-bold text-xs text-neutral-900 mb-2">Delivery Information</h4>
+                    <p className="text-xs text-neutral-600 leading-relaxed">
+                      Express delivery within 24-48 hours inside Dhaka, 2-4 days nationwide.
+                      Cash on Delivery available all over Bangladesh.
+                    </p>
+                  </div>
+                  <div className="p-5 rounded-2xl bg-white border border-neutral-200">
+                    <RotateCcw className="w-5 h-5 text-rose-600 mb-2" />
+                    <h4 className="font-bold text-xs text-neutral-900 mb-2">Easy Returns</h4>
+                    <p className="text-xs text-neutral-600 leading-relaxed">
+                      Free returns within 30 days of delivery. If anything is not right,
+                      we cover the return shipping — shop happy.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Related Garments Recommendations */}
+        {/* Related recommendations (same category / brand, real catalog data) */}
         {relatedProducts.length > 0 && (
           <div className="mb-12">
-            <h3 className="text-xl font-black text-neutral-900 mb-6">
-                            You May Also Like
-            </h3>
+            <div className="flex items-end justify-between gap-4 mb-6">
+              <div>
+                <h3 className="text-xl font-black text-neutral-900 tracking-tight">
+                  You May Also Like
+                </h3>
+                <p className="text-xs text-neutral-500 mt-1">
+                  More picks from {product.category} and {product.brand}
+                </p>
+              </div>
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedProducts.map((p) => (
                 <ProductCard key={p.id} product={p} />

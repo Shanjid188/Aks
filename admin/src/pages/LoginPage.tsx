@@ -26,15 +26,22 @@ export function LoginPage({ onSuccess }: { onSuccess: (admin: AdminUser) => void
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-900 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1d0609] via-[#5c1017] to-[#7f1d1d] px-4 relative overflow-hidden">
+      {/* Ambient red glow decorations */}
+      <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#D8232A]/30 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-rose-500/20 blur-3xl" />
+
       <form
         onSubmit={submit}
-        className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 space-y-5 border border-neutral-200"
+        className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 space-y-5 border border-neutral-200"
       >
         <div className="text-center space-y-1">
-                    <img src={aksLogo} alt="AKS Mart" className="w-12 h-12 rounded-xl object-cover mx-auto shrink-0" />
+                    <img src={aksLogo} alt="AKS Mart" className="w-14 h-14 rounded-xl object-cover mx-auto shrink-0 ring-2 ring-[#D8232A]/40" />
           <h1 className="text-lg font-black text-neutral-900 tracking-tight">AKS Mart Admin</h1>
           <p className="text-xs text-neutral-400">Management console</p>
+          <span className="inline-block mt-1 text-[9px] font-black uppercase tracking-widest bg-gradient-to-r from-[#D8232A] to-rose-500 text-white px-2.5 py-1 rounded-full">
+            Control Panel
+          </span>
         </div>
 
         {error && (

@@ -20,9 +20,36 @@ export function productToApi(p: Product) {
 }
 
 const JSON_FIELDS = ['features', 'materials', 'colors', 'sizes', 'images', 'tags'] as const;
-const NUMBER_FIELDS = ['price', 'originalPrice', 'discountPercent', 'rating', 'reviewsCount', 'featuredOrder'] as const;
-const BOOL_FIELDS = ['isNewArrival', 'isBestSeller', 'isTrending', 'isClearance', 'isActive'] as const;
-const NULLABLE_FIELDS = ['originalPrice', 'discountPercent', 'featuredOrder', 'cushionTech', 'fit', 'pattern', 'sleeve'] as const;
+const NUMBER_FIELDS = [
+  'price',
+  'originalPrice',
+  'discountPercent',
+  'rating',
+  'reviewsCount',
+  'featuredOrder',
+  'costPrice',
+  'stockQuantity',
+  'lowStockThreshold',
+] as const;
+const BOOL_FIELDS = [
+  'isNewArrival',
+  'isBestSeller',
+  'isTrending',
+  'isClearance',
+  'isActive',
+  'trackStock',
+] as const;
+const NULLABLE_FIELDS = [
+  'originalPrice',
+  'discountPercent',
+  'featuredOrder',
+  'cushionTech',
+  'fit',
+  'pattern',
+  'sleeve',
+  'barcode',
+  'costPrice',
+] as const;
 
 /**
  * Accepts a raw request body (already containing JSON arrays/objects for the

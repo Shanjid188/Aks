@@ -2,7 +2,9 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
 import type { Prisma } from '@prisma/client';
 import { productFromApi, productToApi } from '../utils/product.ts';
-import { asyncHandler, requireAuth } from '../lib/auth.ts';
+import { asyncHandler, requirePermission, currentAdmin } from '../lib/auth.ts';
+import { PERM } from '../lib/permissions.ts';
+import { logAudit } from '../lib/audit.ts';
 
 const router = Router();
 
@@ -84,9 +86,9 @@ function parseBool(v: unknown, fallback = false): boolean {
 
 router.get(
   '/admin/products',
-  requireAuth,
-  asyncHandler(async (req, res) => {
-    const q = req.query as Record<string, string | undefined>;
+  requirePermission(PERM.PRODUCTS_VIEW),
+  asyncHandler(async (_req, res) => {
+    const q = _req.query as Record<string, string | undefined>;
     const where: SimpleFilter = {};
     if (q.search) {
       const term = String(q.search).trim();
@@ -106,7 +108,7 @@ router.get(
 
 router.post(
   '/admin/products',
-  requireAuth,
+  requirePermission(PERM.PRODUCTS_CREATE),
   asyncHandler(async (req, res) => {
     const body = (req.body || {}) as Record<string, unknown>;
     if (!body.name || !body.brand || !body.category || !body.subcategory || typeof body.price === 'undefined') {
@@ -137,7 +139,7 @@ router.post(
 
 router.patch(
   '/admin/products/:id',
-  requireAuth,
+  requirePermission(PERM.PRODUCTS_EDIT),
   asyncHandler(async (req, res) => {
     const id = req.params.id;
     const existing = await prisma.product.findUnique({ where: { id } });
@@ -160,13 +162,20 @@ router.patch(
 /** Soft-delete: hides the product from the storefront but keeps order history valid. */
 router.delete(
   '/admin/products/:id',
-  requireAuth,
+  requirePermission(PERM.PRODUCTS_DELETE),
   asyncHandler(async (req, res) => {
     const id = req.params.id;
     const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'Product not found' });
 
     const product = await prisma.product.update({ where: { id }, data: { isActive: false } });
+    await logAudit({
+      admin: currentAdmin(req),
+      action: 'product.deleted',
+      entity: 'product',
+      entityId: id,
+      details: `${existing.name} (${existing.sku})`,
+    });
     res.json({ product: productToApi(product), deleted: true });
   })
 );

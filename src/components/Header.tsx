@@ -7,7 +7,6 @@ import {
   Search,
   ShoppingBag,
   Heart,
-  MapPin,
   Sparkles,
   Truck,
   RotateCcw,
@@ -24,6 +23,10 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BRAND_INFOS } from '../data/promos';
+import { Bi } from './Bi';
+import { Link, navigate } from '../lib/router';
+import { useLanguage } from '../context/LanguageContext';
+
 
 export const Header: React.FC = () => {
   const {
@@ -32,11 +35,10 @@ export const Header: React.FC = () => {
     compareList,
     cartSubtotal,
     currency,
+    setCurrency,
     setIsCartDrawerOpen,
     setIsWishlistDrawerOpen,
-    setIsStoreLocatorOpen,
         setIsAksMartClubOpen,
-    setIsOrderTrackerOpen,
     setIsShoeFinderOpen,
     setIsCompareModalOpen,
     setIsSizeGuideOpen,
@@ -47,17 +49,19 @@ export const Header: React.FC = () => {
     setActiveProductPage,
   } = useStore();
 
+  const { language, setLanguage } = useLanguage();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeMegaMenu, setActiveMegaMenu] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Announcement rotation
+  // Announcement rotation — English only
   const announcements = [
-    { icon: <Truck className="w-3.5 h-3.5" />, text: 'Free Delivery Across Bangladesh on Orders Above ৳2,500' },
-    { icon: <Sparkles className="w-3.5 h-3.5" />, text: 'AKS Mart — Food · Craft · Home · Beauty · Print · One Mart, Many Choices' },
-    { icon: <ShieldCheck className="w-3.5 h-3.5" />, text: 'Cash on Delivery Available — Pay When Your Order Arrives' },
+    { icon: <Truck className="w-3.5 h-3.5" />, text: 'Free delivery across Bangladesh on orders above ৳2,500' },
+    { icon: <Sparkles className="w-3.5 h-3.5" />, text: 'AKS Mart — Food · Craft · Home · Beauty · Print' },
+    { icon: <ShieldCheck className="w-3.5 h-3.5" />, text: 'Cash on Delivery — pay when your order arrives' },
   ];
   const [announcementIndex, setAnnouncementIndex] = useState(0);
 
@@ -105,10 +109,8 @@ export const Header: React.FC = () => {
         subcategory: 'All',
       }));
       setIsSearchFocused(false);
-      const catalogEl = document.getElementById('product-catalog-section');
-      if (catalogEl) {
-        catalogEl.scrollIntoView({ behavior: 'smooth' });
-      }
+      setIsMobileMenuOpen(false);
+      navigate('/products');
     }
   };
 
@@ -123,10 +125,7 @@ export const Header: React.FC = () => {
     }));
     setActiveMegaMenu(null);
     setIsMobileMenuOpen(false);
-    const catalogEl = document.getElementById('product-catalog-section');
-    if (catalogEl) {
-      catalogEl.scrollIntoView({ behavior: 'smooth' });
-    }
+    navigate('/products');
   };
 
   const handleSelectBrand = (brandName: string) => {
@@ -140,20 +139,17 @@ export const Header: React.FC = () => {
     }));
     setActiveMegaMenu(null);
     setIsMobileMenuOpen(false);
-    const catalogEl = document.getElementById('product-catalog-section');
-    if (catalogEl) {
-      catalogEl.scrollIntoView({ behavior: 'smooth' });
-    }
+    navigate('/products');
   };
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 shadow-xs">
       {/* Top Utility Announcement Bar */}
-      <div className="bg-neutral-900 text-white text-xs py-2 px-4 border-b border-neutral-800">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div className="bg-neutral-900 text-white text-[10px] py-0.5 px-4 border-b border-neutral-800/50">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1">
           {/* Rotating ticker */}
           <div className="flex items-center gap-2 font-medium tracking-wide">
-            <span className="inline-flex items-center justify-center p-1 rounded bg-[#D8232A] text-white">
+            <span className="inline-flex items-center justify-center p-0.5 rounded bg-[#D8232A] text-white text-[10px]">
               {announcements[announcementIndex].icon}
             </span>
             <AnimatePresence mode="wait">
@@ -171,48 +167,61 @@ export const Header: React.FC = () => {
           </div>
 
           {/* Quick links & Currency */}
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 sm:gap-x-4 text-neutral-300">
-            <button
-              onClick={() => setIsStoreLocatorOpen(true)}
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 sm:gap-x-4 text-neutral-300">
+            <Link
+              to="/track-order"
               className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
             >
-              <MapPin className="w-3.5 h-3.5 text-[#D8232A]" />
-              <span className="hidden md:inline">AKS Mart Stores</span>
-                            <span className="md:hidden">Stores</span>
-            </button>
-
-            <span className="w-px h-3 bg-neutral-700" />
-
-            <button
-              onClick={() => setIsOrderTrackerOpen(true)}
-              className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
-            >
-              <Clock className="w-3.5 h-3.5 text-amber-400" />
+              <Clock className="w-3 h-3 text-amber-400" />
               <span>Track Order</span>
-            </button>
+            </Link>
 
-            <span className="w-px h-3 bg-neutral-700" />
+            <span className="w-px h-2.5 bg-neutral-700" />
 
             <button
                     onClick={() => setIsAksMartClubOpen(true)}
               className="flex items-center gap-1 hover:text-white transition-colors text-amber-400 font-semibold cursor-pointer"
             >
-              <Award className="w-3.5 h-3.5" />
+              <Award className="w-3 h-3" />
               <span>AKS Mart Club</span>
             </button>
 
             <span className="w-px h-3 bg-neutral-700" />
+             {/* Currency & Language toggles */}
+             <div className="flex items-center gap-2">
+               <button
+                 onClick={() => setCurrency(currency === 'BDT' ? 'USD' : 'BDT')}
+                 className={`flex items-center rounded-lg px-2.5 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
+                   currency === 'BDT'
+                     ? 'bg-[#D8232A] text-white'
+                     : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+                 }`}
+                 title="Toggle currency"
+               >
+                 {currency === 'BDT' ? '৳ BDT' : '$ USD'}
+               </button>
+               <button
+                 onClick={() => {
+                   const next = language === 'en' ? 'bn' : 'en';
+                   setLanguage(next);
+                 }}
+                 className={`flex items-center rounded-lg px-2.5 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
+                   language === 'bn'
+                     ? 'bg-[#D8232A] text-white'
+                     : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+                 }`}
+                 title="Toggle language"
+               >
+                 {language === 'en' ? 'EN' : 'বাং'}
+               </button>
+             </div>
 
-            {/* Currency — BDT only */}
-            <div className="flex items-center bg-neutral-800 rounded px-2 py-0.5 border border-neutral-700 text-[11px] font-semibold text-neutral-300">
-              ৳ BDT
-            </div>
           </div>
         </div>
       </div>
 
       {/* Main Brand Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1">
         <div className="flex items-center justify-between gap-4">
           {/* Mobile Menu Button */}
           <button
@@ -223,49 +232,50 @@ export const Header: React.FC = () => {
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
 
-          {/* AKS Mart Logo */}
-          <div
+          {/* AKS Mart Logo → home */}
+          <Link
+            to="/"
             onClick={() => {
               setActiveProductPage(null);
               setFilters((prev) => ({ ...prev, category: 'all', subcategory: 'All', searchQuery: '', brand: [] }));
             }}
             className="flex items-center gap-3 cursor-pointer group select-none"
           >
-            <Logo className="h-10 w-10 rounded-md shadow-sm ring-1 ring-neutral-200 shrink-0 group-hover:scale-[1.02] transition-transform" />
-            <div className="hidden sm:flex flex-col">
-              <span className="text-[11px] uppercase tracking-widest font-bold text-neutral-900 leading-tight">
+            <Logo className="h-7 w-7 rounded-md shadow-sm ring-1 ring-neutral-200 shrink-0 group-hover:scale-[1.02] transition-transform" />
+            <div className="hidden sm:flex flex-col justify-center">
+              <span className="text-xs uppercase tracking-[0.15em] font-extrabold text-neutral-900 leading-tight">
                 AKS MART
               </span>
-              <span className="text-[10px] text-neutral-500 font-medium tracking-tight">
+              <span className="text-[9px] text-neutral-500 font-medium tracking-tight leading-tight">
                 One Mart. Many Choices.
               </span>
             </div>
-          </div>
+          </Link>
 
           {/* Smart Live Search Bar */}
-          <div ref={searchRef} className="relative flex-1 max-w-xl hidden md:block">
+          <div ref={searchRef} className="relative flex-1 max-w-lg hidden md:block">
             <form onSubmit={handleSearchSubmit} className="relative">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setIsSearchFocused(true)}
-                placeholder="Search rice, honey, nakshi kantha, bedsheets, face wash, custom print…"
-                className="w-full pl-11 pr-24 py-2.5 bg-neutral-50 hover:bg-neutral-100/80 focus:bg-white text-sm text-neutral-900 placeholder:text-neutral-400 rounded-full border border-neutral-200 focus:border-[#D8232A] focus:ring-2 focus:ring-[#D8232A]/20 transition-all outline-none"
+                placeholder="Search products (rice, honey, kantha, bedsheets…)"
+                className="w-full pl-10 pr-24 py-2 bg-white hover:bg-neutral-50 focus:bg-white text-sm text-neutral-900 placeholder:text-neutral-400 rounded-full border-2 border-neutral-200 focus:border-[#D8232A] focus:ring-2 focus:ring-[#D8232A]/20 transition-all outline-none leading-none"
               />
-              <Search className="w-4 h-4 text-neutral-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-12 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 text-xs p-1"
+                  className="absolute right-20 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 text-xs p-1 leading-none"
                 >
                   Clear
                 </button>
               )}
               <button
                 type="submit"
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#D8232A] text-white px-3 py-1.5 rounded-full text-xs font-semibold hover:bg-[#b51c22] transition-colors"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#D8232A] text-white px-3.5 py-1.5 rounded-full text-xs font-bold hover:bg-[#b51c22] transition-colors"
               >
                 Search
               </button>
@@ -284,7 +294,7 @@ export const Header: React.FC = () => {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
-                          Matching Products ({searchResults.length})
+                          Matching products ({searchResults.length})
                         </span>
                         <button
                           onClick={handleSearchSubmit}
@@ -343,7 +353,7 @@ export const Header: React.FC = () => {
                     <div>
                       <div className="mb-3">
                         <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
-                          Trending Searches in Bangladesh
+                          Trending Searches
                         </span>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {[
@@ -383,7 +393,7 @@ export const Header: React.FC = () => {
                           }}
                           className="text-[#D8232A] font-semibold hover:underline"
                         >
-                          Size Chart & Fit Guide
+                          Size Chart &amp; Fit Guide
                         </button>
                       </div>
                     </div>
@@ -393,8 +403,8 @@ export const Header: React.FC = () => {
             </AnimatePresence>
           </div>
 
-          {/* Action Icons (Outfit Matcher, Compare, Wishlist, Cart) */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Action Icons (Compare, Wishlist, Cart) */}
+          <div className="flex items-center gap-1">
             {/* Style & Fit Matcher */}
             <button
               onClick={() => setIsShoeFinderOpen(true)}
@@ -407,7 +417,7 @@ export const Header: React.FC = () => {
             {/* Compare */}
             <button
               onClick={() => setIsCompareModalOpen(true)}
-              className="relative p-2.5 rounded-full text-neutral-700 hover:bg-neutral-100 transition-colors cursor-pointer"
+              className="relative p-2 rounded-full text-neutral-700 hover:bg-neutral-100 transition-colors cursor-pointer"
               title="Compare Products"
             >
               <SlidersHorizontal className="w-5 h-5" />
@@ -435,7 +445,7 @@ export const Header: React.FC = () => {
             {/* Cart Drawer Trigger */}
             <button
               onClick={() => setIsCartDrawerOpen(true)}
-              className="flex items-center gap-2.5 bg-[#D8232A] hover:bg-[#b51c22] text-white pl-3.5 pr-4 py-2 rounded-full shadow-sm hover:shadow-md transition-all cursor-pointer group"
+              className="flex items-center gap-2 bg-[#D8232A] hover:bg-[#b51c22] text-white pl-3 pr-3.5 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all cursor-pointer group"
             >
               <div className="relative">
                 <ShoppingBag className="w-5 h-5 group-hover:rotate-6 transition-transform" />
@@ -458,13 +468,13 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Mobile Search input */}
-        <div className="mt-3 md:hidden">
+        <div className="mt-2 md:hidden">
           <form onSubmit={handleSearchSubmit} className="relative">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products, food, home, craft & more..."
+              placeholder="Search products..."
               className="w-full pl-10 pr-20 py-2 bg-neutral-100 text-xs rounded-full border border-neutral-200 outline-none focus:border-[#D8232A]"
             />
             <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -486,7 +496,7 @@ export const Header: React.FC = () => {
             <li>
               <button
                 onClick={() => handleSelectCategory('all', 'All')}
-                className={`px-3.5 py-3 hover:text-[#D8232A] transition-colors flex items-center gap-1 cursor-pointer ${
+                className={`px-3 py-2 hover:text-[#D8232A] transition-colors flex items-center gap-1 cursor-pointer ${
                   filters.category === 'all' && filters.subcategory === 'All' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
                 }`}
               >
@@ -855,7 +865,9 @@ export const Header: React.FC = () => {
             </div>
 
             <div className="border-t border-neutral-100 pt-3">
-              <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">Shop by AKS Mart Division</p>
+              <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">
+                Shop by AKS Mart Division
+              </p>
               <div className="flex flex-wrap gap-1.5">
                 {BRAND_INFOS.map((b) => (
                   <button
@@ -882,23 +894,13 @@ export const Header: React.FC = () => {
               </button>
               <button
                 onClick={() => {
-                  setIsStoreLocatorOpen(true);
-                  setIsMobileMenuOpen(false);
-                }}
-                className="flex items-center gap-2 py-2"
-              >
-                <MapPin className="w-4 h-4 text-[#D8232A]" />
-                Find Nearby AKS Mart Stores
-              </button>
-              <button
-                onClick={() => {
-                  setIsOrderTrackerOpen(true);
+                  navigate('/track-order');
                   setIsMobileMenuOpen(false);
                 }}
                 className="flex items-center gap-2 py-2"
               >
                 <Clock className="w-4 h-4 text-neutral-500" />
-                Track My Order Status
+                Track My Order
               </button>
               <button
                 onClick={() => {
@@ -908,7 +910,7 @@ export const Header: React.FC = () => {
                 className="flex items-center gap-2 py-2"
               >
                 <SlidersHorizontal className="w-4 h-4 text-neutral-500" />
-                Product & Fit Guides
+                Product &amp; Fit Guides
               </button>
             </div>
           </motion.div>

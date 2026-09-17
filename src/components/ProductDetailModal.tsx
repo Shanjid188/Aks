@@ -17,6 +17,8 @@ import {
   Minus,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Bi } from './Bi';
+import { navigate } from '../lib/router';
 
 export const ProductDetailModal: React.FC = () => {
   const {
@@ -29,7 +31,6 @@ export const ProductDetailModal: React.FC = () => {
     isInWishlist,
     setIsCartDrawerOpen,
     setIsSizeGuideOpen,
-    setIsCheckoutOpen,
     setActiveProductPage,
   } = useStore();
 
@@ -39,7 +40,11 @@ export const ProductDetailModal: React.FC = () => {
     product.colors[0] || { name: 'Default', hex: '#000', image: product.images[0] }
   );
   const [selectedSize, setSelectedSize] = useState<ProductSize>(
-    product.sizes.find((s) => s.inStock) || product.sizes[0]
+    product.sizes.find((s) => s.inStock) || product.sizes[0] || {
+      size: 'One Size',
+      inStock: true,
+      stockCount: 0,
+    }
   );
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -61,13 +66,12 @@ export const ProductDetailModal: React.FC = () => {
   const handleBuyNow = () => {
     addToCart(product, selectedColor, selectedSize, quantity);
     closeQuickView();
-    setIsCheckoutOpen(true);
+    navigate('/checkout');
   };
 
   const handleViewFullPage = () => {
-    setActiveProductPage(product);
+    navigate(`/products/${product.slug}`);
     closeQuickView();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -284,7 +288,7 @@ export const ProductDetailModal: React.FC = () => {
                 className="flex-1 py-3.5 px-4 bg-[#D8232A] hover:bg-[#b51c22] text-white font-extrabold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <ShoppingBag className="w-4 h-4" />
-                <span>Add to Shopping Bag</span>
+                <span><Bi en="Add to Shopping Bag" bn="ব্যাগে যোগ করুন" /></span>
               </button>
 
               <button

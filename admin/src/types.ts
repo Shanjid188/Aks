@@ -60,6 +60,7 @@ export interface OrderItem {
   color: string;
   quantity: number;
   price: number;
+  product?: { id: string; name: string; images: string[] } | null;
 }
 
 export interface ShippingAddress {
@@ -95,6 +96,21 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
+  /* ── Phase 2+ backend additions (all optional so legacy callers still compile) ── */
+  source?: string | null;
+  invoiceNumber?: string | null;
+  paidAmount?: number | null;
+  dueAmount?: number | null;
+  paymentStatus?: string | null;
+  tax?: number | null;
+  internalNotes?: string | null;
+  cashierId?: string | null;
+  packedAt?: string | null;
+  packedBy?: string | null;
+  dispatchedAt?: string | null;
+  deliveryStatus?: string | null;
+  packagingStatus?: string | null;
+  customerNote?: string | null;
 }
 
 export interface Coupon {
@@ -110,21 +126,7 @@ export interface Coupon {
   updatedAt: string;
 }
 
-export interface Store {
-  id: string;
-  name: string;
-  division: string;
-  district: string;
-  area: string;
-  address: string;
-  phone: string;
-  openingHours: string;
-  features: string[];
-  lat: number;
-  lng: number;
-  isFlagship: boolean;
-  createdAt: string;
-}
+
 
 export interface Review {
   id: string;
@@ -143,16 +145,75 @@ export interface Review {
   createdAt: string;
 }
 
+/** Aggregated customer row — one per unique phone number (from real orders). */
+export interface Customer {
+  name: string;
+  phone: string;
+  email: string;
+  division: string;
+  district: string;
+  totalSpent: number;
+  ordersCount: number;
+  lastOrderAt: string;
+  firstOrderAt: string;
+  lastOrderNumber: string;
+}
+
+/** Role returned by /admin/roles (permissions flattened to keys). */
+export interface Role {
+  id: string;
+  name: string;
+  description: string;
+  isSuper: boolean;
+  isSystem: boolean;
+  permissions: string[];
+  usersCount: number;
+  createdAt: string;
+}
+
+/** Admin user row returned by /admin/admins. */
+export interface AdminUserRow {
+  id: string;
+  name: string;
+  email: string;
+  isActive: boolean;
+  role: { id: string | null; name: string; isSuper: boolean } | null;
+  createdAt: string;
+  lastLoginAt: string | null;
+}
+
 export interface Stats {
   revenue: number;
+  revenueDeltaPercent: number | null;
   ordersCount: number;
   pendingOrdersCount: number;
+  confirmedOrdersCount: number;
+  activeOrdersCount: number;
   deliveredOrdersCount: number;
+  cancelledOrdersCount: number;
   productsCount: number;
+  customersCount: number;
   reviewsCount: number;
   couponsActive: number;
   lowStockProducts: { id: string; name: string; sku: string; image: string | null; lowestStock: number }[];
+  topProducts: { name: string; category: string; image: string | null; qty: number; revenue: number }[];
+  categoryPerformance: { category: string; categoryLabel: string; ordersCount: number; qty: number; revenue: number }[];
+  recentlyCancelledOrders: Order[];
   recentOrders: Order[];
+  lowStockLevel: number;
+}
+
+export interface SalesPoint {
+  label: string;
+  revenue: number;
+  orders: number;
+}
+
+export interface SalesOverview {
+  range: string;
+  points: SalesPoint[];
+  totalRevenue: number;
+  totalOrders: number;
 }
 
 export interface HeroSlide {
@@ -172,3 +233,72 @@ export interface HeroSlide {
   createdAt: string;
   updatedAt: string;
 }
+/** Inventory row (GET /admin/inventory). */
+export interface InventoryItem {
+  id: string; name: string; sku: string; barcode: string | null;
+  category: string; subcategory: string; trackStock: boolean;
+  stockQuantity: number; reserved: number; available: number;
+  lowStockThreshold: number; isLow: boolean; isOut: boolean; updatedAt: string;
+}
+
+export interface StockMovementRow {
+  id: string; productId: string; productName: string; sku: string; image: string | null;
+  change: number; reason: string; referenceType: string | null; referenceId: string | null;
+  createdBy: string | null; createdAt: string;
+}
+
+export interface Promotion {
+  id: string; title: string; subtitle: string | null; image: string | null; link: string | null;
+  startDate: string | null; endDate: string | null; isActive: boolean; sortOrder: number;
+  createdAt: string; updatedAt: string;
+}
+
+export interface Announcement {
+  id: string; text: string; textBn: string | null; link: string | null;
+  bgColor: string; textColor: string; isActive: boolean; createdAt: string; updatedAt: string;
+}
+
+export interface Supplier {
+  id: string; name: string; phone: string | null; email: string | null; address: string | null;
+  company: string | null; notes: string | null; isActive: boolean; createdAt: string; updatedAt: string; _count?: { purchases: number };
+}
+
+export interface PurchaseItemRow {
+  id: string; purchaseId: string; productId: string | null; productName: string; sku: string | null;
+  quantity: number; costPrice: number; total: number;
+}
+
+export interface Purchase {
+  id: string; purchaseNumber: string; supplierId: string | null; supplier: Supplier | null;
+  status: string; totalCost: number; paidAmount: number; dueAmount: number;
+  purchaseDate: string; notes: string | null; createdBy: string | null;
+  createdAt: string; updatedAt: string; items: PurchaseItemRow[];
+}
+
+export interface Expense {
+  id: string; title: string; category: string; amount: number; expenseDate: string;
+  paymentMethod: string; note: string | null; createdBy: string | null; createdAt: string; updatedAt: string;
+}
+
+export interface ReturnRequest {
+  id: string; returnNumber: string; orderId: string | null; order: { id: string; orderNumber: string } | null;
+  customerName: string | null; customerPhone: string | null; productId: string | null; productName: string | null;
+  variant: string | null; quantity: number; reason: string; customerNote: string | null; adminNote: string | null;
+  status: string; refundAmount: number; refundMethod: string;
+  approvedById: string | null; approvedAt: string | null; receivedAt: string | null; refundedAt: string | null;
+  createdAt: string; updatedAt: string;
+}
+
+export interface ActivityLogRow {
+  id: string; adminId: string | null; adminName: string | null; adminEmail: string | null;
+  action: string; entity: string; entityId: string | null; details: string; createdAt: string;
+}
+
+export interface StoreSettings {
+  storeName?: string; storeTagline?: string; storeLogo?: string; favicon?: string; phone?: string; email?: string;
+  website?: string; address?: string; facebook?: string; whatsapp?: string; currency?: string; currencySymbol?: string;
+  defaultShippingCharge?: number; freeShippingThreshold?: number; taxPercent?: number; invoiceFooter?: string;
+  returnPolicy?: string; packagingNote?: string; thankYouMessage?: string; invoicePaperSize?: string; thermalWidth?: string;
+  lowStockThreshold?: number; orderPrefix?: string; posPrefix?: string; timezone?: string; language?: string;
+}
+

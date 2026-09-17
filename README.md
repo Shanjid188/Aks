@@ -18,7 +18,6 @@ A fast, single-page e-commerce application for everyday Bangladeshi essentials �
 - Wishlist & product comparison (up to 4 items)
 - Product quick view + full product detail pages
 - Checkout flow (bKash, Nagad, card, COD)
-- Store locator (8 locations across Bangladesh)
 - Order tracking
 - Product Guide & Smart Finder quiz
 - Client-side persistence via localStorage
@@ -73,13 +72,13 @@ src/
 
 server/                     # NEW — REST API (Express + Prisma + SQLite)
 ├── prisma/schema.prisma    # Database schema (products, orders, coupons, stores, reviews, admins)
-├── prisma/seed.ts          # Seeds DB from src/data/* (16 products, 8 stores, 4 coupons, reviews, admin)
+├── prisma/seed.ts          # Seeds DB from src/data/* (16 products, 4 coupons, reviews, admin)
 ├── src/index.ts            # Express app (port 4000)
-├── src/routes/             # auth, products, orders, coupons, stores, reviews, stats
+├── src/routes/             # auth, products, orders, coupons, reviews, stats
 └── scripts/smoke.ts        # End-to-end API test suite (17 checks)
 
 admin/                      # React 19 admin panel (Vite, port 5173)
-└── src/pages/              # Login, Dashboard, Products, Orders, Coupons, Boutiques, Reviews
+└── src/pages/              # Login, Dashboard, Products, Orders, Coupons, Reviews
 ```
 
 ## Backend API (server/)
@@ -108,7 +107,6 @@ Key endpoints:
 | `/api/admin/products` | Bearer | Product CRUD |
 | `/api/admin/orders` | Bearer | Order list + status updates |
 | `/api/admin/coupons` | Bearer | Coupon CRUD |
-| `/api/admin/stores` | Bearer | Boutique CRUD |
 | `/api/admin/reviews` | Bearer | Review moderation |
 
 ## Admin Panel (React)

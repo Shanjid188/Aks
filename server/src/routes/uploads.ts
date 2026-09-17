@@ -2,7 +2,8 @@ import { Router } from 'express';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
-import { asyncHandler, requireAuth } from '../lib/auth.ts';
+import { asyncHandler, requirePermission } from '../lib/auth.ts';
+import { PERM } from '../lib/permissions.ts';
 
 const router = Router();
 
@@ -50,7 +51,7 @@ const MAX_BYTES = 12 * 1024 * 1024; // 12 MB
  */
 router.post(
   '/admin/upload',
-  requireAuth,
+  requirePermission(PERM.PRODUCTS_UPLOAD),
   asyncHandler(async (req, res) => {
     const body = (req.body || {}) as { name?: string; data?: string };
     const raw = typeof body.data === 'string' ? body.data.trim() : '';

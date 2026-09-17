@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
-import { asyncHandler, requireAuth } from '../lib/auth.ts';
+import { asyncHandler, requirePermission, currentAdmin } from '../lib/auth.ts';
+import { PERM } from '../lib/permissions.ts';
+import { logAudit } from '../lib/audit.ts';
 
 const router = Router();
 
@@ -26,7 +28,7 @@ router.post(
 
 router.get(
   '/admin/coupons',
-  requireAuth,
+  requirePermission(PERM.COUPONS_VIEW),
   asyncHandler(async (_req, res) => {
     const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: 'desc' } });
     res.json({ coupons });
@@ -35,7 +37,7 @@ router.get(
 
 router.post(
   '/admin/coupons',
-  requireAuth,
+  requirePermission(PERM.COUPONS_CREATE),
   asyncHandler(async (req, res) => {
     const body = (req.body || {}) as Record<string, unknown>;
     if (!body.code || !body.discountType || typeof body.value === 'undefined') {
@@ -68,7 +70,7 @@ router.post(
 
 router.patch(
   '/admin/coupons/:id',
-  requireAuth,
+  requirePermission(PERM.COUPONS_EDIT),
   asyncHandler(async (req, res) => {
     const id = req.params.id;
     const existing = await prisma.coupon.findUnique({ where: { id } });
@@ -89,12 +91,19 @@ router.patch(
 
 router.delete(
   '/admin/coupons/:id',
-  requireAuth,
+  requirePermission(PERM.COUPONS_DELETE),
   asyncHandler(async (req, res) => {
     const id = req.params.id;
     const existing = await prisma.coupon.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'Coupon not found' });
     await prisma.coupon.delete({ where: { id } });
+    await logAudit({
+      admin: currentAdmin(req),
+      action: 'coupon.deleted',
+      entity: 'coupon',
+      entityId: id,
+      details: existing.code,
+    });
     res.json({ deleted: true });
   })
 );

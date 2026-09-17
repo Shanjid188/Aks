@@ -11,13 +11,13 @@ import {
 } from 'lucide-react';
 import { AKS_MART } from '../data/aksMart';
 import { Logo } from './Logo';
+import { Bi } from './Bi';
+import { navigate } from '../lib/router';
 import type { CategoryType } from '../types';
 
 export const Footer: React.FC = () => {
   const {
-    setIsStoreLocatorOpen,
         setIsAksMartClubOpen,
-    setIsOrderTrackerOpen,
     setIsSizeGuideOpen,
     setFilters,
     setActiveProductPage,
@@ -54,49 +54,6 @@ export const Footer: React.FC = () => {
   return (
     <footer className="bg-neutral-900 text-neutral-300 pt-16 pb-12 border-t border-neutral-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        {/* Top Feature Highlights */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 pb-12 border-b border-neutral-800">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-neutral-800 flex items-center justify-center text-white shrink-0">
-              <Truck className="w-5 h-5 text-[#D8232A]" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Nationwide Delivery</h4>
-              <p className="text-xs text-neutral-400 mt-1">Home delivery available across Bangladesh — timing confirmed after you order</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-neutral-800 flex items-center justify-center text-white shrink-0">
-              <RotateCcw className="w-5 h-5 text-[#D8232A]" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Easy Exchange</h4>
-              <p className="text-xs text-neutral-400 mt-1">Exchange policy details coming soon</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-neutral-800 flex items-center justify-center text-white shrink-0">
-              <ShieldCheck className="w-5 h-5 text-[#D8232A]" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Curated Quality</h4>
-              <p className="text-xs text-neutral-400 mt-1">Every product quality checked across all five divisions</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-neutral-800 flex items-center justify-center text-white shrink-0">
-              <Headphones className="w-5 h-5 text-[#D8232A]" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Customer Support</h4>
-              <p className="text-xs text-neutral-400 mt-1">WhatsApp / Call: {AKS_MART.phone}</p>
-            </div>
-          </div>
-        </div>
-
         {/* Middle Navigation & Newsletter */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand & Newsletter (2 cols) */}
@@ -111,11 +68,10 @@ export const Footer: React.FC = () => {
               AKS Mart is Bangladesh's multi-division marketplace — SHUDDHO food, AKS CRAFT handicrafts, AKS HOME living, AKS BEAUTY personal care and AKS PRINT custom print — all under one roof at aksmartbd.com.
             </p>
             {/* Brand motto */}
-            <div className="space-y-0.5 pt-1 border-l-2 border-[#D8232A] pl-3 max-w-sm">
+            <div className="pt-1 border-l-2 border-[#D8232A] pl-3 max-w-sm">
               <p className="text-[11px] font-bold text-neutral-200 leading-snug">
                 “{AKS_MART.mottoEn}”
               </p>
-              <p className="text-[11px] text-neutral-500 leading-snug">{AKS_MART.mottoBn}</p>
             </div>
 
             {/* Newsletter Form */}
@@ -174,7 +130,7 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <button onClick={() => handleCategoryClick('all')} className="hover:text-white transition-colors cursor-pointer">
-                  All Departments
+                  <Bi en="All Departments" bn="সব পণ্য" />
                 </button>
               </li>
             </ul>
@@ -182,26 +138,21 @@ export const Footer: React.FC = () => {
 
           {/* Customer Care */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">Customer Care</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white"><Bi en="Customer Care" bn="কাস্টমার কেয়ার" /></h4>
             <ul className="space-y-2 text-xs text-neutral-400">
               <li>
-                <button onClick={() => setIsOrderTrackerOpen(true)} className="hover:text-white transition-colors cursor-pointer">
+                <button onClick={() => navigate('/track-order')} className="hover:text-white transition-colors cursor-pointer">
                   Track Your Order
                 </button>
               </li>
               <li>
-                <button onClick={() => setIsStoreLocatorOpen(true)} className="hover:text-white transition-colors cursor-pointer">
-                  AKS Mart Stores
-                </button>
-              </li>
-              <li>
                 <button onClick={() => setIsSizeGuideOpen(true)} className="hover:text-white transition-colors cursor-pointer">
-                  Product & Fit Guides
+                  <Bi en="Product & Fit Guides" bn="পণ্য ও সাইজ গাইড" />
                 </button>
               </li>
               <li>
                 <button onClick={() => setIsAksMartClubOpen(true)} className="hover:text-white transition-colors cursor-pointer">
-                  AKS Mart Club Rewards
+                  <Bi en="AKS Mart Club Rewards" bn="AKS Mart ক্লাব রিওয়ার্ড" />
                 </button>
               </li>
               <li>
@@ -217,7 +168,7 @@ export const Footer: React.FC = () => {
                   }}
                   className="hover:text-white transition-colors"
                 >
-                  Returns & Easy Exchange
+                  <Bi en="Returns & Easy Exchange" bn="রিটার্ন ও এক্সচেঞ্জ" />
                 </a>
               </li>
             </ul>
@@ -225,7 +176,7 @@ export const Footer: React.FC = () => {
 
           {/* Contact Details */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">Contact & Order</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white"><Bi en="Contact & Order" bn="যোগাযোগ ও অর্ডার" /></h4>
             <div className="space-y-2.5 text-xs text-neutral-400">
               <a
                 href={`tel:${AKS_MART.phoneRaw}`}
@@ -238,7 +189,6 @@ export const Footer: React.FC = () => {
                 <MapPin className="w-4 h-4 text-[#D8232A] shrink-0 mt-0.5" />
                 <span>
                   {AKS_MART.address}
-                  <span className="block text-[11px] text-neutral-500 mt-0.5">{AKS_MART.addressBn}</span>
                 </span>
               </div>
               <a

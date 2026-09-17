@@ -48,21 +48,6 @@ export interface ApiProduct {
   cushionTech: string | null;
 }
 
-export interface ApiStore {
-  id: string;
-  name: string;
-  division: string;
-  district: string;
-  area: string;
-  address: string;
-  phone: string;
-  openingHours: string;
-  features: string[];
-  lat: number;
-  lng: number;
-  isFlagship: boolean;
-}
-
 export interface ApiReview {
   id: string;
   productId: string;
@@ -108,6 +93,16 @@ export interface ApiOrder {
   paymentMethod: string;
   estimatedDelivery: string;
   createdAt: string;
+  updatedAt: string;
+  /* ── Phase 2+ backend fields (optional — older clients keep working) ── */
+  source?: string | null;
+  invoiceNumber?: string | null;
+  paidAmount?: number | null;
+  dueAmount?: number | null;
+  paymentStatus?: string | null;
+  deliveryStatus?: string | null;
+  packagingStatus?: string | null;
+  internalNotes?: string | null;
   items: {
     id: string;
     productId: string | null;
@@ -127,8 +122,6 @@ export const fetchProducts = (params?: Record<string, string>) => {
 };
 
 export const fetchProductBySlug = (slug: string) => api<ApiProduct>(`/products/${slug}`);
-
-export const fetchStores = () => api<{ stores: ApiStore[] }>('/stores');
 
 export interface ApiHeroSlide {
   id: string;
@@ -159,6 +152,9 @@ export const validateCoupon = (code: string) =>
 
 export const trackOrder = (trackingCode: string) =>
   api<{ order: ApiOrder }>(`/orders/track/${trackingCode.toUpperCase()}`);
+
+/** Public: fetch a single order by its database ID (order confirmation page). */
+export const fetchOrderById = (id: string) => api<{ order: ApiOrder }>(`/orders/${id}`);
 
 // ── Place order ─────────────────────────────────────────────────────────────
 export interface ApiCreateOrderBody {
