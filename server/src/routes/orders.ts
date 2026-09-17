@@ -562,4 +562,66 @@ router.put(
   })
 );
 
+/**
+ * Admin: update the customer info (name / phone / email / full shipping address)
+ * of an order. Additive route used by the POS-style Manage Order screen.
+ *
+ * Body: { customerName?, customerPhone?, customerEmail?,
+ *         customerAddress?: { fullName?, phone?, email?, streetAddress?, thana?, district?, division?, postalCode? } }
+ *
+ * - Name and phone are always required (same rule as order creation).
+ * - Unspecified address fields keep their previous values.
+ */
+router.put(
+  '/admin/orders/:id/customer',
+  requirePermission(PERM.ORDERS_EDIT),
+  asyncHandler(async (req, res) => {
+    const id = req.params.id;
+    const existing = await prisma.order.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'Order not found' });
+    if (existing.status === 'cancelled') {
+      return res.status(400).json({ error: 'Cancelled orders cannot be edited' });
+    }
+
+    const body = (req.body || {}) as {
+      customerName?: unknown;
+      customerPhone?: unknown;
+      customerEmail?: unknown;
+      customerAddress?: Record<string, unknown>;
+    };
+
+    // Merge the submitted address over the previous one so partial updates keep old fields.
+    const prevAddr = parseJsonSafe<Record<string, unknown>>(existing.customerAddress, {});
+    const nextAddr: Record<string, unknown> = { ...prevAddr, ...(body.customerAddress || {}) };
+
+    const fullName = String(body.customerName ?? nextAddr.fullName ?? existing.customerName ?? '').trim();
+    const phone = String(body.customerPhone ?? nextAddr.phone ?? existing.customerPhone ?? '').trim();
+    if (!fullName || !phone) {
+      return res.status(400).json({ error: 'Customer name and phone are required' });
+    }
+    const email = String(body.customerEmail ?? nextAddr.email ?? existing.customerEmail ?? '').trim();
+
+    const order = await prisma.order.update({
+      where: { id },
+      data: {
+        customerName: fullName,
+        customerPhone: phone,
+        customerEmail: email,
+        customerAddress: JSON.stringify({ ...nextAddr, fullName, phone, email }),
+      },
+      include: ITEM_INCLUDE,
+    });
+
+    await logAudit({
+      admin: currentAdmin(req),
+      action: 'order.customer.updated',
+      entity: 'order',
+      entityId: id,
+      details: `${existing.orderNumber}: customer info updated (${fullName})`,
+    });
+
+    res.json({ order: orderToApi(order) });
+  })
+);
+
 export default router;

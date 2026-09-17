@@ -13,7 +13,8 @@ import {
   StatusBadge,
   formatDate,
 } from '../components/ui';
-import { Package, Search, Plus, Minus, Trash2, Loader2 } from 'lucide-react';
+import { Package, Search, Plus, Minus, Trash2, Loader2, ClipboardList } from 'lucide-react';
+import { ManageOrder } from './ManageOrder';
 
 const bdt = (n: number) => `BDT ${n.toLocaleString('en-IN')}`;
 const addr = (o: Order, key: string) => (o.customerAddress as Record<string, string>)?.[key] || '';
@@ -74,6 +75,8 @@ export function OrdersPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [detail, setDetail] = useState<Order | null>(null);
+  // POS-style full-page Manage Order view (null = normal list)
+  const [manageId, setManageId] = useState<string | null>(null);
 
   // Item editor state (only used while the detail modal is open)
   const [draft, setDraft] = useState<DraftItem[]>([]);
@@ -286,6 +289,17 @@ const saveItems = async () => {
     }
   };
 
+// ── POS-style Manage Order view (full page — replaces the list while open) ──
+  if (manageId) {
+    return (
+      <ManageOrder
+        orderId={manageId}
+        onBack={() => setManageId(null)}
+        onUpdated={(o) => setOrders((prev) => prev.map((x) => (x.id === o.id ? o : x)))}
+      />
+    );
+  }
+
 return (
     <div className="space-y-4">
       {/* Header + search */}
@@ -353,14 +367,14 @@ return (
                   <th className="py-3 px-4">Payment</th>
                   <th className="py-3 px-4">Total</th>
                   <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">View</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100">
                 {filtered.map((o) => (
                   <tr
                     key={o.id}
-                    onClick={() => openDetail(o)}
+                    onClick={() => (o.status === 'pending' ? setManageId(o.id) : openDetail(o))}
                     className={`hover:bg-neutral-50/60 cursor-pointer ${o.status === 'pending' ? 'bg-amber-50/40' : ''}`}
                   >
                     <td className="px-4 py-3">
@@ -376,7 +390,18 @@ return (
                     <td className="px-4 py-3 font-black text-neutral-900">{bdt(o.total)}</td>
                     <td className="px-4 py-3"><StatusBadge status={o.status} /></td>
                     <td className="px-4 py-3 text-right">
-                      <Button variant="secondary" className="px-2.5 py-1 text-[11px]">Detail</Button>
+                      <div className="flex justify-end gap-1.5">
+                        <span onClick={(e) => e.stopPropagation()} className="inline-flex">
+                          <Button
+                            variant="secondary"
+                            className="px-2.5 py-1 text-[11px]"
+                            onClick={() => setManageId(o.id)}
+                          >
+                            <ClipboardList className="w-3.5 h-3.5" /> Manage
+                          </Button>
+                        </span>
+                        <Button variant="secondary" className="px-2.5 py-1 text-[11px]">Detail</Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -389,7 +414,7 @@ return (
             {filtered.map((o) => (
               <button
                 key={o.id}
-                onClick={() => openDetail(o)}
+                onClick={() => (o.status === 'pending' ? setManageId(o.id) : openDetail(o))}
                 className={`w-full text-left bg-white rounded-2xl border p-4 space-y-2 cursor-pointer hover:border-neutral-300 transition-colors ${o.status === 'pending' ? 'border-amber-200 bg-amber-50/30' : 'border-neutral-200'}`}
               >
                 <div className="flex items-center justify-between gap-2">
@@ -400,6 +425,17 @@ return (
                 <div className="flex items-center justify-between text-[11px] text-neutral-400">
                   <span>{formatDate(o.createdAt)}</span>
                   <span className="font-black text-neutral-900">{bdt(o.total)}</span>
+                </div>
+                <div className="flex gap-1.5 pt-1">
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => { e.stopPropagation(); setManageId(o.id); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setManageId(o.id); } }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#D8232A]/10 text-[#D8232A] text-[11px] font-bold cursor-pointer hover:bg-[#D8232A] hover:text-white transition-colors"
+                  >
+                    <ClipboardList className="w-3.5 h-3.5" /> Manage
+                  </span>
                 </div>
               </button>
             ))}
