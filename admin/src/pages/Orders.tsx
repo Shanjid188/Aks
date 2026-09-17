@@ -369,7 +369,7 @@ return (
         </div>
       </div>
 
-      {/* Status filter pills */}
+      {/* Status filter pills — on a dedicated status page only show All + that status */}
       <div className="flex flex-wrap gap-1.5">
         <button
           onClick={() => setStatusFilter('')}
@@ -379,7 +379,7 @@ return (
         >
           All ({orders.length})
         </button>
-        {LIFECYCLE_STATUSES.map((s) => (
+        {(initialFilter ? [initialFilter] : LIFECYCLE_STATUSES).map((s) => (
           <button
             key={s}
             onClick={() => setStatusFilter(statusFilter === s ? '' : s)}
