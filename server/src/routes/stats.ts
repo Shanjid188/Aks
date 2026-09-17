@@ -49,6 +49,7 @@ router.get(
       pendingOrdersCount,
       confirmedOrdersCount,
       activeOrdersCount,
+      shippedOrdersCount,
       cancelledOrdersCount,
       productsCount,
       reviewsCount,
@@ -69,6 +70,7 @@ router.get(
       prisma.order.count({
         where: { status: { in: ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery'] } },
       }),
+      prisma.order.count({ where: { status: 'shipped' } }),
       prisma.order.count({ where: { status: 'cancelled' } }),
       prisma.product.count(),
       prisma.review.count(),
@@ -204,6 +206,7 @@ router.get(
       confirmedOrdersCount,
       activeOrdersCount,
       deliveredOrdersCount,
+      shippedOrdersCount,
       cancelledOrdersCount,
       productsCount,
       customersCount,

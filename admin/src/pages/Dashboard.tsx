@@ -9,7 +9,9 @@ import {
   ArrowRight,
   ArrowUpRight,
   Banknote,
+  Bell,
   Boxes,
+  ChevronRight,
   Clock,
   Eye,
   Mail,
@@ -17,6 +19,7 @@ import {
   PackageCheck,
   RefreshCw,
   ShoppingBag,
+  Truck,
   Users,
   XCircle,
 } from 'lucide-react';
@@ -341,49 +344,58 @@ export function Dashboard() {
 
       {/* __PART2__ */}
 
-      {/* Needs Attention — requires orders permission */}
+      {/* Order Flow Notifications — pending → confirmed → packaging → shipped */}
       {can(PERM.ORDERS_VIEW) && (
       <SectionCard
-        titleEn="Needs Attention"
-        icon={<AlertTriangle className="w-4 h-4 text-amber-500" />}
+        titleEn="Order Flow"
+        icon={<Bell className="w-4 h-4 text-[#D8232A]" />}
       >
-        {attentionItems.length === 0 ? (
-          <div className="px-5 py-8">
-            <EmptyState
-              icon={<PackageCheck className="w-6 h-6" />}
-              title="All good — nothing needs your attention"
-              hint="Everything is on track. New orders will appear here."
-            />
-          </div>
-        ) : (
-          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-            {attentionItems.map((item) => (
-              <div
-                key={item.key}
-                className={`rounded-2xl border p-4 flex flex-col gap-2 ${item.tone} ${
-                  item.highlight ? 'ring-2 ring-amber-200' : ''
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide">
-                    {item.icon} {item.en}
+        <div className="px-5 py-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              { key: 'pending', label: 'Pending', count: stats.pendingOrdersCount, tone: 'bg-amber-50 border-amber-200 text-amber-700', icon: <Clock className="w-4 h-4" />, filter: 'pending' },
+              { key: 'confirmed', label: 'Confirmed', count: stats.confirmedOrdersCount, tone: 'bg-blue-50 border-blue-200 text-blue-700', icon: <PackageCheck className="w-4 h-4" />, filter: 'confirmed' },
+              { key: 'processing', label: 'Packaging', count: stats.activeOrdersCount, tone: 'bg-violet-50 border-violet-200 text-violet-700', icon: <Boxes className="w-4 h-4" />, filter: 'processing' },
+              { key: 'shipped', label: 'Shipped', count: stats.shippedOrdersCount, tone: 'bg-cyan-50 border-cyan-200 text-cyan-700', icon: <Truck className="w-4 h-4" />, filter: 'shipped' },
+            ].map((s, i, arr) => (
+              <div key={s.key} className="relative">
+                <button
+                  onClick={() => goOrders(s.filter)}
+                  className={`w-full text-left rounded-2xl border p-4 ${s.tone} ${s.count > 0 ? 'ring-2 ring-offset-1 ring-current/30 hover:scale-[1.02] cursor-pointer' : 'opacity-60 cursor-pointer'} transition-all`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide">
+                      {s.icon} {s.label}
+                    </span>
+                    {s.count > 0 && (
+                      <span className="text-[10px] font-black bg-white/70 rounded-full px-2 py-0.5 animate-pulse">
+                        {s.count} new
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-3xl font-black leading-none mt-2">{s.count}</p>
+                  <p className="text-[10px] opacity-80 mt-1">{s.count > 0 ? `Click to view →` : 'Nothing here'}</p>
+                </button>
+                {i < arr.length - 1 && (
+                  <span className="hidden lg:flex absolute -right-2 top-1/2 -translate-y-1/2 z-10 w-4 h-4 items-center justify-center text-neutral-300">
+                    <ChevronRight className="w-4 h-4" />
                   </span>
-                  <span className="text-xl font-black leading-none">{item.count}</span>
-                </div>
-                <p className="text-xs font-bold">{item.en}</p>
-                <p className="text-[10px] opacity-80 leading-snug">{item.desc}</p>
-                {item.onClick && (
-                  <button
-                    onClick={item.onClick}
-                    className="mt-auto inline-flex items-center justify-center gap-1 text-[11px] font-black bg-white/80 hover:bg-white text-neutral-900 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer"
-                  >
-                    {item.actionEn} <ArrowRight className="w-3 h-3" />
-                  </button>
                 )}
               </div>
             ))}
           </div>
-        )}
+          {(stats.cancelledOrdersCount || 0) > 0 && (
+            <button
+              onClick={() => goOrders('cancelled')}
+              className="mt-3 w-full text-left rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-2.5 flex items-center justify-between hover:bg-red-100 transition-colors cursor-pointer"
+            >
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase">
+                <XCircle className="w-4 h-4" /> Cancelled Orders
+              </span>
+              <span className="text-sm font-black">{stats.cancelledOrdersCount}</span>
+            </button>
+          )}
+        </div>
       </SectionCard>
       )}
 

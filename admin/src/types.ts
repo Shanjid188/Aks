@@ -191,6 +191,7 @@ export interface Stats {
   confirmedOrdersCount: number;
   activeOrdersCount: number;
   deliveredOrdersCount: number;
+  shippedOrdersCount: number;
   cancelledOrdersCount: number;
   productsCount: number;
   customersCount: number;
