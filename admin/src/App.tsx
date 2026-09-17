@@ -87,13 +87,15 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
  * POS is intentionally NOT here — it is exposed as a quick button in the topbar.
  */
 const NAV_GROUPS: { key: string; label: string; icon: ReactNode; keys: PageKey[] }[] = [
-  { key: 'main', label: 'Main', icon: <LayoutDashboard className="w-4 h-4" />, keys: ['dashboard'] },
-  { key: 'sales', label: 'Sales & Orders', icon: <Package className="w-4 h-4" />, keys: ['orders', 'invoices', 'packaging', 'returns', 'customers'] },
-  { key: 'catalog', label: 'Catalog & Inventory', icon: <ShoppingBag className="w-4 h-4" />, keys: ['products', 'inventory', 'purchases', 'suppliers'] },
-  { key: 'marketing', label: 'Marketing & Content', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'storefront'] },
-  { key: 'finance', label: 'Finance & Reports', icon: <BarChart3 className="w-4 h-4" />, keys: ['expenses', 'reports'] },
-  { key: 'system', label: 'System', icon: <ShieldCheck className="w-4 h-4" />, keys: ['activity', 'admins', 'roles', 'settings'] },
+  { key: 'sales', label: 'Sales', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders', 'invoices', 'packaging', 'returns', 'customers'] },
+  { key: 'catalog', label: 'Catalog', icon: <Boxes className="w-4 h-4" />, keys: ['products', 'inventory', 'purchases', 'suppliers'] },
+  { key: 'marketing', label: 'Marketing', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'storefront'] },
+  { key: 'finance', label: 'Finance', icon: <BarChart3 className="w-4 h-4" />, keys: ['expenses', 'reports'] },
+  { key: 'administration', label: 'Administration', icon: <ShieldCheck className="w-4 h-4" />, keys: ['admins', 'roles', 'activity', 'settings'] },
 ];
+
+/** Dashboard is a single standalone menu — it has no children so it never becomes a parent group. */
+const DASHBOARD_NAV_KEY: PageKey = 'dashboard';
 
 
 /** Access Denied — shown when a page is opened without its required permission. */
@@ -211,12 +213,22 @@ export default function App() {
     });
   };
 
+  // Active child always keeps its parent expanded — auto-expand on navigation.
+  useEffect(() => {
+    const g = NAV_GROUPS.find((grp) => grp.keys.includes(page));
+    if (g) {
+      setOpenGroups((prev) => (prev.has(g.key) ? prev : new Set(prev).add(g.key)));
+    }
+  }, [page]);
+
   // Modules matching the top-bar search query (label / group / description).
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return [];
     return allowedNav
       .map((item) => {
+        if (item.key === DASHBOARD_NAV_KEY) return { ...item, groupLabel: 'Dashboard' };
+        if (item.key === 'pos') return { ...item, groupLabel: 'POS' };
         const group = NAV_GROUPS.find((g) => g.keys.includes(item.key));
         return { ...item, groupLabel: group?.label ?? '' };
       })
@@ -286,7 +298,12 @@ export default function App() {
     }
   };
 
-  const sidebarInner = (inDrawer: boolean) => (
+  const sidebarInner = (inDrawer: boolean) => {
+    // Mobile drawer always renders the full expanded hierarchy, even while the desktop sidebar stays collapsed.
+    const effectiveCollapsed = collapsed && !inDrawer;
+    // Dashboard is standalone (never inside a parent group); POS Register lives in the topbar only.
+    const dashboardItem = allowedNav.find((n) => n.key === DASHBOARD_NAV_KEY);
+    return (
     <>
       {/* Brand */}
       <div className="p-4 flex items-center gap-3 border-b border-white/[0.06] bg-gradient-to-r from-white/[0.03] to-transparent">
@@ -294,7 +311,7 @@ export default function App() {
           <img src={aksLogo} alt="AKS Mart" className="w-10 h-10 rounded-xl object-cover ring-2 ring-[#D8232A]/30" />
           <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0f0f10]" />
         </div>
-        {!collapsed && (
+        {!effectiveCollapsed && (
           <div className="min-w-0 flex-1">
             <p className="text-sm font-black text-white tracking-tight">AKS Admin</p>
             <p className="text-[10px] text-neutral-500">Management Console</p>
@@ -311,43 +328,81 @@ export default function App() {
         )}
       </div>
 
-      {/* Navigation — grouped under parents; only modules this admin can access */}
-      <nav className={`p-3 space-y-1 flex-1 overflow-y-auto scrollbar-thin ${collapsed ? 'px-2' : ''}`}>
-        {allowedNav.length === 0 && (
+      {/* Navigation - ERP hierarchy: standalone Dashboard first, then parent -> child groups */}
+      <nav className={`p-3 space-y-1 flex-1 overflow-y-auto scrollbar-thin ${effectiveCollapsed ? 'px-2' : ''}`}>
+        {allowedNav.length === 0 && !effectiveCollapsed && (
           <p className="text-[11px] text-neutral-500 px-3 py-4 leading-relaxed">
             No modules assigned to your role. Contact a Super Admin.
           </p>
         )}
 
-        {/* Compact (collapsed) sidebar — flat icon buttons for every allowed module (POS lives in the topbar) */}
-        {collapsed &&
-          allowedNav.filter((n) => n.key !== 'pos').map((item) => {
-            const active = page === item.key;
+        {/* Standalone Dashboard - single menu, never a parent (POS Register lives in the topbar only) */}
+        {dashboardItem && (
+          <button
+            key={dashboardItem.key}
+            onClick={() => navigate(dashboardItem.key)}
+            title={effectiveCollapsed ? dashboardItem.label : dashboardItem.desc}
+            aria-label={dashboardItem.label}
+            aria-current={page === dashboardItem.key ? 'page' : undefined}
+            className={`w-full flex items-center transition-all duration-200 cursor-pointer group ${
+              effectiveCollapsed ? 'justify-center rounded-xl py-2.5' : 'gap-2.5 rounded-xl px-2.5 py-2.5'
+            } ${
+              page === dashboardItem.key
+                ? 'bg-gradient-to-r from-[#D8232A] to-[#e53e3e] text-white shadow-lg shadow-red-950/40'
+                : 'text-neutral-400 hover:bg-white/[0.06] hover:text-white'
+            }`}
+          >
+            <span
+              className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 transition-all duration-200 ${
+                page === dashboardItem.key ? 'bg-white/20 text-white' : 'bg-white/[0.04] text-neutral-400 group-hover:text-white'
+              }`}
+            >
+              {dashboardItem.icon}
+            </span>
+            {!effectiveCollapsed && (
+              <span className="flex-1 min-w-0 text-left">
+                <span className="block text-xs font-bold leading-tight truncate">{dashboardItem.label}</span>
+                <span className={`block text-[10px] leading-tight truncate ${page === dashboardItem.key ? 'text-white/75' : 'text-neutral-500'}`}>
+                  {dashboardItem.desc}
+                </span>
+              </span>
+            )}
+          </button>
+        )}
+
+        {/* Collapsed desktop rail - hierarchy preserved: one icon per parent group (no flat full list) */}
+        {effectiveCollapsed &&
+          allowedGroups.map((group) => {
+            const groupActive = group.items.some((n) => n.key === page);
+            const firstVisible = group.items[0];
             return (
               <button
-                key={item.key}
-                onClick={() => navigate(item.key)}
-                title={item.label}
-                aria-label={item.label}
+                key={group.key}
+                onClick={() => {
+                  if (firstVisible) navigate(firstVisible.key);
+                  setOpenGroups((prev) => new Set(prev).add(group.key));
+                }}
+                title={`${group.label} - ${group.items.map((n) => n.label).join(', ')}`}
+                aria-label={group.label}
                 className={`w-full flex items-center justify-center rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer group py-2.5 ${
-                  active
+                  groupActive
                     ? 'bg-gradient-to-r from-[#D8232A] to-[#e53e3e] text-white shadow-lg shadow-red-950/40'
                     : 'text-neutral-400 hover:bg-white/[0.06] hover:text-white'
                 }`}
               >
                 <span
                   className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 transition-all duration-200 ${
-                    active ? 'bg-white/20 text-white' : 'bg-white/[0.04] text-neutral-400 group-hover:text-white'
+                    groupActive ? 'bg-white/20 text-white' : 'bg-white/[0.04] text-neutral-400 group-hover:text-white'
                   }`}
                 >
-                  {item.icon}
+                  {group.icon}
                 </span>
               </button>
             );
           })}
 
-        {/* Expanded sidebar — parent sections with child items inside */}
-        {!collapsed &&
+        {/* Expanded hierarchy - non-clickable parents that expand/collapse, children visually indented */}
+        {!effectiveCollapsed &&
           allowedGroups.map((group) => {
             const groupActive = group.items.some((n) => n.key === page);
             const open = openGroups.has(group.key);
@@ -421,7 +476,8 @@ export default function App() {
           })}
       </nav>
     </>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen flex">
