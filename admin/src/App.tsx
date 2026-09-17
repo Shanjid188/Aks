@@ -81,10 +81,6 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
   { key: 'settings', label: 'Settings', icon: <Settings className="w-[18px] h-[18px]" />, permission: PERM.SETTINGS_VIEW, desc: 'Store configuration' },
 ];
 
-const PAGE_TITLES: Record<PageKey, string> = Object.fromEntries(
-  NAV.map((n) => [n.key, n.label])
-) as Record<PageKey, string>;
-
 /** Access Denied — shown when a page is opened without its required permission. */
 function AccessDenied({ onBack }: { onBack: () => void }) {
   return (
@@ -323,16 +319,16 @@ export default function App() {
             </button>
           );
         })}
-                      </nav>
+      </nav>
     </>
   );
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Topbar (always visible on all screen sizes) */}
-      <header className="sticky top-0 z-30 flex items-center justify-between bg-gradient-to-r from-[#0f0f10] to-[#1a1a1a] text-white px-4 h-14 border-b border-white/[0.06] shadow-lg shrink-0">
-        {/* Left: mobile menu toggle + page title */}
-        <div className="flex items-center gap-3">
+      {/* Topbar (always visible on all screen sizes) — left side intentionally empty */}
+      <header className="sticky top-0 z-30 flex items-center justify-end bg-gradient-to-r from-[#0f0f10] to-[#1a1a1a] text-white px-4 h-14 border-b border-white/[0.06] shadow-lg shrink-0">
+        {/* Right: mobile menu toggle + admin profile + sign-out */}
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => setDrawerOpen(true)}
             className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 cursor-pointer"
@@ -340,18 +336,13 @@ export default function App() {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <p className="text-sm font-black tracking-tight">{PAGE_TITLES[page] ?? 'AKS Admin'}</p>
-        </div>
-
-        {/* Right: admin profile + sign-out */}
-        <div className="flex items-center gap-2 sm:gap-3">
           <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#D8232A] to-rose-700 text-white text-xs font-black flex items-center justify-center shrink-0">
             {(admin.name || 'A').charAt(0).toUpperCase()}
           </span>
           <span className="hidden sm:block text-xs font-bold text-white truncate max-w-[100px]">
             {admin.name}
           </span>
-                                        <span
+          <span
             className={`hidden sm:inline-block text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
               admin.isSuper ? 'bg-amber-400/15 text-amber-300' : 'bg-[#D8232A]/15 text-red-300'
             }`}
@@ -394,13 +385,6 @@ export default function App() {
           }`}
         >
           {sidebarInner(false)}
-          <button
-            onClick={toggleCollapsed}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-[#D8232A] text-white text-[10px] font-black shadow-lg hover:bg-[#b51c22] cursor-pointer flex items-center justify-center"
-          >
-            {collapsed ? '»' : '«'}
-          </button>
         </aside>
 
         {/* Main content — scrolls below the topbar */}
