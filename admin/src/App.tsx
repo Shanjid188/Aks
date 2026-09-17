@@ -57,7 +57,7 @@ type PageKey =
   | 'roles'
   | 'settings'
   | 'orderoverview'
-  | 'orders_pending' | 'orders_confirmed' | 'orders_processing'
+  | 'orders_pending' | 'orders_confirmed'
   | 'orders_shipped' | 'orders_delivered' | 'orders_cancelled';
 
 /** Sidebar entries — each requires a `view` permission to be visible. */
@@ -87,7 +87,6 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
   // Status shortcuts — all open the Orders page with a preset status filter.
   { key: 'orders_pending', label: 'Pending', icon: <Clock className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Pending orders' },
   { key: 'orders_confirmed', label: 'Confirmed', icon: <PackageCheck className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Confirmed orders' },
-  { key: 'orders_processing', label: 'Packaging', icon: <Boxes className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Orders in packaging' },
   { key: 'orders_shipped', label: 'Shipped', icon: <Truck className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Shipped orders' },
   { key: 'orders_delivered', label: 'Delivered', icon: <CheckCircle2 className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Delivered orders' },
   { key: 'orders_cancelled', label: 'Cancelled', icon: <XCircle className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Cancelled orders' },
@@ -99,7 +98,7 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
  * POS is intentionally NOT here — it is exposed as a quick button in the topbar.
  */
 const NAV_GROUPS: { key: string; label: string; icon: ReactNode; keys: PageKey[] }[] = [
-  { key: 'operation', label: 'Operation', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders_pending', 'orders_confirmed', 'orders_processing', 'orders_shipped', 'orders_delivered', 'orders_cancelled', 'invoices', 'packaging', 'returns', 'customers'] },
+  { key: 'operation', label: 'Operation', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders_pending', 'orders_confirmed', 'orders_shipped', 'orders_delivered', 'orders_cancelled', 'invoices', 'packaging', 'returns', 'customers'] },
   { key: 'catalog', label: 'Catalog', icon: <Boxes className="w-4 h-4" />, keys: ['products', 'inventory', 'purchases', 'suppliers'] },
   { key: 'marketing', label: 'Marketing', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'storefront'] },
   { key: 'finance', label: 'Finance', icon: <BarChart3 className="w-4 h-4" />, keys: ['expenses', 'reports'] },
@@ -176,7 +175,7 @@ export default function App() {
       const target = (e as CustomEvent<string>).detail;
       if (NAV.some((n) => n.key === target)) {
         // Status shortcuts open the Orders page with a preset status filter.
-        const m = target.match(/^orders_(pending|confirmed|processing|shipped|delivered|cancelled)$/);
+        const m = target.match(/^orders_(pending|confirmed|shipped|delivered|cancelled)$/);
         if (m) {
           window.localStorage.setItem('aks_admin_order_filter', m[1]);
           setPage('orders');
@@ -226,7 +225,7 @@ export default function App() {
     // Status shortcuts (orders_pending, orders_confirmed, ...) open the Orders
     // page with a preset status filter via localStorage — the Orders page reads
     // and removes it on mount, the same mechanism Dashboard "View" actions use.
-    const shortcutMatch = key.match(/^orders_(pending|confirmed|processing|shipped|delivered|cancelled)$/);
+    const shortcutMatch = key.match(/^orders_(pending|confirmed|shipped|delivered|cancelled)$/);
     if (shortcutMatch) {
       window.localStorage.setItem('aks_admin_order_filter', shortcutMatch[1]);
       setActiveShortcut(shortcutMatch[1]);
