@@ -68,18 +68,23 @@ router.patch(
       return res.status(400).json({ error: 'Invalid packedStatus' });
     }
 
+    // "Pack" in this workflow means packing is done → auto-ship (status shipped).
+    // So packed === shipped here; the courier/handoff step happens on the Shipped page.
+    const effectivePacked = packedStatus === 'packed' ? 'shipped' : packedStatus;
+
     const admin = currentAdmin(req);
-    // Shipping from the Packaging queue also advances the order lifecycle status
-    // (processing/packed → shipped) so the Orders list stays in sync.
-    const advanceStatus = packedStatus === 'shipped'
+    // Auto-ship advances the order lifecycle status (processing/packed → shipped)
+    // so the Orders list + Shipped page stay in sync.
+    const advanceStatus = effectivePacked === 'shipped'
       && !['shipped', 'out_for_delivery', 'delivered', 'completed', 'cancelled', 'returned', 'refunded'].includes(existing.status)
       ? 'shipped'
       : undefined;
 
     const data: Record<string, unknown> = {
-      packedStatus,
-      ...(packedStatus !== 'not_packed' && !existing.packedAt ? { packedAt: new Date() } : {}),
-      ...(packedStatus !== 'not_packed' ? { packedBy: admin.name || admin.email } : {}),
+      packedStatus: effectivePacked,
+      ...(effectivePacked !== 'not_packed' && !existing.packedAt ? { packedAt: new Date() } : {}),
+      ...(effectivePacked !== 'not_packed' ? { packedBy: admin.name || admin.email } : {}),
+      ...(advanceStatus ? { dispatchedAt: new Date() } : {}),
       ...(body.dispatched && !existing.dispatchedAt ? { dispatchedAt: new Date() } : {}),
       ...(advanceStatus ? { status: advanceStatus } : {}),
     };
@@ -95,7 +100,7 @@ router.patch(
       action: 'packaging.updated',
       entity: 'order',
       entityId: id,
-      details: `${existing.orderNumber}: packedStatus → ${packedStatus}${body.dispatched ? ', dispatched' : ''}${advanceStatus ? `, status → ${advanceStatus}` : ''}`,
+      details: `${existing.orderNumber}: packedStatus → ${effectivePacked}${advanceStatus ? `, status → ${advanceStatus}` : ''}`,
     });
 
     res.json({ order });

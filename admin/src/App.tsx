@@ -8,6 +8,7 @@ import { Dashboard } from './pages/Dashboard';
 import { ProductsPage } from './pages/Products';
 import { OrdersPage } from './pages/Orders';
 import { OrderOverviewPage } from './pages/OrderOverview';
+import { ShippedPage } from './pages/Shipped';
 import { CustomersPage } from './pages/Customers';
 import { CouponsPage } from './pages/Coupons';
 import { ReviewsPage } from './pages/Reviews';
@@ -58,7 +59,8 @@ type PageKey =
   | 'settings'
   | 'orderoverview'
   | 'orders_pending' | 'orders_confirmed'
-  | 'orders_shipped' | 'orders_delivered' | 'orders_cancelled';
+  | 'orders_shipped' | 'orders_delivered' | 'orders_cancelled'
+  | 'shippedpage';
 
 /** Sidebar entries — each requires a `view` permission to be visible. */
 const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; desc: string }[] = [
@@ -177,8 +179,12 @@ export default function App() {
         // Status shortcuts open the Orders page with a preset status filter.
         const m = target.match(/^orders_(pending|confirmed|shipped|delivered|cancelled)$/);
         if (m) {
-          window.localStorage.setItem('aks_admin_order_filter', m[1]);
-          setPage('orders');
+          if (m[1] === 'shipped') {
+            setPage('shippedpage');
+          } else {
+            window.localStorage.setItem('aks_admin_order_filter', m[1]);
+            setPage('orders');
+          }
         } else {
           setPage(target as PageKey);
         }
@@ -227,9 +233,15 @@ export default function App() {
     // and removes it on mount, the same mechanism Dashboard "View" actions use.
     const shortcutMatch = key.match(/^orders_(pending|confirmed|shipped|delivered|cancelled)$/);
     if (shortcutMatch) {
-      window.localStorage.setItem('aks_admin_order_filter', shortcutMatch[1]);
-      setActiveShortcut(shortcutMatch[1]);
-      setPage('orders');
+      if (shortcutMatch[1] === 'shipped') {
+        // Shipped has its own dedicated page (courier handoff → delivery/return).
+        setActiveShortcut('shipped');
+        setPage('shippedpage');
+      } else {
+        window.localStorage.setItem('aks_admin_order_filter', shortcutMatch[1]);
+        setActiveShortcut(shortcutMatch[1]);
+        setPage('orders');
+      }
     } else {
       setActiveShortcut(null);
       setPage(key);
@@ -292,6 +304,8 @@ export default function App() {
         return <PosPage />;
       case 'orders':
         return <OrdersPage initialFilter={activeShortcut ?? undefined} />;
+      case 'shippedpage':
+        return <ShippedPage />;
       case 'orderoverview':
         return <OrderOverviewPage />;
       case 'products':

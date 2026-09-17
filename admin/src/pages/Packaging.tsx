@@ -49,6 +49,7 @@ export function PackagingPage() {
     try { await api.patch(`/admin/packaging/${id}`, { packedStatus }); load(); } catch (e) { setError((e as Error).message); }
   };
   const dispatch = async (id: string) => {
+  // (Ship button removed — "Pack" auto-ships. Courier handoff is on the Shipped page.)
     try { await api.patch(`/admin/packaging/${id}`, { packedStatus: 'shipped', dispatched: true }); load(); } catch (e) { setError((e as Error).message); }
   };
   const toggle = (id: string) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -89,8 +90,7 @@ ${o.packedBy}` : ''}</td>
                     <td className="px-5 py-3">
                       <div className="flex justify-end gap-1.5">
                         <button onClick={() => printSlip(o)} className="inline-flex items-center gap-1 text-[11px] font-bold text-neutral-700 hover:underline cursor-pointer"><Printer className="w-3.5 h-3.5" /> Slip</button>
-                        {o.packedStatus !== 'packed' && <button onClick={() => mark(o.id, 'packed')} className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer"><PackageCheck className="w-3.5 h-3.5" /> Pack</button>}
-                        {o.packedStatus !== 'shipped' && <button onClick={() => dispatch(o.id)} className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 hover:underline cursor-pointer">Ship</button>}
+                        {o.packedStatus !== 'shipped' && <button onClick={() => mark(o.id, 'packed')} className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer"><PackageCheck className="w-3.5 h-3.5" /> Pack</button>}
                       </div>
                     </td>
                   </tr>
