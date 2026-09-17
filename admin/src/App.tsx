@@ -109,6 +109,7 @@ export default function App() {
   const [admin, setAdmin] = useState<AdminUser | null>(() => getStoredAdmin());
   const [page, setPage] = useState<PageKey>('dashboard');
   const [pendingOrders, setPendingOrders] = useState(0);
+  const [lowStockCount, setLowStockCount] = useState(0); // fed by aks-admin-low-stock-count
   const [drawerOpen, setDrawerOpen] = useState(false); // mobile off-canvas
   const [collapsed, setCollapsed] = useState<boolean>(
     () => localStorage.getItem('aks_admin_sidebar_collapsed') === '1'
@@ -136,11 +137,16 @@ export default function App() {
     const onPendingCount = (e: Event) => {
       setPendingOrders(Number((e as CustomEvent<number>).detail) || 0);
     };
+    const onLowStockCount = (e: Event) => {
+      setLowStockCount(Number((e as CustomEvent<number>).detail) || 0);
+    };
     window.addEventListener('aks-admin-navigate', onNavigate);
     window.addEventListener('aks-admin-pending-count', onPendingCount);
+    window.addEventListener('aks-admin-low-stock-count', onLowStockCount);
     return () => {
       window.removeEventListener('aks-admin-navigate', onNavigate);
       window.removeEventListener('aks-admin-pending-count', onPendingCount);
+      window.removeEventListener('aks-admin-low-stock-count', onLowStockCount);
     };
   }, []);
 
@@ -302,6 +308,14 @@ export default function App() {
                       title={`${pendingOrders} pending orders`}
                     >
                       {pendingOrders}
+                    </span>
+                  )}
+                  {item.key === 'inventory' && lowStockCount > 0 && (
+                    <span
+                      className="bg-orange-400 text-orange-950 text-[10px] font-black rounded-full min-w-5 h-5 px-1.5 flex items-center justify-center"
+                      title={`${lowStockCount} low-stock products at or below threshold`}
+                    >
+                      {lowStockCount}
                     </span>
                   )}
                 </>

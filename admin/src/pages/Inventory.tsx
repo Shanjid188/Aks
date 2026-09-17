@@ -18,8 +18,15 @@ export function InventoryPage() {
 
   const load = useCallback(() => {
     setLoading(true); setError(null);
-    api.get<{ items: InventoryItem[] }>(`/admin/inventory${query ? `?search=${encodeURIComponent(query)}` : ''}`)
-      .then((r) => setRows(r.items))
+    api.get<{ items: InventoryItem[]; lowStockCount?: number }>(`/admin/inventory${query ? `?search=${encodeURIComponent(query)}` : ''}`)
+      .then((r) => {
+        setRows(r.items);
+        // Publish the live low-stock count so the sidebar badge stays current
+        // (same event pattern as aks-admin-pending-count in Orders.tsx).
+        window.dispatchEvent(
+          new CustomEvent('aks-admin-low-stock-count', { detail: r.lowStockCount ?? 0 })
+        );
+      })
       .catch((e: Error) => { setError(e.message); setRows([]); })
       .finally(() => setLoading(false));
   }, [query]);
