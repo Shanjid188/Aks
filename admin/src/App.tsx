@@ -99,7 +99,7 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
  * POS is intentionally NOT here — it is exposed as a quick button in the topbar.
  */
 const NAV_GROUPS: { key: string; label: string; icon: ReactNode; keys: PageKey[] }[] = [
-  { key: 'operation', label: 'Operation', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders_pending', 'orders_confirmed', 'orders_processing', 'orders_shipped', 'orders_delivered', 'orders_cancelled', 'orders', 'invoices', 'packaging', 'returns', 'customers'] },
+  { key: 'operation', label: 'Operation', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders_pending', 'orders_confirmed', 'orders_processing', 'orders_shipped', 'orders_delivered', 'orders_cancelled', 'invoices', 'packaging', 'returns', 'customers'] },
   { key: 'catalog', label: 'Catalog', icon: <Boxes className="w-4 h-4" />, keys: ['products', 'inventory', 'purchases', 'suppliers'] },
   { key: 'marketing', label: 'Marketing', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'storefront'] },
   { key: 'finance', label: 'Finance', icon: <BarChart3 className="w-4 h-4" />, keys: ['expenses', 'reports'] },
