@@ -339,15 +339,22 @@ const saveItems = async () => {
     }
   };
 
+  // Page title + description depend on which status shortcut opened the list,
+  // so each sidebar child (Pending, Confirmed, …) feels like its own page.
+  const pageTitle = initialFilter
+    ? `${ORDER_STATUS_META[initialFilter]?.label || initialFilter} Orders`
+    : 'Orders';
+  const pageDesc = initialFilter
+    ? `${filtered.length} ${ORDER_STATUS_META[initialFilter]?.label || initialFilter} order${filtered.length === 1 ? '' : 's'}`
+    : `${orders.length} orders · ${statusCounts.pending || 0} pending`;
+
 return (
     <div className="space-y-4">
       {/* Header + search */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-black text-neutral-900">Orders</h2>
-          <p className="text-xs text-neutral-400">
-            {orders.length} orders · {statusCounts.pending || 0} pending
-          </p>
+          <h2 className="text-lg font-black text-neutral-900">{pageTitle}</h2>
+          <p className="text-xs text-neutral-400">{pageDesc}</p>
         </div>
         <div className="flex w-full sm:w-auto items-center gap-2">
           <div className="relative flex-1 sm:w-64">
