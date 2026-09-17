@@ -26,9 +26,9 @@ import { SettingsPage } from './pages/Settings';
 import { SuppliersPage } from './pages/Suppliers';
 import StorefrontPage from './pages/Storefront';
 import {
-  Activity, BarChart3, Boxes, Calculator, ChevronLeft, ChevronRight,
+  Activity, BarChart3, Boxes, Calculator, ChevronDown, ChevronLeft, ChevronRight,
   FileText, Image, LayoutDashboard, LogOut, Menu, Package,
-  PackageCheck, Receipt, RotateCcw, Settings, ShieldCheck, ShoppingBag,
+  PackageCheck, Receipt, RotateCcw, Search, Settings, ShieldCheck, ShoppingBag,
   ShoppingCart, Sparkles, Star, Ticket, Truck, UserCog, Users, X,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -81,6 +81,21 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
   { key: 'settings', label: 'Settings', icon: <Settings className="w-[18px] h-[18px]" />, permission: PERM.SETTINGS_VIEW, desc: 'Store configuration' },
 ];
 
+/**
+ * Sidebar grouping — related modules live under a parent section. Each group
+ * shows only when the admin can access at least one of its children.
+ * POS is intentionally NOT here — it is exposed as a quick button in the topbar.
+ */
+const NAV_GROUPS: { key: string; label: string; icon: ReactNode; keys: PageKey[] }[] = [
+  { key: 'main', label: 'Main', icon: <LayoutDashboard className="w-4 h-4" />, keys: ['dashboard'] },
+  { key: 'sales', label: 'Sales & Orders', icon: <Package className="w-4 h-4" />, keys: ['orders', 'invoices', 'packaging', 'returns', 'customers'] },
+  { key: 'catalog', label: 'Catalog & Inventory', icon: <ShoppingBag className="w-4 h-4" />, keys: ['products', 'inventory', 'purchases', 'suppliers'] },
+  { key: 'marketing', label: 'Marketing & Content', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'storefront'] },
+  { key: 'finance', label: 'Finance & Reports', icon: <BarChart3 className="w-4 h-4" />, keys: ['expenses', 'reports'] },
+  { key: 'system', label: 'System', icon: <ShieldCheck className="w-4 h-4" />, keys: ['activity', 'admins', 'roles', 'settings'] },
+];
+
+
 /** Access Denied — shown when a page is opened without its required permission. */
 function AccessDenied({ onBack }: { onBack: () => void }) {
   return (
@@ -110,10 +125,24 @@ export default function App() {
   const [collapsed, setCollapsed] = useState<boolean>(
     () => localStorage.getItem('aks_admin_sidebar_collapsed') === '1'
   );
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(NAV_GROUPS.map((g) => g.key)));
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Permission-aware navigation — hidden modules never render.
   const allowedNav = useMemo(
     () => (admin ? NAV.filter((item) => hasPerm(admin, item.permission)) : []),
+    [admin]
+  );
+
+  // Groups sorted by their first child's index, filtered to groups the admin can use.
+  const allowedGroups = useMemo(
+    () =>
+      NAV_GROUPS.map((g) => ({
+        ...g,
+        items: g.keys
+          .map((k) => NAV.find((n) => n.key === k))
+          .filter((n): n is NonNullable<typeof n> => !!n && hasPerm(admin!, n.permission)),
+      })).filter((g) => g.items.length > 0),
     [admin]
   );
 
@@ -169,8 +198,37 @@ export default function App() {
   const navigate = (key: PageKey) => {
     setPage(key);
     setDrawerOpen(false);
+    setSearchQuery('');
     window.scrollTo({ top: 0 });
   };
+
+  const toggleGroup = (key: string) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  // Modules matching the top-bar search query (label / group / description).
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return allowedNav
+      .map((item) => {
+        const group = NAV_GROUPS.find((g) => g.keys.includes(item.key));
+        return { ...item, groupLabel: group?.label ?? '' };
+      })
+      .filter(
+        (item) =>
+          item.label.toLowerCase().includes(q) ||
+          item.desc.toLowerCase().includes(q) ||
+          item.key.includes(q) ||
+          item.groupLabel.toLowerCase().includes(q)
+      )
+      .slice(0, 8);
+  }, [searchQuery, allowedNav]);
 
   const toggleCollapsed = () => {
     setCollapsed((c) => {
@@ -253,61 +311,114 @@ export default function App() {
         )}
       </div>
 
-      {/* Navigation — only modules this admin can access */}
+      {/* Navigation — grouped under parents; only modules this admin can access */}
       <nav className={`p-3 space-y-1 flex-1 overflow-y-auto scrollbar-thin ${collapsed ? 'px-2' : ''}`}>
         {allowedNav.length === 0 && (
           <p className="text-[11px] text-neutral-500 px-3 py-4 leading-relaxed">
             No modules assigned to your role. Contact a Super Admin.
           </p>
         )}
-        {allowedNav.map((item) => {
-          const active = page === item.key;
-          return (
-            <button
-              key={item.key}
-              onClick={() => navigate(item.key)}
-              title={collapsed ? item.label : undefined}
-              className={`w-full flex items-center gap-3 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer group ${
-                collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5'
-              } ${
-                active
-                  ? 'bg-gradient-to-r from-[#D8232A] to-[#e53e3e] text-white shadow-lg shadow-red-950/40 shadow-[0_4px_14px_rgba(216,35,42,0.3)]'
-                  : 'text-neutral-400 hover:bg-white/[0.06] hover:text-white'
-              }`}
-            >
-              <span
-                className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 transition-all duration-200 ${
+
+        {/* Compact (collapsed) sidebar — flat icon buttons for every allowed module (POS lives in the topbar) */}
+        {collapsed &&
+          allowedNav.filter((n) => n.key !== 'pos').map((item) => {
+            const active = page === item.key;
+            return (
+              <button
+                key={item.key}
+                onClick={() => navigate(item.key)}
+                title={item.label}
+                aria-label={item.label}
+                className={`w-full flex items-center justify-center rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer group py-2.5 ${
                   active
-                    ? 'bg-white/20 text-white'
-                    : 'bg-white/[0.04] text-neutral-400 group-hover:text-white group-hover:bg-white/[0.08]'
+                    ? 'bg-gradient-to-r from-[#D8232A] to-[#e53e3e] text-white shadow-lg shadow-red-950/40'
+                    : 'text-neutral-400 hover:bg-white/[0.06] hover:text-white'
                 }`}
               >
-                {item.icon}
-              </span>
-              {!collapsed && (
-                <>
-                  <span className="flex-1 text-left leading-tight">{item.label}</span>
-                  {item.key === 'orders' && pendingOrders > 0 && (
-                    <span
-                      className="bg-amber-400 text-amber-950 text-[10px] font-black rounded-full min-w-5 h-5 px-1.5 flex items-center justify-center"
-                      title={`${pendingOrders} pending orders`}
-                    >
-                      {pendingOrders}
-                    </span>
-                  )}
-                  {item.key === 'inventory' && lowStockCount > 0 && (
-                    <span
-                      className="bg-orange-400 text-orange-950 text-[10px] font-black rounded-full min-w-5 h-5 px-1.5 flex items-center justify-center"
-                      title={`${lowStockCount} low-stock products at or below threshold`}
-                    >
-                      {lowStockCount}
-                    </span>
-                  )}
-                </>
-              )}
-            </button>
-          );
-        })}
+                <span
+                  className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 transition-all duration-200 ${
+                    active ? 'bg-white/20 text-white' : 'bg-white/[0.04] text-neutral-400 group-hover:text-white'
+                  }`}
+                >
+                  {item.icon}
+                </span>
+              </button>
+            );
+          })}
+
+        {/* Expanded sidebar — parent sections with child items inside */}
+        {!collapsed &&
+          allowedGroups.map((group) => {
+            const groupActive = group.items.some((n) => n.key === page);
+            const open = openGroups.has(group.key);
+            return (
+              <div key={group.key} className="mb-1">
+                {/* Parent header */}
+                <button
+                  onClick={() => toggleGroup(group.key)}
+                  className={`w-full flex items-center gap-2.5 rounded-lg px-2 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition-colors cursor-pointer ${
+                    groupActive ? 'text-[#f87171]' : 'text-neutral-400 hover:text-white hover:bg-white/[0.05]'
+                  }`}
+                  aria-expanded={open}
+                >
+                  <span className="flex items-center justify-center w-6 h-6 rounded-md bg-white/[0.05] text-neutral-400">
+                    {group.icon}
+                  </span>
+                  <span className="flex-1 text-left">{group.label}</span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+                  />
+                </button>
+
+                {/* Child items */}
+                {open && (
+                  <div className="mt-0.5 space-y-0.5">
+                    {group.items.map((item) => {
+                      const active = page === item.key;
+                      return (
+                        <button
+                          key={item.key}
+                          onClick={() => navigate(item.key)}
+                          className={`w-full flex items-center gap-3 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer group ${
+                            active
+                              ? 'bg-gradient-to-r from-[#D8232A] to-[#e53e3e] text-white shadow-lg shadow-red-950/40'
+                              : 'text-neutral-400 hover:bg-white/[0.06] hover:text-white'
+                          } pl-2 py-2`}
+                        >
+                          <span
+                            className={`flex items-center justify-center w-7 h-7 rounded-lg shrink-0 transition-all duration-200 ${
+                              active
+                                ? 'bg-white/20 text-white'
+                                : 'bg-white/[0.04] text-neutral-400 group-hover:text-white group-hover:bg-white/[0.08]'
+                            }`}
+                          >
+                            {item.icon}
+                          </span>
+                          <span className="flex-1 text-left leading-tight">{item.label}</span>
+                          {item.key === 'orders' && pendingOrders > 0 && (
+                            <span
+                              className="bg-amber-400 text-amber-950 text-[10px] font-black rounded-full min-w-5 h-5 px-1.5 flex items-center justify-center"
+                              title={`${pendingOrders} pending orders`}
+                            >
+                              {pendingOrders}
+                            </span>
+                          )}
+                          {item.key === 'inventory' && lowStockCount > 0 && (
+                            <span
+                              className="bg-orange-400 text-orange-950 text-[10px] font-black rounded-full min-w-5 h-5 px-1.5 flex items-center justify-center"
+                              title={`${lowStockCount} low-stock products at or below threshold`}
+                            >
+                              {lowStockCount}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
       </nav>
     </>
   );
@@ -322,23 +433,83 @@ export default function App() {
       >
         {sidebarInner(false)}
 
-        {/* Small collapse/expand button on the sidebar edge */}
+        {/* Collapse/expand — small floating button on the sidebar edge near the logo */}
         <button
           onClick={toggleCollapsed}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="absolute -right-3 top-8 z-10 w-6 h-6 rounded-full bg-[#D8232A] text-white flex items-center justify-center shadow-lg shadow-slate-950/40 ring-2 ring-[#0f0f10] hover:bg-[#b51c22] transition-colors cursor-pointer"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="group absolute -right-3 top-9 z-10 flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-[#D8232A] to-[#b51c22] text-white ring-2 ring-[#0f0f10] shadow-lg shadow-red-950/50 hover:scale-110 hover:shadow-red-900/60 transition-all duration-200 cursor-pointer"
         >
-          {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+          {collapsed ? (
+            <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+          ) : (
+            <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+          )}
         </button>
       </aside>
 
       {/* Content column — topbar + pages (only spans the area right of the sidebar) */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Topbar (always visible on all screen sizes) — left side intentionally empty */}
-        <header className="sticky top-0 z-30 flex items-center justify-end bg-gradient-to-r from-[#0f0f10] to-[#1a1a1a] text-white px-4 h-14 border-b border-white/[0.06] shadow-lg shrink-0">
-          {/* Right: mobile menu toggle + admin profile + sign-out */}
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-gradient-to-r from-[#0f0f10] to-[#1a1a1a] text-white px-4 h-14 border-b border-white/[0.06] shadow-lg shrink-0">
+          {/* Module search */}
+          <form
+            className="relative flex-1 max-w-sm"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (searchResults.length > 0) navigate(searchResults[0].key);
+            }}
+          >
+            <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              type="search"
+              placeholder="Search modules…"
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-white/[0.06] border border-white/[0.08] placeholder:text-neutral-500 text-white outline-none focus:border-[#D8232A]/60 focus:bg-white/[0.09] transition-colors"
+            />
+            {searchQuery.trim() && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 rounded-xl bg-[#1a1a1a] border border-white/[0.08] overflow-hidden shadow-xl z-40">
+                {searchResults.length === 0 ? (
+                  <p className="px-4 py-3 text-[11px] text-neutral-500">No modules found for “{searchQuery}”</p>
+                ) : (
+                  searchResults.map((r) => (
+                    <button
+                      key={r.key}
+                      type="button"
+                      onClick={() => navigate(r.key)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-white/[0.06] transition-colors cursor-pointer"
+                    >
+                      <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-white/[0.05] text-[#f87171] shrink-0">
+                        {r.icon}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-xs font-bold text-white truncate">{r.label}</span>
+                        <span className="block text-[10px] text-neutral-500 truncate">{r.groupLabel}</span>
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </form>
+
+          {/* Right: POS quick button + mobile menu toggle + admin profile + sign-out */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {hasPerm(admin, PERM.POS_VIEW) && (
+              <button
+                onClick={() => navigate('pos')}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-black transition-all cursor-pointer ${
+                  page === 'pos'
+                    ? 'bg-[#D8232A] text-white shadow-lg shadow-red-950/40'
+                    : 'bg-[#D8232A]/15 text-[#fca5a5] hover:bg-[#D8232A] hover:text-white'
+                }`}
+                title="Open POS Register"
+              >
+                <Calculator className="w-4 h-4" />
+                <span className="hidden lg:inline">POS Register</span>
+              </button>
+            )}
             <button
               onClick={() => setDrawerOpen(true)}
               className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 cursor-pointer"
