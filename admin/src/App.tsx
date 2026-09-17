@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage';
 import { Dashboard } from './pages/Dashboard';
 import { ProductsPage } from './pages/Products';
 import { OrdersPage } from './pages/Orders';
+import { OrderOverviewPage } from './pages/OrderOverview';
 import { CustomersPage } from './pages/Customers';
 import { CouponsPage } from './pages/Coupons';
 import { ReviewsPage } from './pages/Reviews';
@@ -54,7 +55,8 @@ type PageKey =
   | 'storefront'
   | 'admins'
   | 'roles'
-  | 'settings';
+  | 'settings'
+  | 'orderoverview';
 
 /** Sidebar entries — each requires a `view` permission to be visible. */
 const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; desc: string }[] = [
@@ -79,6 +81,7 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
   { key: 'admins', label: 'Admin Users', icon: <UserCog className="w-[18px] h-[18px]" />, permission: PERM.ADMINS_VIEW, desc: 'Team accounts' },
   { key: 'roles', label: 'Roles & Permissions', icon: <ShieldCheck className="w-[18px] h-[18px]" />, permission: PERM.ROLES_VIEW, desc: 'Access control' },
   { key: 'settings', label: 'Settings', icon: <Settings className="w-[18px] h-[18px]" />, permission: PERM.SETTINGS_VIEW, desc: 'Store configuration' },
+  { key: 'orderoverview', label: 'Order Overview', icon: <BarChart3 className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Order counts by status' },
 ];
 
 /**
@@ -257,6 +260,8 @@ export default function App() {
         return <PosPage />;
       case 'orders':
         return <OrdersPage />;
+      case 'orderoverview':
+        return <OrderOverviewPage />;
       case 'products':
         return <ProductsPage />;
       case 'inventory':
@@ -303,6 +308,8 @@ export default function App() {
     const effectiveCollapsed = collapsed && !inDrawer;
     // Dashboard is standalone (never inside a parent group); POS Register lives in the topbar only.
     const dashboardItem = allowedNav.find((n) => n.key === DASHBOARD_NAV_KEY);
+    // Order Overview is a standalone menu (like Dashboard) — just counts, sits right under Dashboard.
+    const overviewItem = allowedNav.find((n) => n.key === 'orderoverview');
     return (
     <>
       {/* Brand */}
@@ -364,6 +371,40 @@ export default function App() {
                 <span className="block text-xs font-bold leading-tight truncate">{dashboardItem.label}</span>
                 <span className={`block text-[10px] leading-tight truncate ${page === dashboardItem.key ? 'text-white/75' : 'text-neutral-500'}`}>
                   {dashboardItem.desc}
+                </span>
+              </span>
+            )}
+          </button>
+        )}
+
+        {/* Standalone Order Overview — sits right under Dashboard (counts only, no children) */}
+        {overviewItem && (
+          <button
+            key={overviewItem.key}
+            onClick={() => navigate(overviewItem.key)}
+            title={effectiveCollapsed ? overviewItem.label : overviewItem.desc}
+            aria-label={overviewItem.label}
+            aria-current={page === overviewItem.key ? 'page' : undefined}
+            className={`w-full flex items-center transition-all duration-200 cursor-pointer group ${
+              effectiveCollapsed ? 'justify-center rounded-xl py-2.5' : 'gap-2.5 rounded-xl px-2.5 py-2.5'
+            } ${
+              page === overviewItem.key
+                ? 'bg-gradient-to-r from-[#D8232A] to-[#e53e3e] text-white shadow-lg shadow-red-950/40'
+                : 'text-neutral-400 hover:bg-white/[0.06] hover:text-white'
+            }`}
+          >
+            <span
+              className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 transition-all duration-200 ${
+                page === overviewItem.key ? 'bg-white/20 text-white' : 'bg-white/[0.04] text-neutral-400 group-hover:text-white'
+              }`}
+            >
+              {overviewItem.icon}
+            </span>
+            {!effectiveCollapsed && (
+              <span className="flex-1 min-w-0 text-left">
+                <span className="block text-xs font-bold leading-tight truncate">{overviewItem.label}</span>
+                <span className={`block text-[10px] leading-tight truncate ${page === overviewItem.key ? 'text-white/75' : 'text-neutral-500'}`}>
+                  {overviewItem.desc}
                 </span>
               </span>
             )}
