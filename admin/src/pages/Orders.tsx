@@ -68,7 +68,7 @@ interface DraftItem {
   colors: OrderColorInput[];
 }
 
-export function OrdersPage() {
+export function OrdersPage({ initialFilter }: { initialFilter?: string } = {}) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,14 +116,25 @@ export function OrdersPage() {
     load();
   }, [load]);
 
+  // Apply the filter passed from the sidebar status shortcut (Operation > Pending, …).
+  // When the sidebar sends a fresh filter we switch instantly — even if the Orders
+  // page is already mounted. Falls back to the localStorage preset used by the
+  // Dashboard "View" actions / cross-page navigation.
+  useEffect(() => {
+    if (initialFilter) {
+      setStatusFilter(initialFilter);
+      return;
+    }
+    const presetFilter = window.localStorage.getItem('aks_admin_order_filter');
+    if (presetFilter) {
+      window.localStorage.removeItem('aks_admin_order_filter');
+      setStatusFilter(presetFilter);
+    }
+  }, [initialFilter]);
+
   // Open a specific order / apply a status filter (Dashboard → "View" action)
   useEffect(() => {
     const openFromStorage = () => {
-      const presetFilter = window.localStorage.getItem('aks_admin_order_filter');
-      if (presetFilter) {
-        window.localStorage.removeItem('aks_admin_order_filter');
-        setStatusFilter(presetFilter);
-      }
       const id = window.localStorage.getItem('aks_admin_open_order');
       if (id) {
         window.localStorage.removeItem('aks_admin_open_order');

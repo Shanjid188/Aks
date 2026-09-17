@@ -142,7 +142,8 @@ export default function App() {
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(NAV_GROUPS.map((g) => g.key)));
   const [searchQuery, setSearchQuery] = useState('');
   // Which status shortcut is currently active (e.g. 'pending') — used so the
-  // sidebar highlights the right child when the Orders page is showing a filter.
+  // sidebar highlights the right child when the Orders page is showing a filter,
+  // and passed to OrdersPage so it can switch filters without a full remount.
   const [activeShortcut, setActiveShortcut] = useState<string | null>(null);
 
   // Permission-aware navigation — hidden modules never render.
@@ -291,7 +292,7 @@ export default function App() {
       case 'pos':
         return <PosPage />;
       case 'orders':
-        return <OrdersPage />;
+        return <OrdersPage initialFilter={activeShortcut ?? undefined} />;
       case 'orderoverview':
         return <OrderOverviewPage />;
       case 'products':
