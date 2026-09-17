@@ -391,15 +391,17 @@ return (
                     <td className="px-4 py-3"><StatusBadge status={o.status} /></td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1.5">
-                        <span onClick={(e) => e.stopPropagation()} className="inline-flex">
-                          <Button
-                            variant="secondary"
-                            className="px-2.5 py-1 text-[11px]"
-                            onClick={() => setManageId(o.id)}
-                          >
-                            <ClipboardList className="w-3.5 h-3.5" /> Manage
-                          </Button>
-                        </span>
+                        {o.status === 'pending' && (
+                          <span onClick={(e) => e.stopPropagation()} className="inline-flex">
+                            <Button
+                              variant="secondary"
+                              className="px-2.5 py-1 text-[11px]"
+                              onClick={() => setManageId(o.id)}
+                            >
+                              <ClipboardList className="w-3.5 h-3.5" /> Manage
+                            </Button>
+                          </span>
+                        )}
                         <Button variant="secondary" className="px-2.5 py-1 text-[11px]">Detail</Button>
                       </div>
                     </td>
@@ -426,17 +428,19 @@ return (
                   <span>{formatDate(o.createdAt)}</span>
                   <span className="font-black text-neutral-900">{bdt(o.total)}</span>
                 </div>
-                <div className="flex gap-1.5 pt-1">
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => { e.stopPropagation(); setManageId(o.id); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setManageId(o.id); } }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#D8232A]/10 text-[#D8232A] text-[11px] font-bold cursor-pointer hover:bg-[#D8232A] hover:text-white transition-colors"
-                  >
-                    <ClipboardList className="w-3.5 h-3.5" /> Manage
-                  </span>
-                </div>
+                {o.status === 'pending' && (
+                  <div className="flex gap-1.5 pt-1">
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); setManageId(o.id); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setManageId(o.id); } }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#D8232A]/10 text-[#D8232A] text-[11px] font-bold cursor-pointer hover:bg-[#D8232A] hover:text-white transition-colors"
+                    >
+                      <ClipboardList className="w-3.5 h-3.5" /> Manage
+                    </span>
+                  </div>
+                )}
               </button>
             ))}
           </div>
