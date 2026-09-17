@@ -535,165 +535,56 @@ return (
               </p>
             </div>
 
-            {/* Status changer */}
+            {/* Status (read only) */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-neutral-50 rounded-xl p-4 border border-neutral-100">
               <div>
                 <p className="text-[10px] font-bold uppercase text-neutral-400">Order Status</p>
                 <div className="mt-1"><StatusBadge status={detail.status} /></div>
               </div>
-              <div className="flex items-center gap-2">
-                <Select
-                  value={pendingStatus ?? detail.status}
-                  onChange={(e) => setPendingStatus(e.target.value)}
-                  className="w-48"
-                >
-                  {LIFECYCLE_STATUSES.map((s) => (
-                    <option key={s} value={s}>{ORDER_STATUS_META[s]?.label || s}</option>
-                  ))}
-                </Select>
-                <Button
-                  variant="secondary"
-                  disabled={!pendingStatus || pendingStatus === detail.status}
-                  onClick={() => changeStatus()}
-                >
-                  Update
-                </Button>
+              <div className="text-right">
+                <p className="text-[10px] font-bold uppercase text-neutral-400">Payment Status</p>
+                <p className="mt-1 text-xs font-bold uppercase text-neutral-700">{detail.paymentStatus || 'unpaid'}</p>
               </div>
             </div>
 
-            {/* Item editor */}
+            {/* Items (read only) */}
             <div className="border-t border-neutral-100 pt-3">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[11px] font-bold uppercase text-neutral-400">
-                  Items ({draft.length})
-                </p>
-                <Button onClick={() => setAddOpen(true)} className="px-2.5 py-1 text-[11px]">
-                  <Plus className="w-3.5 h-3.5" /> Add Product
-                </Button>
-              </div>
-
-              {addOpen && (
-                <div className="mb-3 bg-neutral-50 border border-neutral-200 rounded-xl p-3">
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      autoFocus
-                      value={addQuery}
-                      onChange={(e) => searchProducts(e.target.value)}
-                      placeholder="Search products to add…"
-                      className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-neutral-300 outline-none focus:border-[#D8232A] bg-white"
-                    />
-                  </div>
-                  <div className="mt-2 space-y-1">
-                    {addSearching && (
-                      <p className="text-[11px] text-neutral-400 flex items-center gap-1.5 px-1">
-                        <Loader2 className="w-3 h-3 animate-spin" /> Searching…
-                      </p>
-                    )}
-                    {!addSearching &&
-                      addResults.map((p) => (
-                        <button
-                          key={p.id}
-                          onClick={() => addDraftItem(p)}
-                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white text-left cursor-pointer"
-                        >
-                          <span className="w-8 h-8 rounded-md bg-neutral-200 overflow-hidden shrink-0">
-                            {parseJsonArr(p.images as unknown)[0] ? (
-                              <img src={String(parseJsonArr(p.images as unknown)[0])} alt="" className="w-full h-full object-cover" />
-                            ) : null}
-                          </span>
-                          <span className="flex-1 min-w-0">
-                            <span className="block text-xs font-bold text-neutral-800 truncate">{p.name}</span>
-                            <span className="block text-[10px] text-neutral-400">{bdt(p.price)}</span>
-                          </span>
-                          <Plus className="w-3.5 h-3.5 text-neutral-400" />
-                        </button>
-                      ))}
-                    {!addSearching && addQuery.trim() && addResults.length === 0 && (
-                      <p className="text-[11px] text-neutral-400 px-1">No products match "{addQuery}".</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
+              <p className="text-[11px] font-bold uppercase text-neutral-400 mb-2">
+                Items ({detail.items.length})
+              </p>
               <div className="space-y-2">
-                {draft.length === 0 && (
-                  <p className="text-xs text-neutral-400 text-center py-6">No items — add a product to this order.</p>
-                )}
-                {draft.map((d) => (
-                  <div key={d.key} className="flex items-center gap-2.5 bg-white border border-neutral-200 rounded-xl p-2.5">
-                    <span className="w-10 h-10 rounded-lg bg-neutral-100 overflow-hidden shrink-0">
-                      {d.image ? (
-                        <img src={d.image} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="flex items-center justify-center h-full text-neutral-300">
-                          <Package className="w-4 h-4" />
-                        </span>
-                      )}
-                    </span>
+                {detail.items.map((it) => (
+                  <div key={it.id} className="flex items-center gap-3 rounded-xl border border-neutral-100 p-2.5">
+                    {(() => {
+                      const imgs = (() => {
+                        const raw = (it.product as { images?: unknown } | null)?.images;
+                        if (Array.isArray(raw)) return raw as string[];
+                        if (typeof raw === 'string') { try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; } }
+                        return [];
+                      })();
+                      const img = imgs[0];
+                      return img
+                        ? <img src={img} alt={it.productName} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                        : <span className="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center text-[10px] font-black text-neutral-500 shrink-0">{it.productName.slice(0, 2).toUpperCase()}</span>;
+                    })()}
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-neutral-900 truncate">{d.name}</p>
-                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                        {d.colors.length > 1 && (
-                          <select
-                            value={d.color}
-                            onChange={(e) => updateDraftItem(d.key, { color: e.target.value })}
-                            className="text-[10px] border border-neutral-300 rounded-md px-1 py-0.5 bg-white"
-                          >
-                            {d.colors.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
-                          </select>
-                        )}
-                        {d.sizes.length > 0 && (
-                          <select
-                            value={d.size}
-                            onChange={(e) => updateDraftItem(d.key, { size: e.target.value })}
-                            className="text-[10px] border border-neutral-300 rounded-md px-1 py-0.5 bg-white"
-                          >
-                            {d.sizes.map((s) => (
-                              <option key={s.size} value={s.size} disabled={s.inStock === false}>
-                                {s.size} {s.inStock === false ? '(out)' : ''}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                        <span className="text-[10px] text-neutral-400">{bdt(d.price)} each</span>
-                      </div>
+                      <p className="text-xs font-bold text-neutral-900 truncate">{it.productName}</p>
+                      <p className="text-[10px] text-neutral-400">
+                        {it.productSku}{it.size ? ` · ${it.size}` : ''}{it.color && it.color !== 'Default' ? ` · ${it.color}` : ''}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => updateDraftItem(d.key, { quantity: Math.max(1, d.quantity - 1) })}
-                        className="w-6 h-6 rounded-md border border-neutral-200 flex items-center justify-center text-neutral-600 hover:bg-neutral-50 cursor-pointer"
-                        aria-label="Decrease quantity"
-                      >
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <span className="w-8 text-center text-xs font-black text-neutral-900">{d.quantity}</span>
-                      <button
-                        onClick={() => updateDraftItem(d.key, { quantity: d.quantity + 1 })}
-                        className="w-6 h-6 rounded-md border border-neutral-200 flex items-center justify-center text-neutral-600 hover:bg-neutral-50 cursor-pointer"
-                        aria-label="Increase quantity"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
+                    <div className="text-right">
+                      <p className="text-[10px] text-neutral-400">{bdt(it.price)} × {it.quantity}</p>
+                      <p className="text-xs font-black text-neutral-900">{bdt(it.price * it.quantity)}</p>
                     </div>
-                    <div className="w-20 text-right">
-                      <p className="text-xs font-black text-neutral-900">{bdt(d.price * d.quantity)}</p>
-                    </div>
-                    <button
-                      onClick={() => removeDraftItem(d.key)}
-                      className="p-1.5 rounded-lg text-neutral-300 hover:text-red-600 hover:bg-red-50 cursor-pointer"
-                      aria-label="Remove item"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Totals + save */}
+            {/* Totals (read only) */}
             <div className="border-t border-neutral-100 pt-3">
-              <div className="flex justify-end gap-6 text-xs mb-3">
+              <div className="flex justify-end gap-6 text-xs">
                 <div className="text-neutral-500 space-y-0.5 text-right">
                   <p>Subtotal</p>
                   {detail.discount > 0 && <p className="text-emerald-700">Discount</p>}
@@ -710,15 +601,8 @@ return (
                 </div>
               </div>
 
-              {saveError && (
-                <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2">{saveError}</p>
-              )}
-
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 mt-3">
                 <Button variant="ghost" onClick={() => setDetail(null)}>Close</Button>
-                <Button variant="secondary" disabled={!dirty || saving || draft.length === 0} onClick={() => saveItems()}>
-                  {saving ? 'Saving…' : 'Save Changes & Recalculate'}
-                </Button>
               </div>
             </div>
           </div>
