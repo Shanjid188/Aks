@@ -269,7 +269,7 @@ export function ManageOrder({
     return true;
   };
 
-  /** pending → saves items + customer, then confirms the order. */
+  /** pending → saves items + customer, then confirms the order and returns to the list. */
   const updateAndConfirm = async () => {
     if (!order) return;
     setBusy(true);
@@ -278,6 +278,8 @@ export function ManageOrder({
       if (!(await saveItems())) return;
       if (!(await saveCustomer())) return;
       if (!(await setStatus('confirmed'))) return;
+      // Confirmed — the Manage Order work is done; go back to the Orders list.
+      onBack();
     } catch (e) {
       setActionError((e as Error).message);
     } finally {
@@ -291,6 +293,8 @@ export function ManageOrder({
     setActionError(null);
     try {
       await setStatus('cancelled');
+      // Cancelled — nothing left to manage; go back to the Orders list.
+      onBack();
     } catch (e) {
       setActionError((e as Error).message);
     } finally {
