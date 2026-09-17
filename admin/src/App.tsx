@@ -253,17 +253,6 @@ export default function App() {
         )}
       </div>
 
-      {/* Collapse toggle — desktop only */}
-      {!inDrawer && (
-        <button
-          onClick={toggleCollapsed}
-          className="hidden lg:flex items-center justify-center mx-3 mt-3 mb-1 py-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
-      )}
-
       {/* Navigation — only modules this admin can access */}
       <nav className={`p-3 space-y-1 flex-1 overflow-y-auto scrollbar-thin ${collapsed ? 'px-2' : ''}`}>
         {allowedNav.length === 0 && (
@@ -325,13 +314,23 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Desktop sidebar — full height, logo always visible at the very top */}
+      {/* Desktop sidebar — sticky full height, logo always visible at the very top */}
       <aside
-        className={`hidden lg:flex lg:flex-col bg-[#0f0f10] text-neutral-300 shrink-0 transition-all duration-200 border-r border-white/[0.04] ${
+        className={`hidden lg:flex lg:flex-col lg:sticky lg:top-0 lg:h-screen relative bg-[#0f0f10] text-neutral-300 shrink-0 transition-all duration-200 border-r border-white/[0.04] ${
           collapsed ? 'lg:w-[76px]' : 'lg:w-64'
         }`}
       >
         {sidebarInner(false)}
+
+        {/* Small collapse/expand button on the sidebar edge */}
+        <button
+          onClick={toggleCollapsed}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="absolute -right-3 top-8 z-10 w-6 h-6 rounded-full bg-[#D8232A] text-white flex items-center justify-center shadow-lg shadow-slate-950/40 ring-2 ring-[#0f0f10] hover:bg-[#b51c22] transition-colors cursor-pointer"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+        </button>
       </aside>
 
       {/* Content column — topbar + pages (only spans the area right of the sidebar) */}
