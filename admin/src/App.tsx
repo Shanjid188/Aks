@@ -370,26 +370,26 @@ export default function App() {
                   />
                 </button>
 
-                {/* Child items */}
+                {/* Child items — ERP style: smaller + indented right with guide rail */}
                 {open && (
-                  <div className="mt-0.5 space-y-0.5">
+                  <div className="ml-[15px] mt-1 space-y-0.5 border-l border-white/10 pl-2">
                     {group.items.map((item) => {
                       const active = page === item.key;
                       return (
                         <button
                           key={item.key}
                           onClick={() => navigate(item.key)}
-                          className={`w-full flex items-center gap-3 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer group ${
+                          className={`w-full flex items-center gap-2 rounded-lg text-[11px] font-medium transition-all duration-200 cursor-pointer group ${
                             active
-                              ? 'bg-gradient-to-r from-[#D8232A] to-[#e53e3e] text-white shadow-lg shadow-red-950/40'
-                              : 'text-neutral-400 hover:bg-white/[0.06] hover:text-white'
-                          } pl-2 py-2`}
+                              ? 'bg-gradient-to-r from-[#D8232A] to-[#e53e3e] text-white shadow-md shadow-red-950/40'
+                              : 'text-neutral-500 hover:bg-white/[0.06] hover:text-white'
+                          } pl-1.5 pr-2 py-1.5`}
                         >
                           <span
-                            className={`flex items-center justify-center w-7 h-7 rounded-lg shrink-0 transition-all duration-200 ${
+                            className={`flex items-center justify-center w-6 h-6 rounded-md shrink-0 transition-all duration-200 [&_svg]:w-4 [&_svg]:h-4 ${
                               active
                                 ? 'bg-white/20 text-white'
-                                : 'bg-white/[0.04] text-neutral-400 group-hover:text-white group-hover:bg-white/[0.08]'
+                                : 'bg-transparent text-neutral-500 group-hover:text-white group-hover:bg-white/[0.08]'
                             }`}
                           >
                             {item.icon}
