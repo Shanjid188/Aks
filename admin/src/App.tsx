@@ -27,10 +27,10 @@ import { SettingsPage } from './pages/Settings';
 import { SuppliersPage } from './pages/Suppliers';
 import StorefrontPage from './pages/Storefront';
 import {
-  Activity, BarChart3, Boxes, Calculator, ChevronDown, ChevronLeft, ChevronRight,
-  FileText, Image, LayoutDashboard, LogOut, Menu, Package,
+  Activity, BarChart3, Boxes, Calculator, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
+  Clock, FileText, Image, LayoutDashboard, LogOut, Menu, Package,
   PackageCheck, Receipt, RotateCcw, Search, Settings, ShieldCheck, ShoppingBag,
-  ShoppingCart, Sparkles, Star, Ticket, Truck, UserCog, Users, X,
+  ShoppingCart, Sparkles, Star, Ticket, Truck, UserCog, Users, X, XCircle,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -56,7 +56,9 @@ type PageKey =
   | 'admins'
   | 'roles'
   | 'settings'
-  | 'orderoverview';
+  | 'orderoverview'
+  | 'orders_pending' | 'orders_confirmed' | 'orders_processing'
+  | 'orders_shipped' | 'orders_delivered' | 'orders_cancelled';
 
 /** Sidebar entries — each requires a `view` permission to be visible. */
 const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; desc: string }[] = [
@@ -82,6 +84,13 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
   { key: 'roles', label: 'Roles & Permissions', icon: <ShieldCheck className="w-[18px] h-[18px]" />, permission: PERM.ROLES_VIEW, desc: 'Access control' },
   { key: 'settings', label: 'Settings', icon: <Settings className="w-[18px] h-[18px]" />, permission: PERM.SETTINGS_VIEW, desc: 'Store configuration' },
   { key: 'orderoverview', label: 'Order Overview', icon: <BarChart3 className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Order counts by status' },
+  // Status shortcuts — all open the Orders page with a preset status filter.
+  { key: 'orders_pending', label: 'Pending', icon: <Clock className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Pending orders' },
+  { key: 'orders_confirmed', label: 'Confirmed', icon: <PackageCheck className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Confirmed orders' },
+  { key: 'orders_processing', label: 'Packaging', icon: <Boxes className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Orders in packaging' },
+  { key: 'orders_shipped', label: 'Shipped', icon: <Truck className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Shipped orders' },
+  { key: 'orders_delivered', label: 'Delivered', icon: <CheckCircle2 className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Delivered orders' },
+  { key: 'orders_cancelled', label: 'Cancelled', icon: <XCircle className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Cancelled orders' },
 ];
 
 /**
@@ -90,7 +99,7 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
  * POS is intentionally NOT here — it is exposed as a quick button in the topbar.
  */
 const NAV_GROUPS: { key: string; label: string; icon: ReactNode; keys: PageKey[] }[] = [
-  { key: 'sales', label: 'Sales', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders', 'invoices', 'packaging', 'returns', 'customers'] },
+  { key: 'operation', label: 'Operation', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders_pending', 'orders_confirmed', 'orders_processing', 'orders_shipped', 'orders_delivered', 'orders_cancelled', 'orders', 'invoices', 'packaging', 'returns', 'customers'] },
   { key: 'catalog', label: 'Catalog', icon: <Boxes className="w-4 h-4" />, keys: ['products', 'inventory', 'purchases', 'suppliers'] },
   { key: 'marketing', label: 'Marketing', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'storefront'] },
   { key: 'finance', label: 'Finance', icon: <BarChart3 className="w-4 h-4" />, keys: ['expenses', 'reports'] },
@@ -132,6 +141,9 @@ export default function App() {
   );
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(NAV_GROUPS.map((g) => g.key)));
   const [searchQuery, setSearchQuery] = useState('');
+  // Which status shortcut is currently active (e.g. 'pending') — used so the
+  // sidebar highlights the right child when the Orders page is showing a filter.
+  const [activeShortcut, setActiveShortcut] = useState<string | null>(null);
 
   // Permission-aware navigation — hidden modules never render.
   const allowedNav = useMemo(
@@ -161,7 +173,16 @@ export default function App() {
   useEffect(() => {
     const onNavigate = (e: Event) => {
       const target = (e as CustomEvent<string>).detail;
-      if (NAV.some((n) => n.key === target)) setPage(target as PageKey);
+      if (NAV.some((n) => n.key === target)) {
+        // Status shortcuts open the Orders page with a preset status filter.
+        const m = target.match(/^orders_(pending|confirmed|processing|shipped|delivered|cancelled)$/);
+        if (m) {
+          window.localStorage.setItem('aks_admin_order_filter', m[1]);
+          setPage('orders');
+        } else {
+          setPage(target as PageKey);
+        }
+      }
       window.scrollTo({ top: 0 });
     };
     const onPendingCount = (e: Event) => {
@@ -201,7 +222,18 @@ export default function App() {
   };
 
   const navigate = (key: PageKey) => {
-    setPage(key);
+    // Status shortcuts (orders_pending, orders_confirmed, ...) open the Orders
+    // page with a preset status filter via localStorage — the Orders page reads
+    // and removes it on mount, the same mechanism Dashboard "View" actions use.
+    const shortcutMatch = key.match(/^orders_(pending|confirmed|processing|shipped|delivered|cancelled)$/);
+    if (shortcutMatch) {
+      window.localStorage.setItem('aks_admin_order_filter', shortcutMatch[1]);
+      setActiveShortcut(shortcutMatch[1]);
+      setPage('orders');
+    } else {
+      setActiveShortcut(null);
+      setPage(key);
+    }
     setDrawerOpen(false);
     setSearchQuery('');
     window.scrollTo({ top: 0 });
@@ -470,7 +502,11 @@ export default function App() {
                 {open && (
                   <div className="ml-[15px] mt-1 space-y-0.5 border-l border-white/10 pl-2">
                     {group.items.map((item) => {
-                      const active = page === item.key;
+                      // Status shortcuts are active when the Orders page is open
+                      // AND the matching status filter shortcut is selected.
+                      const active =
+                        page === item.key ||
+                        (item.key === `orders_${activeShortcut}` && page === 'orders');
                       return (
                         <button
                           key={item.key}
