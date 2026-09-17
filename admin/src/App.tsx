@@ -324,72 +324,73 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Topbar (always visible on all screen sizes) — left side intentionally empty */}
-      <header className="sticky top-0 z-30 flex items-center justify-end bg-gradient-to-r from-[#0f0f10] to-[#1a1a1a] text-white px-4 h-14 border-b border-white/[0.06] shadow-lg shrink-0">
-        {/* Right: mobile menu toggle + admin profile + sign-out */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 cursor-pointer"
-            aria-label="Open menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#D8232A] to-rose-700 text-white text-xs font-black flex items-center justify-center shrink-0">
-            {(admin.name || 'A').charAt(0).toUpperCase()}
-          </span>
-          <span className="hidden sm:block text-xs font-bold text-white truncate max-w-[100px]">
-            {admin.name}
-          </span>
-          <span
-            className={`hidden sm:inline-block text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
-              admin.isSuper ? 'bg-amber-400/15 text-amber-300' : 'bg-[#D8232A]/15 text-red-300'
-            }`}
-          >
-            {admin.isSuper ? '★ ' : ''}{admin.role}
-          </span>
-          <button
-            onClick={logout}
-            title="Sign out"
-            className="p-1.5 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-            aria-label="Sign out"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen flex">
+      {/* Desktop sidebar — full height, logo always visible at the very top */}
+      <aside
+        className={`hidden lg:flex lg:flex-col bg-[#0f0f10] text-neutral-300 shrink-0 transition-all duration-200 border-r border-white/[0.04] ${
+          collapsed ? 'lg:w-[76px]' : 'lg:w-64'
+        }`}
+      >
+        {sidebarInner(false)}
+      </aside>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Mobile drawer backdrop */}
-        {drawerOpen && (
-          <div
-            className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-            onClick={() => setDrawerOpen(false)}
-          />
-        )}
-
-        {/* Mobile off-canvas sidebar */}
-        <aside
-          className={`lg:hidden fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-[#0f0f10] text-neutral-300 transition-transform duration-200 ${
-            drawerOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-        >
-          {sidebarInner(true)}
-        </aside>
-
-        {/* Desktop sidebar — navigation only (collaps below topbar) */}
-        <aside
-          className={`hidden lg:flex lg:sticky lg:top-14 lg:flex-col lg:h-[calc(100vh-3.5rem)] bg-[#0f0f10] text-neutral-300 shrink-0 transition-all duration-200 border-r border-white/[0.04] ${
-            collapsed ? 'lg:w-[76px]' : 'lg:w-64'
-          }`}
-        >
-          {sidebarInner(false)}
-        </aside>
+      {/* Content column — topbar + pages (only spans the area right of the sidebar) */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Topbar (always visible on all screen sizes) — left side intentionally empty */}
+        <header className="sticky top-0 z-30 flex items-center justify-end bg-gradient-to-r from-[#0f0f10] to-[#1a1a1a] text-white px-4 h-14 border-b border-white/[0.06] shadow-lg shrink-0">
+          {/* Right: mobile menu toggle + admin profile + sign-out */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 cursor-pointer"
+              aria-label="Open menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#D8232A] to-rose-700 text-white text-xs font-black flex items-center justify-center shrink-0">
+              {(admin.name || 'A').charAt(0).toUpperCase()}
+            </span>
+            <span className="hidden sm:block text-xs font-bold text-white truncate max-w-[100px]">
+              {admin.name}
+            </span>
+            <span
+              className={`hidden sm:inline-block text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                admin.isSuper ? 'bg-amber-400/15 text-amber-300' : 'bg-[#D8232A]/15 text-red-300'
+              }`}
+            >
+              {admin.isSuper ? '★ ' : ''}{admin.role}
+            </span>
+            <button
+              onClick={logout}
+              title="Sign out"
+              className="p-1.5 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              aria-label="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </header>
 
         {/* Main content — scrolls below the topbar */}
         <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">{render()}</main>
       </div>
+
+      {/* Mobile drawer backdrop */}
+      {drawerOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          onClick={() => setDrawerOpen(false)}
+        />
+      )}
+
+      {/* Mobile off-canvas sidebar */}
+      <aside
+        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-[#0f0f10] text-neutral-300 transition-transform duration-200 ${
+          drawerOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {sidebarInner(true)}
+      </aside>
     </div>
   );
 }
