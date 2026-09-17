@@ -69,11 +69,19 @@ router.patch(
     }
 
     const admin = currentAdmin(req);
+    // Shipping from the Packaging queue also advances the order lifecycle status
+    // (processing/packed → shipped) so the Orders list stays in sync.
+    const advanceStatus = packedStatus === 'shipped'
+      && !['shipped', 'out_for_delivery', 'delivered', 'completed', 'cancelled', 'returned', 'refunded'].includes(existing.status)
+      ? 'shipped'
+      : undefined;
+
     const data: Record<string, unknown> = {
       packedStatus,
       ...(packedStatus !== 'not_packed' && !existing.packedAt ? { packedAt: new Date() } : {}),
       ...(packedStatus !== 'not_packed' ? { packedBy: admin.name || admin.email } : {}),
       ...(body.dispatched && !existing.dispatchedAt ? { dispatchedAt: new Date() } : {}),
+      ...(advanceStatus ? { status: advanceStatus } : {}),
     };
 
     const order = await prisma.order.update({
@@ -87,7 +95,7 @@ router.patch(
       action: 'packaging.updated',
       entity: 'order',
       entityId: id,
-      details: `${existing.orderNumber}: packedStatus → ${packedStatus}${body.dispatched ? ', dispatched' : ''}`,
+      details: `${existing.orderNumber}: packedStatus → ${packedStatus}${body.dispatched ? ', dispatched' : ''}${advanceStatus ? `, status → ${advanceStatus}` : ''}`,
     });
 
     res.json({ order });

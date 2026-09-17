@@ -269,7 +269,8 @@ export function ManageOrder({
     return true;
   };
 
-  /** pending → saves items + customer, then confirms the order and returns to the list. */
+  /** pending → saves items + customer, confirms, then moves the order straight
+   *  into Processing so it lands in the Packaging queue (slip prints from there). */
   const updateAndConfirm = async () => {
     if (!order) return;
     setBusy(true);
@@ -278,7 +279,8 @@ export function ManageOrder({
       if (!(await saveItems())) return;
       if (!(await saveCustomer())) return;
       if (!(await setStatus('confirmed'))) return;
-      // Confirmed — the Manage Order work is done; go back to the Orders list.
+      if (!(await setStatus('processing'))) return;
+      // Confirmed & moved to Processing (Packaging queue) — Manage work is done.
       onBack();
     } catch (e) {
       setActionError((e as Error).message);
