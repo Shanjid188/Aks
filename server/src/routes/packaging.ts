@@ -84,7 +84,8 @@ router.patch(
       packedStatus: effectivePacked,
       ...(effectivePacked !== 'not_packed' && !existing.packedAt ? { packedAt: new Date() } : {}),
       ...(effectivePacked !== 'not_packed' ? { packedBy: admin.name || admin.email } : {}),
-      ...(advanceStatus ? { dispatchedAt: new Date() } : {}),
+      // dispatchedAt is set ONLY when the courier handoff is confirmed on the
+      // Shipped page (body.dispatched), NOT automatically on Pack.
       ...(body.dispatched && !existing.dispatchedAt ? { dispatchedAt: new Date() } : {}),
       ...(advanceStatus ? { status: advanceStatus } : {}),
     };

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AdminUser } from './api';
 import aksLogo from './assets/AKS.logo.jpg';
-import { getStoredAdmin, setStoredAdmin, setToken } from './api';
+import { api, getStoredAdmin, setStoredAdmin, setToken } from './api';
 import { hasPerm, PERM } from './lib/permissions';
 import { LoginPage } from './pages/LoginPage';
 import { Dashboard } from './pages/Dashboard';
@@ -170,6 +170,36 @@ export default function App() {
     window.addEventListener('aks-admin-unauthorized', onUnauthorized);
     return () => window.removeEventListener('aks-admin-unauthorized', onUnauthorized);
   }, []);
+
+  // Seed the sidebar notification badges on load (and refresh every 60s) so the
+  // counts are visible from ANY page — not only after visiting Orders/Inventory,
+  // which also publish aks-admin-pending-count / aks-admin-low-stock-count events.
+  useEffect(() => {
+    if (!admin) return;
+    let cancelled = false;
+    const seedBadges = async () => {
+      try {
+        const res = await api.get<{ orders: Array<{ status: string }> }>('/admin/orders');
+        if (!cancelled) {
+          setPendingOrders(res.orders.filter((o) => o.status === 'pending').length);
+        }
+      } catch {
+        /* no orders.view permission — pending badge stays silent */
+      }
+      try {
+        const res = await api.get<{ lowStockCount?: number }>('/admin/inventory');
+        if (!cancelled) setLowStockCount(res.lowStockCount ?? 0);
+      } catch {
+        /* no inventory.view permission — low-stock badge stays silent */
+      }
+    };
+    seedBadges();
+    const timer = window.setInterval(seedBadges, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [admin]);
 
   // Cross-page navigation (Dashboard → Orders etc.) + live pending-order badge.
   useEffect(() => {
@@ -541,19 +571,13 @@ export default function App() {
                             {item.icon}
                           </span>
                           <span className="flex-1 text-left leading-tight">{item.label}</span>
-                          {item.key === 'orders' && pendingOrders > 0 && (
-                            <span
-                              className="bg-amber-400 text-amber-950 text-[10px] font-black rounded-full min-w-5 h-5 px-1.5 flex items-center justify-center"
-                              title={`${pendingOrders} pending orders`}
-                            >
+                          {item.key === 'orders_pending' && pendingOrders > 0 && (
+                            <span className="bg-amber-400 text-amber-950 text-[10px] font-black rounded-full min-w-5 h-5 px-1.5 flex items-center justify-center animate-pulse" title={`${pendingOrders} pending orders`}>
                               {pendingOrders}
                             </span>
                           )}
                           {item.key === 'inventory' && lowStockCount > 0 && (
-                            <span
-                              className="bg-orange-400 text-orange-950 text-[10px] font-black rounded-full min-w-5 h-5 px-1.5 flex items-center justify-center"
-                              title={`${lowStockCount} low-stock products at or below threshold`}
-                            >
+                            <span className="bg-orange-400 text-orange-950 text-[10px] font-black rounded-full min-w-5 h-5 px-1.5 flex items-center justify-center" title={`${lowStockCount} low-stock products at or below threshold`}>
                               {lowStockCount}
                             </span>
                           )}
