@@ -424,6 +424,157 @@ function ColorEditor({ value, onChange }: { value: string; onChange: (v: string)
   );
 }
 
+type MaterialRow = { name: string; val: string };
+
+/** Material editor — name + value rows with Add More. Serializes to key:value lines. */
+function MaterialEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const rows = useMemo<MaterialRow[]>(() => {
+    if (!value.trim()) return [];
+    try {
+      const parsed = JSON.parse(value);
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        return Object.entries(parsed as Record<string, string>).map(([name, val]) => ({
+          name: String(name ?? ''), val: String(val ?? ''),
+        }));
+      }
+    } catch { /* fall through to line parsing */ }
+    return value.split('\n').map((line) => {
+      const t = line.trim();
+      if (!t) return null;
+      const sep = t.indexOf(':');
+      if (sep > -1) return { name: t.slice(0, sep).trim(), val: t.slice(sep + 1).trim() };
+      return { name: t, val: '' };
+    }).filter(Boolean) as MaterialRow[];
+  }, [value]);
+
+  const commit = (next: MaterialRow[]) =>
+    onChange(next.filter((r) => r.name.trim() !== '').map((r) => `${r.name.trim()}: ${r.val.trim()}`).join('\n'));
+  const update = (idx: number, patch: Partial<MaterialRow>) =>
+    commit(rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  const removeRow = (idx: number) => commit(rows.filter((_, i) => i !== idx));
+  const addRow = () => commit([...rows, { name: '', val: '' }]);
+
+  return (
+    <div className="rounded-lg border border-neutral-200 overflow-hidden">
+      <div className="flex items-center gap-1.5 px-3 py-2 bg-neutral-50 border-b border-neutral-200">
+        <ListTree className="w-3 h-3 text-neutral-400" />
+        <span className="text-[10px] font-black uppercase tracking-wide text-neutral-500">Materials</span>
+        <span className="ml-auto text-[10px] text-neutral-400">Name + value rows</span>
+      </div>
+      {rows.length === 0 ? (
+        <p className="px-3 py-3 text-[11px] text-neutral-400">No materials yet — add one below. Example: fabric / 100% Cotton.</p>
+      ) : (
+        <div className="divide-y divide-neutral-100">
+          {rows.map((r, i) => (
+            <div key={i} className="flex items-center gap-2 px-3 py-2">
+              <TextInput value={r.name} placeholder="Material, e.g. fabric" onChange={(e) => update(i, { name: e.target.value })} className="flex-1 min-w-0 text-xs" />
+              <TextInput value={r.val} placeholder="Value, e.g. 100% Cotton" onChange={(e) => update(i, { val: e.target.value })} className="flex-1 min-w-0 text-xs" />
+              <button type="button" onClick={() => removeRow(i)} className="p-1 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50 cursor-pointer shrink-0" title="Remove material">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <button type="button" onClick={addRow} className="w-full flex items-center justify-center gap-1 py-2 text-[11px] font-bold text-[#D8232A] hover:bg-red-50/50 cursor-pointer border-t border-neutral-100">
+        <Plus className="w-3 h-3" /> Add material
+      </button>
+    </div>
+  );
+}
+
+/** Feature list editor — one simple input per row with Add More. No JSON, no special format. */
+function FeatureListEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const rows = useMemo<string[]>(() => {
+    if (!value.trim()) return [];
+    return value.split('\n').map((s) => s.trim()).filter(Boolean);
+  }, [value]);
+
+  const commit = (next: string[]) => onChange(next.join('\n'));
+  const update = (idx: number, v: string) => commit(rows.map((r, i) => (i === idx ? v : r)));
+  const removeRow = (idx: number) => commit(rows.filter((_, i) => i !== idx));
+  const addRow = () => commit([...rows, '']);
+
+  return (
+    <div className="rounded-lg border border-neutral-200 overflow-hidden">
+      <div className="flex items-center gap-1.5 px-3 py-2 bg-neutral-50 border-b border-neutral-200">
+        <Sparkles className="w-3 h-3 text-neutral-400" />
+        <span className="text-[10px] font-black uppercase tracking-wide text-neutral-500">Features</span>
+        <span className="ml-auto text-[10px] text-neutral-400">One feature per row</span>
+      </div>
+      {rows.length === 0 ? (
+        <p className="px-3 py-3 text-[11px] text-neutral-400">No features yet — add one below.</p>
+      ) : (
+        <div className="divide-y divide-neutral-100">
+          {rows.map((r, i) => (
+            <div key={i} className="flex items-center gap-2 px-3 py-2">
+              <TextInput value={r} placeholder={`Feature ${i + 1}, e.g. Premium quality`} onChange={(e) => update(i, e.target.value)} className="flex-1 min-w-0 text-xs" />
+              <button type="button" onClick={() => removeRow(i)} className="p-1 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50 cursor-pointer shrink-0" title="Remove feature">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <button type="button" onClick={addRow} className="w-full flex items-center justify-center gap-1 py-2 text-[11px] font-bold text-[#D8232A] hover:bg-red-50/50 cursor-pointer border-t border-neutral-100">
+        <Plus className="w-3 h-3" /> Add feature
+      </button>
+    </div>
+  );
+}
+
+/** Tag editor — chips with a simple input. Type a tag and press Enter or comma to add. No JSON. */
+function TagEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const tags = useMemo(() => splitLines(value), [value]);
+  const [draft, setDraft] = useState('');
+
+  const commit = (next: string[]) => onChange(next.join(', '));
+  const removeTag = (idx: number) => commit(tags.filter((_, i) => i !== idx));
+  const addDraft = () => {
+    const parts = draft.split(',').map((s) => s.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+    const seen = new Set(tags.map((t) => t.toLowerCase()));
+    const next = [...tags];
+    for (const p of parts) {
+      if (!seen.has(p.toLowerCase())) { next.push(p); seen.add(p.toLowerCase()); }
+    }
+    commit(next);
+    setDraft('');
+  };
+
+  return (
+    <div className="rounded-lg border border-neutral-200 overflow-hidden">
+      <div className="flex items-center gap-1.5 px-3 py-2 bg-neutral-50 border-b border-neutral-200">
+        <Plus className="w-3 h-3 text-neutral-400" />
+        <span className="text-[10px] font-black uppercase tracking-wide text-neutral-500">Tags</span>
+        <span className="ml-auto text-[10px] text-neutral-400">Type + Enter</span>
+      </div>
+      <div className="px-3 py-2 space-y-2">
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {tags.map((t, i) => (
+              <span key={`${t}-${i}`} className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full bg-neutral-100 text-[11px] font-semibold text-neutral-700">
+                {t}
+                <button type="button" onClick={() => removeTag(i)} className="p-0.5 rounded-full hover:bg-neutral-200 text-neutral-400 hover:text-red-600 cursor-pointer" title={`Remove ${t}`}>
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <TextInput
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addDraft(); } }}
+          onBlur={addDraft}
+          placeholder="e.g. organic — press Enter to add"
+          className="text-xs"
+        />
+      </div>
+    </div>
+  );
+}
+
 /** Image manager — upload (prepended automatically), paste URL, reorder, make-first, delete. */
 function ImageManager({ images, onUploadedUrl, onChange }: { images: string; onUploadedUrl: (url: string) => void; onChange: (v: string) => void }) {
   const list = useMemo(() => splitLines(images), [images]);
@@ -825,16 +976,10 @@ export function ProductsPage() {
                   <TextArea value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="Marketing description shown on the storefront…" className="min-h-20" />
                 </Field>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Features" hint="One per line">
-                    <TextArea value={form.features} onChange={(e) => set('features', e.target.value)} placeholder={'Premium quality\nEthically sourced'} />
-                  </Field>
-                  <Field label="Tags" hint="Comma or newline separated">
-                    <TextArea value={form.tags} onChange={(e) => set('tags', e.target.value)} placeholder="organic, rice, staple" />
-                  </Field>
+                  <FeatureListEditor value={form.features} onChange={(v) => set('features', v)} />
+                  <TagEditor value={form.tags} onChange={(v) => set('tags', v)} />
                 </div>
-                <Field label="Materials" hint="One per line as  key: value  (e.g. fabric: 100% Cotton)">
-                  <TextArea value={form.materials} onChange={(e) => set('materials', e.target.value)} placeholder={'fabric: 100% Cotton\ncare: Machine wash cold'} />
-                </Field>
+                <MaterialEditor value={form.materials} onChange={(v) => set('materials', v)} />
                 <ColorEditor value={form.colors} onChange={(v) => set('colors', v)} />
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
                   <Field label="Fit">
