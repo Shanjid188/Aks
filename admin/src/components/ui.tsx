@@ -132,21 +132,25 @@ export function Modal({
   title,
   children,
   wide,
+  size,
 }: {
   open: boolean;
   onClose: () => void;
   title: React.ReactNode;
   children: React.ReactNode;
   wide?: boolean;
+  /** 'lg' renders a wider dialog (used by the product form). Existing callers are unaffected. */
+  size?: 'md' | 'lg';
 }) {
   if (!open) return null;
+  const widthClass = size === 'lg' ? 'max-w-5xl' : wide ? 'max-w-3xl' : 'max-w-lg';
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="fixed inset-0 bg-neutral-950/50" onClick={onClose} />
       <div
         className={cx(
           'relative bg-white w-full rounded-2xl shadow-2xl border border-neutral-200 max-h-[92vh] overflow-y-auto',
-          wide ? 'max-w-3xl' : 'max-w-lg'
+          widthClass
         )}
       >
         <div className="sticky top-0 bg-white border-b border-neutral-100 px-5 py-4 flex items-center justify-between z-10">
