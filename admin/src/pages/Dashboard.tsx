@@ -18,6 +18,7 @@ import {
   MapPin,
   PackageCheck,
   RefreshCw,
+  Undo2,
   ShoppingBag,
   Truck,
   Users,
@@ -393,6 +394,17 @@ export function Dashboard() {
                 <XCircle className="w-4 h-4" /> Cancelled Orders
               </span>
               <span className="text-sm font-black">{stats.cancelledOrdersCount}</span>
+            </button>
+          )}
+          {(stats.returnedOrdersCount || 0) > 0 && (
+            <button
+              onClick={() => goOrders('returned')}
+              className="mt-2 w-full text-left rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 px-4 py-2.5 flex items-center justify-between hover:bg-indigo-100 transition-colors cursor-pointer"
+            >
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase">
+                <Undo2 className="w-4 h-4" /> Returned Orders
+              </span>
+              <span className="text-sm font-black">{stats.returnedOrdersCount}</span>
             </button>
           )}
         </div>

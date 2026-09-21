@@ -379,7 +379,7 @@ return (
         >
           All ({orders.length})
         </button>
-        {(initialFilter ? [initialFilter] : LIFECYCLE_STATUSES).map((s) => (
+        {(initialFilter ? [initialFilter] : [...LIFECYCLE_STATUSES, 'returned', 'refunded']).map((s) => (
           <button
             key={s}
             onClick={() => setStatusFilter(statusFilter === s ? '' : s)}

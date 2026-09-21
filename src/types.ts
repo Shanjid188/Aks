@@ -193,8 +193,9 @@ export interface Order {
   couponApplied?: Coupon;
   total: number;
   /** Mirrors the backend order lifecycle — pending is the default for new
-   *  orders; cancelled is kept so cancelled orders can be displayed too. */
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'out_for_delivery' | 'delivered' | 'cancelled';
+   *  orders; cancelled/returned/refunded are kept so those orders can be
+   *  displayed in history and tracking too. */
+  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'returned' | 'refunded';
   createdAt: string;
   trackingCode: string;
   estimatedDelivery: string;

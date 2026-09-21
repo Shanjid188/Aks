@@ -31,7 +31,7 @@ import {
   Activity, BarChart3, Boxes, Calculator, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
   Clock, FileText, Image, LayoutDashboard, LogOut, Menu, Package,
   PackageCheck, Receipt, RotateCcw, Search, Settings, ShieldCheck, ShoppingBag,
-  ShoppingCart, Sparkles, Star, Ticket, Truck, UserCog, Users, X, XCircle,
+  ShoppingCart, Sparkles, Star, Ticket, Truck, UserCog, Users, X, XCircle, Undo2,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -59,7 +59,7 @@ type PageKey =
   | 'settings'
   | 'orderoverview'
   | 'orders_pending' | 'orders_confirmed'
-  | 'orders_shipped' | 'orders_delivered' | 'orders_cancelled'
+  | 'orders_shipped' | 'orders_delivered' | 'orders_cancelled' | 'orders_returned'
   | 'shippedpage';
 
 /** Sidebar entries — each requires a `view` permission to be visible. */
@@ -92,6 +92,7 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
   { key: 'orders_shipped', label: 'Shipped', icon: <Truck className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Shipped orders' },
   { key: 'orders_delivered', label: 'Delivered', icon: <CheckCircle2 className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Delivered orders' },
   { key: 'orders_cancelled', label: 'Cancelled', icon: <XCircle className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Cancelled orders' },
+  { key: 'orders_returned', label: 'Returned', icon: <Undo2 className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Returned orders' },
 ];
 
 /**
@@ -100,7 +101,7 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
  * POS is intentionally NOT here — it is exposed as a quick button in the topbar.
  */
 const NAV_GROUPS: { key: string; label: string; icon: ReactNode; keys: PageKey[] }[] = [
-  { key: 'operation', label: 'Operation', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders_pending', 'orders_confirmed', 'packaging', 'orders_shipped', 'orders_delivered', 'orders_cancelled', 'invoices', 'returns', 'customers'] },
+  { key: 'operation', label: 'Operation', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders_pending', 'orders_confirmed', 'packaging', 'orders_shipped', 'orders_delivered', 'orders_cancelled', 'orders_returned', 'invoices', 'returns', 'customers'] },
   { key: 'catalog', label: 'Catalog', icon: <Boxes className="w-4 h-4" />, keys: ['products', 'inventory', 'purchases', 'suppliers'] },
   { key: 'marketing', label: 'Marketing', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'storefront'] },
   { key: 'finance', label: 'Finance', icon: <BarChart3 className="w-4 h-4" />, keys: ['expenses', 'reports'] },
@@ -207,7 +208,7 @@ export default function App() {
       const target = (e as CustomEvent<string>).detail;
       if (NAV.some((n) => n.key === target)) {
         // Status shortcuts open the Orders page with a preset status filter.
-        const m = target.match(/^orders_(pending|confirmed|shipped|delivered|cancelled)$/);
+        const m = target.match(/^orders_(pending|confirmed|shipped|delivered|cancelled|returned)$/);
         if (m) {
           if (m[1] === 'shipped') {
             setPage('shippedpage');

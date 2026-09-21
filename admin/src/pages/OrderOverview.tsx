@@ -3,7 +3,7 @@ import { api } from '../api';
 import type { Order } from '../types';
 import { Button, Modal, Spinner, StatusBadge, formatDate } from '../components/ui';
 import {
-  Package, Clock, PackageCheck, Boxes, Truck, CheckCircle2, XCircle, ShoppingBag, Activity,
+  Package, Clock, PackageCheck, Boxes, Truck, CheckCircle2, XCircle, ShoppingBag, Activity, Undo2, Banknote,
 } from 'lucide-react';
 
 interface LogEntry { id: string; adminName: string | null; adminEmail: string | null; action: string; details: string; createdAt: string }
@@ -31,6 +31,8 @@ const CARDS: CountCard[] = [
   { key: 'shipped', label: 'Shipped', icon: <Truck className="w-5 h-5" />, tone: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
   { key: 'delivered', label: 'Delivered', icon: <CheckCircle2 className="w-5 h-5" />, tone: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   { key: 'cancelled', label: 'Cancelled', icon: <XCircle className="w-5 h-5" />, tone: 'bg-red-50 text-red-700 border-red-200' },
+  { key: 'returned', label: 'Returned', icon: <Undo2 className="w-5 h-5" />, tone: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  { key: 'refunded', label: 'Refunded', icon: <Banknote className="w-5 h-5" />, tone: 'bg-teal-50 text-teal-700 border-teal-200' },
 ];
 
 /** Read-only order overview — status count cards only (no edit, no status change). */
@@ -83,7 +85,7 @@ export function OrderOverviewPage() {
         <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-3">
         {CARDS.map((c) => (
           <div key={c.key} className={`rounded-2xl border p-4 ${c.tone}`}>
             <div className="flex items-center justify-between">

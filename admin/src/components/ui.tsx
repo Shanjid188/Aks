@@ -236,6 +236,16 @@ export const ORDER_STATUS_META: Record<
     badge: 'bg-red-50 text-red-800 ring-1 ring-red-200',
     dot: 'bg-red-500',
   },
+  returned: {
+    label: 'Returned',
+    badge: 'bg-indigo-50 text-indigo-800 ring-1 ring-indigo-200',
+    dot: 'bg-indigo-500',
+  },
+  refunded: {
+    label: 'Refunded',
+    badge: 'bg-teal-50 text-teal-800 ring-1 ring-teal-200',
+    dot: 'bg-teal-500',
+  },
 };
 
 /** Canonical lifecycle for faster admin navigation (legacy out_for_delivery stays recognized). */

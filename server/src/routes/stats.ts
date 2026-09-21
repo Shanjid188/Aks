@@ -59,6 +59,7 @@ router.get(
       customerPhones,
       recentOrders,
       recentlyCancelled,
+      returnedOrdersCount,
       itemRows,
       allProducts,
     ] = await Promise.all([
@@ -97,6 +98,7 @@ router.get(
         take: 4,
         include: { items: true },
       }),
+      prisma.order.count({ where: { status: 'returned' } }),
       prisma.orderItem.findMany({
         where: { order: { status: { not: 'cancelled' } } },
         select: {
@@ -208,6 +210,7 @@ router.get(
       deliveredOrdersCount,
       shippedOrdersCount,
       cancelledOrdersCount,
+      returnedOrdersCount,
       productsCount,
       customersCount,
       reviewsCount,

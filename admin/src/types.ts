@@ -193,6 +193,7 @@ export interface Stats {
   deliveredOrdersCount: number;
   shippedOrdersCount: number;
   cancelledOrdersCount: number;
+  returnedOrdersCount: number;
   productsCount: number;
   customersCount: number;
   reviewsCount: number;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
 import type { Order } from '../types';
-import { Package, Search, Loader2, X } from 'lucide-react';
+import { Package, Search, Loader2, X, Undo2 } from 'lucide-react';
 
 const TRACKER_FLOW = ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered'] as const;
 const TRACKER_LABELS: Record<string, string> = {
@@ -13,6 +13,8 @@ const TRACKER_LABELS: Record<string, string> = {
   out_for_delivery: 'Out for Delivery',
   delivered: 'Delivered',
   cancelled: 'Cancelled',
+  returned: 'Returned',
+  refunded: 'Refunded',
 };
 
 /**
@@ -109,6 +111,8 @@ export function TrackOrderPage() {
 /** Result card for a tracked order — status progress, items, totals, address. */
 function OrderResult({ order, onClose }: { order: Order; onClose: () => void }) {
   const isCancelled = order.status === 'cancelled';
+  const isReturned = order.status === 'returned';
+  const isRefunded = order.status === 'refunded';
   const currentStep = TRACKER_FLOW.indexOf(order.status as (typeof TRACKER_FLOW)[number]);
   const addr = order.shippingAddress;
 
@@ -136,13 +140,33 @@ function OrderResult({ order, onClose }: { order: Order; onClose: () => void }) 
           <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Status</p>
           <span
             className={`inline-block text-[11px] font-black px-2.5 py-1 rounded-full ${
-              isCancelled ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+              isCancelled
+                ? 'bg-red-100 text-red-700'
+                : isReturned
+                  ? 'bg-indigo-100 text-indigo-700'
+                  : isRefunded
+                    ? 'bg-teal-100 text-teal-700'
+                    : 'bg-amber-100 text-amber-700'
             }`}
           >
             {TRACKER_LABELS[order.status] ?? order.status}
           </span>
         </div>
       </div>
+
+      {/* Returned / refunded notice — the tracker flow does not apply here */}
+      {(isReturned || isRefunded) && (
+        <div
+          className={`mt-4 flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-bold ${
+            isReturned ? 'bg-indigo-50 text-indigo-700' : 'bg-teal-50 text-teal-700'
+          }`}
+        >
+          <Undo2 className="w-4 h-4 shrink-0" />
+          {isReturned
+            ? 'This order has been returned to us. Our team will process it shortly — contact support for any questions.'
+            : 'This order has been refunded. The amount will be credited through your original payment method.'}
+        </div>
+      )}
 
       {/* Status progress */}
       {!isCancelled && currentStep >= 0 && (
