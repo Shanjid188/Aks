@@ -16,6 +16,7 @@ server/prisma/dev.db-journal
 server/prisma/dev.db.bak-*
 *-build-out.txt
 *-build-run.txt
+_pf-*-build.txt
 *-run.txt
 *-run-*.txt
 prisma-push.txt
