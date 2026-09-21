@@ -605,12 +605,15 @@ export default function App() {
       >
         {sidebarInner(false)}
 
-        {/* Collapse/expand — small floating button on the sidebar edge near the logo */}
+        {/* Collapse/expand — small floating pill on the sidebar edge near the logo.
+            `top-14` keeps it exactly below the h-14 topbar: the topbar is sticky with
+            z-30, so anything higher up on this edge would be covered by it (the pill
+            protrudes into the content column, i.e. under the topbar). */}
         <button
           onClick={toggleCollapsed}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="group absolute -right-3 top-9 z-10 flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-[#D8232A] to-[#b51c22] text-white ring-2 ring-[#0f0f10] shadow-lg shadow-red-950/50 hover:scale-110 hover:shadow-red-900/60 transition-all duration-200 cursor-pointer"
+          className="group absolute -right-3 top-14 z-10 flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-[#D8232A] to-[#b51c22] text-white ring-2 ring-[#0f0f10] shadow-lg shadow-red-950/50 hover:scale-110 hover:shadow-red-900/60 transition-all duration-200 cursor-pointer"
         >
           {collapsed ? (
             <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
