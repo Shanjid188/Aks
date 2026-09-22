@@ -22,7 +22,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BRAND_INFOS, DEFAULT_ANNOUNCEMENTS } from '../data/promos';
+import { DEFAULT_ANNOUNCEMENTS } from '../data/promos';
 import type { Announcement } from '../data/promos';
 import { dataLoader } from '../lib/dataLoader';
 import { Bi } from './Bi';
@@ -55,6 +55,8 @@ export const Header: React.FC = () => {
     filters,
     setFilters,
     products,
+    categories,
+    subcategoriesFor,
     openQuickView,
     setActiveProductPage,
   } = useStore();
@@ -534,24 +536,26 @@ export const Header: React.FC = () => {
               </button>
             </li>
 
-            {/* Men */}
-            <li
-              className="relative"
-              onMouseEnter={() => setActiveMegaMenu('food')}
-              onMouseLeave={() => setActiveMegaMenu(null)}
-            >
-              <button
-                onClick={() => handleSelectCategory('food', 'All')}
-                className={`px-3.5 py-3 hover:text-[#D8232A] transition-colors flex items-center gap-1 cursor-pointer ${
-                  filters.category === 'food' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
+            {/* Division categories — fully API-driven (Admin → Categories) */}
+            {categories.map((cat) => (
+              <li
+                key={cat.id}
+                className="relative"
+                onMouseEnter={() => setActiveMegaMenu(cat.slug)}
+                onMouseLeave={() => setActiveMegaMenu(null)}
+              >
+                <button
+                  onClick={() => handleSelectCategory(cat.slug, 'All')}
+                  className={`px-3.5 py-3 hover:text-[#D8232A] transition-colors flex items-center gap-1 cursor-pointer ${
+                  filters.category === cat.slug ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
                 }`}
               >
-                SHUDDHO <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                {cat.name} <ChevronDown className="w-3.5 h-3.5 opacity-60" />
               </button>
 
-              {/* Mega Dropdown Men */}
+              {/* Mega Dropdown — subcategories + sibling divisions from the API */}
               <AnimatePresence>
-                {activeMegaMenu === 'food' && (
+                {activeMegaMenu === cat.slug && (
                   <motion.div
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -560,216 +564,65 @@ export const Header: React.FC = () => {
                   >
                     <div>
                       <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
-                        Food Categories
+                        {cat.name} Categories
                       </h4>
                       <ul className="space-y-2 text-sm text-neutral-700 font-medium">
-                        <li>
-                          <button
-                            onClick={() => handleSelectCategory('food', 'Rice & Staples')}
-                            className="hover:text-[#D8232A] transition-colors"
-                          >
-                            Rice & Staples
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            onClick={() => handleSelectCategory('food', 'Oils & Ghee')}
-                            className="hover:text-[#D8232A] transition-colors"
-                          >
-                            Oils & Ghee
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            onClick={() => handleSelectCategory('food', 'Dal & Pulses')}
-                            className="hover:text-[#D8232A] transition-colors"
-                          >
-                            Dal & Pulses
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            onClick={() => handleSelectCategory('food', 'Spices')}
-                            className="hover:text-[#D8232A] transition-colors"
-                          >
-                            Spices
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            onClick={() => handleSelectCategory('food', 'Honey & Sweet')}
-                            className="hover:text-[#D8232A] transition-colors"
-                          >
-                            Honey & Sweet
-                          </button>
-                        </li>
+                        {subcategoriesFor(cat.slug)
+                          .slice(0, 6)
+                          .map((sub) => (
+                            <li key={sub.id}>
+                              <button
+                                onClick={() => handleSelectCategory(cat.slug, sub.name)}
+                                className="hover:text-[#D8232A] transition-colors"
+                              >
+                                {sub.name}
+                              </button>
+                            </li>
+                          ))}
                       </ul>
                     </div>
 
                     <div>
                       <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
-                        Featured Picks
+                        Other Divisions
                       </h4>
                       <ul className="space-y-2 text-sm text-neutral-700 font-medium">
-                        <li>
-                          <button onClick={() => handleSelectCategory('food', 'All')} className="hover:text-[#D8232A]">
-                            Rice & Staples
-                          </button>
-                        </li>
-                        <li>
-                          <button onClick={() => handleSelectCategory('home', 'All')} className="hover:text-[#D8232A]">
-                            Bedding & Linens
-                          </button>
-                        </li>
-                        <li>
-                          <button onClick={() => handleSelectCategory('craft', 'All')} className="hover:text-[#D8232A]">
-                            Dal & Pulses
-                          </button>
-                        </li>
-                        <li>
-                          <button onClick={() => handleSelectCategory('beauty', 'All')} className="hover:text-[#D8232A]">
-                            Soap & Body Care
-                          </button>
-                        </li>
+                        {categories
+                          .filter((c) => c.slug !== cat.slug)
+                          .slice(0, 4)
+                          .map((other) => (
+                            <li key={other.id}>
+                              <button onClick={() => handleSelectCategory(other.slug, 'All')} className="hover:text-[#D8232A]">
+                                {other.name}
+                              </button>
+                            </li>
+                          ))}
                       </ul>
                     </div>
 
                     <div className="bg-neutral-50 p-4 rounded-xl flex flex-col justify-between">
                       <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#D8232A] bg-red-100 px-2 py-0.5 rounded">
-                          NEW SEASON
+                        <span
+                          className="text-[10px] font-extrabold uppercase tracking-widest text-white px-2 py-0.5 rounded"
+                          style={{ backgroundColor: cat.accentColor }}
+                        >
+                          {cat.badge || cat.name}
                         </span>
-                        <h5 className="font-bold text-neutral-900 text-sm mt-2">Tradition in Every Thread</h5>
-                        <p className="text-xs text-neutral-500 mt-1">Handpicked crafts and essentials from dedicated local makers.</p>
+                        <h5 className="font-bold text-neutral-900 text-sm mt-2">{cat.name}</h5>
+                        <p className="text-xs text-neutral-500 mt-1">{cat.tagline}</p>
                       </div>
                       <button
-                        onClick={() => handleSelectCategory('food', 'Rice & Staples')}
+                        onClick={() => handleSelectCategory(cat.slug, 'All')}
                         className="text-xs font-bold text-[#D8232A] flex items-center gap-1 mt-3"
                       >
-                        Shop SHUDDHO Food <ArrowRight className="w-3 h-3" />
+                        Shop {cat.name} <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </li>
-
-            {/* Women */}
-            <li
-              className="relative"
-              onMouseEnter={() => setActiveMegaMenu('craft')}
-              onMouseLeave={() => setActiveMegaMenu(null)}
-            >
-              <button
-                onClick={() => handleSelectCategory('craft', 'All')}
-                className={`px-3.5 py-3 hover:text-[#D8232A] transition-colors flex items-center gap-1 cursor-pointer ${
-                  filters.category === 'craft' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
-                }`}
-              >
-                AKS CRAFT <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-              </button>
-
-              <AnimatePresence>
-                {activeMegaMenu === 'craft' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 5 }}
-                    className="absolute left-0 top-full w-[620px] bg-white rounded-2xl shadow-xl border border-neutral-100 p-6 grid grid-cols-3 gap-6 z-50"
-                  >
-                    <div>
-                      <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
-                        Craft Categories
-                      </h4>
-                      <ul className="space-y-2 text-sm text-neutral-700 font-medium">
-                        <li>
-                          <button
-                            onClick={() => handleSelectCategory('craft', 'Nakshi Kantha')}
-                            className="hover:text-[#D8232A]"
-                          >
-                            Nakshi Kantha
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            onClick={() => handleSelectCategory('craft', 'Paposh & Shotoronji')}
-                            className="hover:text-[#D8232A]"
-                          >
-                            Paposh & Shotoronji
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            onClick={() => handleSelectCategory('craft', 'Jute Products')}
-                            className="hover:text-[#D8232A]"
-                          >
-                            Jute Products
-                          </button>
-                        </li>
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
-                        Craft Picks
-                      </h4>
-                      <ul className="space-y-2 text-sm text-neutral-700 font-medium">
-                        <li>
-                          <button onClick={() => handleSelectCategory('craft', 'All')} className="hover:text-[#D8232A]">
-                            Nakshi Kantha Gallery
-                          </button>
-                        </li>
-                        <li>
-                          <button onClick={() => handleSelectCategory('craft', 'All')} className="hover:text-[#D8232A]">
-                            Jute & Bamboo Studio
-                          </button>
-                        </li>
-                      </ul>
-                    </div>
-
-                    <div className="bg-pink-50 p-4 rounded-xl flex flex-col justify-between">
-                      <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-pink-700 bg-pink-200 px-2 py-0.5 rounded">
-                          AKS CRAFT
-                        </span>
-                        <h5 className="font-bold text-neutral-900 text-sm mt-2">Handcrafted Heritage</h5>
-                        <p className="text-xs text-neutral-500 mt-1">Nakshi kantha, paposh and handmade textiles from local artisans.</p>
-                      </div>
-                      <button
-                        onClick={() => handleSelectCategory('craft', 'Paposh & Shotoronji')}
-                        className="text-xs font-bold text-[#D8232A] flex items-center gap-1 mt-3"
-                      >
-                        Explore Handicrafts <ArrowRight className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </li>
-
-            {/* Kids */}
-            <li>
-              <button
-                onClick={() => handleSelectCategory('home', 'All')}
-                className={`px-3.5 py-3 hover:text-[#D8232A] transition-colors flex items-center gap-1 cursor-pointer ${
-                  filters.category === 'home' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
-                }`}
-              >
-                AKS HOME
-              </button>
-            </li>
-
-            {/* Accessories & Shawls */}
-            <li>
-              <button
-                onClick={() => handleSelectCategory('beauty', 'All')}
-                className={`px-3.5 py-3 hover:text-[#D8232A] transition-colors flex items-center gap-1 cursor-pointer ${
-                  filters.category === 'beauty' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
-                }`}
-              >
-                AKS BEAUTY
-              </button>
-            </li>
+            ))}
 
             {/* Brands Dropdown */}
             <li
@@ -791,24 +644,24 @@ export const Header: React.FC = () => {
                     exit={{ opacity: 0, y: 5 }}
                     className="absolute left-0 top-full w-[650px] bg-white rounded-2xl shadow-xl border border-neutral-100 p-6 grid grid-cols-2 gap-4 z-50"
                   >
-                    {BRAND_INFOS.map((brand) => (
+                    {categories.map((cat) => (
                       <div
-                        key={brand.name}
-                        onClick={() => handleSelectBrand(brand.name)}
+                        key={cat.id}
+                        onClick={() => handleSelectBrand(cat.brand)}
                         className="p-3 rounded-xl hover:bg-neutral-50 border border-transparent hover:border-neutral-200 transition-all cursor-pointer flex items-start gap-3"
                       >
                         <div
                           className="w-10 h-10 rounded-lg flex items-center justify-center font-black text-xs text-white shrink-0"
-                          style={{ backgroundColor: brand.accent }}
+                          style={{ backgroundColor: cat.accentColor }}
                         >
-                          {brand.logoText.substring(0, 3)}
+                          {cat.name.substring(0, 3)}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-sm text-neutral-900">{brand.name}</span>
-                            <span className="text-[10px] text-neutral-400 font-semibold">{brand.tag}</span>
+                            <span className="font-bold text-sm text-neutral-900">{cat.name}</span>
+                            <span className="text-[10px] text-neutral-400 font-semibold">{cat.tagline}</span>
                           </div>
-                          <p className="text-xs text-neutral-500 mt-0.5 line-clamp-1">{brand.desc}</p>
+                          <p className="text-xs text-neutral-500 mt-0.5 line-clamp-1">{cat.description}</p>
                         </div>
                       </div>
                     ))}
@@ -859,30 +712,15 @@ export const Header: React.FC = () => {
               >
                 All Departments
               </button>
-              <button
-                onClick={() => handleSelectCategory('food', 'All')}
-                className="text-left font-bold text-sm py-2 px-3 rounded-lg hover:bg-neutral-100 text-neutral-900"
-              >
-                SHUDDHO Food
-              </button>
-              <button
-                onClick={() => handleSelectCategory('craft', 'All')}
-                className="text-left font-bold text-sm py-2 px-3 rounded-lg hover:bg-neutral-100 text-neutral-900"
-              >
-                AKS CRAFT
-              </button>
-              <button
-                onClick={() => handleSelectCategory('home', 'All')}
-                className="text-left font-bold text-sm py-2 px-3 rounded-lg hover:bg-neutral-100 text-neutral-900"
-              >
-                AKS HOME
-              </button>
-              <button
-                onClick={() => handleSelectCategory('beauty', 'All')}
-                className="text-left font-bold text-sm py-2 px-3 rounded-lg hover:bg-neutral-100 text-neutral-900"
-              >
-                AKS BEAUTY
-              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleSelectCategory(cat.slug, 'All')}
+                  className="text-left font-bold text-sm py-2 px-3 rounded-lg hover:bg-neutral-100 text-neutral-900"
+                >
+                  {cat.name}
+                </button>
+              ))}
               <button
                 onClick={() => {
                   setFilters((prev) => ({ ...prev, onSaleOnly: true }));
@@ -899,13 +737,13 @@ export const Header: React.FC = () => {
                 Shop by AKS Mart Division
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {BRAND_INFOS.map((b) => (
+                {categories.map((cat) => (
                   <button
-                    key={b.name}
-                    onClick={() => handleSelectBrand(b.name)}
+                    key={cat.id}
+                    onClick={() => handleSelectBrand(cat.brand)}
                     className="text-xs font-medium bg-neutral-100 hover:bg-[#D8232A] hover:text-white px-2.5 py-1 rounded-full text-neutral-800 transition-colors"
                   >
-                    {b.name}
+                    {cat.name}
                   </button>
                 ))}
               </div>

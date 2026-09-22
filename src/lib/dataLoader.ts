@@ -6,7 +6,8 @@ import { INITIAL_PRODUCTS, INITIAL_REVIEWS } from '../data/products';
 import { HERO_SLIDES, DEFAULT_ANNOUNCEMENTS } from '../data/promos';
 import type { HeroSlide, Announcement } from '../data/promos';
 import { AKS_MART } from '../data/aksMart';
-import { Product, Review } from '../types';
+import { FALLBACK_CATEGORIES } from '../data/aksMart';
+import { Category, Product, Review } from '../types';
 
 const USE_API = import.meta.env.VITE_USE_API !== 'false';
 
@@ -98,6 +99,20 @@ export const dataLoader = {
     } catch (e) {
       console.warn('[dataLoader] API promotions failed (no bundled fallback — hiding banner):', e);
       return [];
+    }
+  },
+
+  /** Divisions/subcategories taxonomy from the DB (Admin → Categories),
+   *  falling back to the bundled division list when unavailable. */
+  async loadCategories(): Promise<Category[]> {
+    if (!USE_API) return FALLBACK_CATEGORIES;
+    try {
+      const { categories } = await API.fetchCategories();
+      if (categories.length === 0) return FALLBACK_CATEGORIES;
+      return categories as Category[];
+    } catch (e) {
+      console.warn('[dataLoader] API categories failed, falling back to bundled divisions:', e);
+      return FALLBACK_CATEGORIES;
     }
   },
 

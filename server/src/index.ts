@@ -6,6 +6,7 @@ import cors from 'cors';
 
 import authRouter from './routes/auth.ts';
 import productsRouter from './routes/products.ts';
+import categoriesRouter from './routes/categories.ts';
 import ordersRouter from './routes/orders.ts';
 import couponsRouter from './routes/coupons.ts';
 import reviewsRouter from './routes/reviews.ts';
@@ -72,6 +73,7 @@ app.get('/api/health', (_req, res) => {
 // Feature routers — each file mixes public + /admin/* routes
 app.use('/api', authRouter);
 app.use('/api', productsRouter);
+app.use('/api', categoriesRouter);
 app.use('/api', ordersRouter);
 app.use('/api', couponsRouter);
 app.use('/api', reviewsRouter);

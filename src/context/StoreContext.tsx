@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product, CartItem, WishlistItem, FilterState, Coupon, Order, Review, CurrencyMode, ProductColor, ProductSize } from '../types';
+import { Product, CartItem, WishlistItem, FilterState, Coupon, Order, Review, CurrencyMode, ProductColor, ProductSize, Category, Subcategory } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_REVIEWS } from '../data/products';
+import { FALLBACK_CATEGORIES } from '../data/aksMart';
 import { VALID_COUPONS } from '../data/promos';
 import { dataLoader, USE_API } from '../lib/dataLoader';
 import * as API from '../api';
@@ -16,6 +17,10 @@ interface ToastMessage {
 interface StoreContextType {
   products: Product[];
   reviews: Review[];
+  /** Divisions taxonomy from the DB (Admin → Categories), with bundled fallback. */
+  categories: Category[];
+  /** Active subcategories of one division slug (empty for 'all' / unknown). */
+  subcategoriesFor: (categorySlug: string) => Subcategory[];
   cart: CartItem[];
   wishlist: WishlistItem[];
   compareList: Product[];
@@ -108,18 +113,20 @@ const STANDARD_SHIPPING_FEE = 120; // à§³120 standard delivery in BD
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [categories, setCategories] = useState<Category[]>(FALLBACK_CATEGORIES);
   const [reviews, setReviews] = useState<Review[]>(() => {
     const saved = localStorage.getItem('aks_reviews');
     return saved ? JSON.parse(saved) : INITIAL_REVIEWS;
   });
 
-  // Load products and reviews from API (falls back to local data on any error)
+  // Load products, categories and reviews from API (falls back to local data on any error)
   useEffect(() => {
     let cancelled = false;
-    Promise.all([dataLoader.loadProducts(), dataLoader.loadReviews()]).then(([prods, revs]) => {
+    Promise.all([dataLoader.loadProducts(), dataLoader.loadReviews(), dataLoader.loadCategories()]).then(([prods, revs, cats]) => {
       if (cancelled) return;
       setProducts(prods);
       setReviews(revs);
+      setCategories(cats);
     });
     return () => { cancelled = true; };
   }, []);
@@ -187,6 +194,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isOrderTrackerOpen, setIsOrderTrackerOpen] = useState(false);
   const [isShoeFinderOpen, setIsShoeFinderOpen] = useState(false);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+
+  // Divisions taxonomy — active subcategories of one division slug.
+  const subcategoriesFor = (categorySlug: string): Subcategory[] =>
+    categorySlug === 'all' ? [] : categories.find((c) => c.slug === categorySlug)?.subcategories ?? [];
 
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -634,6 +645,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       value={{
         products,
         reviews,
+        categories,
+        subcategoriesFor,
         cart,
         wishlist,
         compareList,

@@ -170,6 +170,40 @@ export interface ApiPromotion {
 
 export const fetchPromotions = () => api<{ promotions: ApiPromotion[] }>('/promotions');
 
+/* ── Categories / divisions (DB-driven; Admin → Categories) ────────────────── */
+
+export interface ApiSubcategory {
+  id: string;
+  categoryId: string;
+  name: string;
+  nameBn: string | null;
+  slug: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface ApiCategory {
+  id: string;
+  name: string;
+  nameBn: string | null;
+  slug: string;
+  description: string;
+  descriptionBn: string | null;
+  tagline: string;
+  taglineBn: string | null;
+  brand: string;
+  image: string | null;
+  heroImage: string | null;
+  gridImage: string | null;
+  badge: string;
+  accentColor: string;
+  isActive: boolean;
+  sortOrder: number;
+  subcategories: ApiSubcategory[];
+}
+
+export const fetchCategories = () => api<{ categories: ApiCategory[] }>('/categories');
+
 export interface ApiPublicSettings {
   storeName?: string;
   storeLogo?: string;

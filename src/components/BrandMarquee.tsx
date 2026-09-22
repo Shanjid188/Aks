@@ -1,13 +1,14 @@
 import React from 'react';
 import { Link } from '../lib/router';
-import { DIVISIONS } from '../data/aksMart';
+import { useStore } from '../context/StoreContext';
 
 /**
- * Scrolling brand strip — all five AKS Mart divisions with their real taglines.
+ * Scrolling brand strip — division brands with their taglines, from the API.
  * Pure navigation + illustration; duplicated list makes the loop seamless.
  */
 export const BrandMarquee: React.FC = () => {
-  const items = [...DIVISIONS, ...DIVISIONS];
+  const { categories } = useStore();
+  const items = [...categories, ...categories];
 
   return (
     <div

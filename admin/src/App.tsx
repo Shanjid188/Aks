@@ -6,6 +6,7 @@ import { hasPerm, PERM } from './lib/permissions';
 import { LoginPage } from './pages/LoginPage';
 import { Dashboard } from './pages/Dashboard';
 import { ProductsPage } from './pages/Products';
+import { CategoriesPage } from './pages/Categories';
 import { OrdersPage } from './pages/Orders';
 import { OrderOverviewPage } from './pages/OrderOverview';
 import { ShippedPage } from './pages/Shipped';
@@ -40,6 +41,7 @@ type PageKey =
   | 'pos'
   | 'orders'
   | 'products'
+  | 'categories'
   | 'inventory'
   | 'invoices'
   | 'packaging'
@@ -339,6 +341,8 @@ export default function App() {
         return <ShippedPage />;
       case 'orderoverview':
         return <OrderOverviewPage />;
+            case 'categories':
+        return <CategoriesPage />;
       case 'products':
         return <ProductsPage />;
       case 'inventory':

@@ -1,44 +1,48 @@
-export type CategoryType = 'all' | 'food' | 'craft' | 'home' | 'beauty' | 'print';
+/**
+ * Categories/divisions are data-driven (DB) now, so these are plain string
+ * aliases — the 5 built-in divisions are only the seeded defaults.
+ */
+export type CategoryType = string;
 
-export type SubcategoryType =
-  | 'All'
-  | 'Rice & Staples'
-  | 'Oils & Ghee'
-  | 'Dal & Pulses'
-  | 'Spices'
-  | 'Honey & Sweet'
-  | 'Pickles & Traditional'
-  | 'Dry Food & Essentials'
-  | 'Nakshi Kantha'
-  | 'Paposh & Shotoronji'
-  | 'Jute Products'
-  | 'Bamboo Products'
-  | 'Handmade Bags'
-  | 'Handmade Décor'
-  | 'Bedding & Linens'
-  | 'Curtains & Drapery'
-  | 'Cushions & Carpets'
-  | 'Kitchen Essentials'
-  | 'Storage & Organization'
-  | 'Home Décor'
-  | 'Soap & Body Care'
-  | 'Hair Care'
-  | 'Face Care'
-  | 'Personal Care'
-  | 'Beauty Accessories'
-  | 'Custom Apparel'
-  | 'Mugs & Drinkware'
-  | 'Cards & Stationery'
-  | 'Posters & Signage'
-  | 'Corporate & Packaging'
-  | 'Custom Design';
+export type SubcategoryType = string;
 
-export type BrandName =
-  | 'SHUDDHO'
-  | 'AKS CRAFT'
-  | 'AKS HOME'
-  | 'AKS BEAUTY'
-  | 'AKS PRINT';
+export type BrandName = string;
+
+/** A subcategory inside a division (Admin → Categories). */
+export interface Subcategory {
+  id: string;
+  categoryId: string;
+  name: string;
+  nameBn?: string | null;
+  slug: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+/**
+ * A storefront division / top-level category, loaded from `/api/categories`.
+ * `slug` mirrors `Product.category` and `subcategories[].name` mirrors
+ * `Product.subcategory`, which is what keeps catalog filtering working.
+ */
+export interface Category {
+  id: string;
+  name: string;
+  nameBn?: string | null;
+  slug: string;
+  description: string;
+  descriptionBn?: string | null;
+  tagline: string;
+  taglineBn?: string | null;
+  brand: string;
+  image?: string | null;
+  heroImage?: string | null;
+  gridImage?: string | null;
+  badge: string;
+  accentColor: string;
+  isActive: boolean;
+  sortOrder: number;
+  subcategories: Subcategory[];
+}
 
 export interface ProductColor {
   name: string;

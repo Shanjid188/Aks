@@ -62,6 +62,17 @@ export const PERMISSION_CATALOG: PermissionModule[] = [
     ],
   },
   {
+    module: "categories",
+    label: "Categories & Divisions",
+    icon: "layout-grid",
+    permissions: [
+      { key: "categories.view", label: "View Categories" },
+      { key: "categories.create", label: "Create Category" },
+      { key: "categories.edit", label: "Edit Category" },
+      { key: "categories.delete", label: "Delete Category" },
+    ],
+  },
+  {
     module: "inventory",
     label: "Inventory",
     icon: "boxes",
@@ -293,6 +304,10 @@ export const PERM = {
   PRODUCTS_DELETE: "products.delete",
   PRODUCTS_UPLOAD: "products.upload",
   PRODUCTS_EXPORT: "products.export",
+  CATEGORIES_VIEW: "categories.view",
+  CATEGORIES_CREATE: "categories.create",
+  CATEGORIES_EDIT: "categories.edit",
+  CATEGORIES_DELETE: "categories.delete",
   INVENTORY_VIEW: "inventory.view",
   INVENTORY_ADJUST_STOCK: "inventory.adjust_stock",
   INVENTORY_EXPORT: "inventory.export",

@@ -2,10 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
 import { ProductCard } from './ProductCard';
 import { SubcategoryType } from '../types';
-import { SUBCATEGORIES_BY_CATEGORY, CATEGORY_LABELS, DIVISIONS } from '../data/aksMart';
-import { BRAND_INFOS } from '../data/promos';
-import {
-  SlidersHorizontal,
+import { Subcategory, Category } from '../types';
+import { SlidersHorizontal,
   X,
   RotateCcw,
   LayoutGrid,
@@ -18,15 +16,28 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Bi } from './Bi';
 
 export const ProductGrid: React.FC = () => {
-  const { products, filters, setFilters, resetFilters } = useStore();
+  const { products, categories, filters, setFilters, resetFilters } = useStore();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [viewLayout, setViewLayout] = useState<'grid4' | 'grid3' | 'list'>('grid4');
 
-  // Subcategory list based on active division (single source: aksMart.ts)
+  // Division taxonomy — API-driven (Admin → Categories)
+  const subcategoriesByCategory = useMemo(() => {
+    const map: Record<string, Subcategory[]> = {};
+    for (const cat of categories) map[cat.slug] = cat.subcategories;
+    return map;
+  }, [categories]);
+
+  const categoryById = useMemo(() => {
+    const map: Record<string, Category> = {};
+    for (const cat of categories) map[cat.slug] = cat;
+    return map;
+  }, [categories]);
+
+  // Subcategory list based on active division (single source: the DB)
   const subcategories: SubcategoryType[] = useMemo(() => {
-    const list = SUBCATEGORIES_BY_CATEGORY[filters.category] || [];
-    return ['All', ...list] as SubcategoryType[];
-  }, [filters.category]);
+    const subs = subcategoriesByCategory[filters.category] || [];
+    return ['All', ...subs.map((s) => s.name)] as SubcategoryType[];
+  }, [filters.category, subcategoriesByCategory]);
 
   // Common Available Sizess
   const availableSizes = ['38 (S)', '40 (M)', '42 (L)', '44 (XL)', '46 (XXL)', '30', '32', '34', '36', '38'];
@@ -145,7 +156,7 @@ export const ProductGrid: React.FC = () => {
                     ? `Search results for "${filters.searchQuery}"`
                     : filters.category === 'all'
                     ? 'All Products'
-                    : `${CATEGORY_LABELS[filters.category] ?? filters.category} Collection`}
+                    : `${categoryById[filters.category]?.name ?? filters.category} Collection`}
                 </h2>
                 <span className="text-xs font-bold text-neutral-500 bg-neutral-200/80 px-2.5 py-1 rounded-full whitespace-nowrap">
                   {sortedProducts.length} products
@@ -351,7 +362,7 @@ export const ProductGrid: React.FC = () => {
                 <div className="space-y-1.5">
                                     {[
                     { id: 'all', label: 'All Divisions' },
-                    ...DIVISIONS.map((d) => ({ id: d.slug, label: d.brand })),
+                    ...categories.map((c) => ({ id: c.slug, label: c.name })),
                   ].map((dept) => (
                     <button
                       key={dept.id}
@@ -381,9 +392,9 @@ export const ProductGrid: React.FC = () => {
                   <Bi en="House of Brands" bn="ব্র্যান্ড" />
                 </h4>
                 <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                  {BRAND_INFOS.map((brand) => {
-                    const isChecked = filters.brand.includes(brand.name);
-                    const count = products.filter((p) => p.brand === brand.name).length;
+                  {categories.map((brand) => {
+                    const isChecked = filters.brand.includes(brand.brand);
+                    const count = products.filter((p) => p.brand === brand.brand).length;
                     return (
                       <label
                         key={brand.name}
@@ -393,7 +404,7 @@ export const ProductGrid: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={isChecked}
-                            onChange={() => toggleBrand(brand.name)}
+                            onChange={() => toggleBrand(brand.brand)}
                             className="rounded border-neutral-300 text-[#D8232A] focus:ring-[#D8232A]"
                           />
                           <span>{brand.name}</span>
@@ -524,19 +535,19 @@ export const ProductGrid: React.FC = () => {
                     <Bi en="House of Brands" bn="ব্র্যান্ড" />
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {BRAND_INFOS.map((b) => {
-                      const isSel = filters.brand.includes(b.name);
+                    {categories.map((brand) => {
+                      const isSel = filters.brand.includes(brand.brand);
                       return (
                         <button
-                          key={b.name}
-                          onClick={() => toggleBrand(b.name)}
+                          key={brand.id}
+                          onClick={() => toggleBrand(brand.brand)}
                           className={`text-xs px-2.5 py-1 rounded-full font-medium border cursor-pointer ${
                             isSel
                               ? 'bg-neutral-900 text-white border-neutral-900'
                               : 'bg-neutral-50 text-neutral-700 border-neutral-200'
                           }`}
                         >
-                          {b.name}
+                          {brand.name}
                         </button>
                       );
                     })}

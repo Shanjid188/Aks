@@ -72,13 +72,57 @@ model AuditLog {
   createdAt  DateTime @default(now())
 }
 
+/**
+ * Storefront division / top-level category (SHUDDHO food, AKS CRAFT, …).
+ * Fully admin-managed and consumed by the storefront navigation, mega menu,
+ * division grid, brand marquee, footer links and catalog filtering.
+ */
 model Category {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  parentId  String?
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
+  id            String        @id @default(cuid())
+  name          String // display name, e.g. "SHUDDHO"
+  nameBn        String? // Bangla display name
+  slug          String        @unique // matches Product.category (e.g. "food")
+  description   String        @default("") // longer marketing line (homepage / footer)
+  descriptionBn String?
+  tagline       String        @default("") // short line under the name
+  taglineBn     String?
+  brand         String        @default("") // brand label used by product filtering
+  image         String? // generic image
+  heroImage     String? // hero slider image
+  gridImage     String? // division grid / marquee image
+  badge         String        @default("") // small chip label
+  accentColor   String        @default("#D8232A")
+  isActive      Boolean       @default(true)
+  sortOrder     Int           @default(0)
+  /** Legacy nesting from the first seed — subcategories now live in their own table. */
+  parentId      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
+  subcategories Subcategory[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+/**
+ * Subcategory inside a division, e.g. "Rice & Staples" inside SHUDDHO.
+ * `name` matches Product.subcategory so catalog filtering keeps working.
+ */
+model Subcategory {
+  id         String   @id @default(cuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name       String
+  nameBn     String?
+  slug       String   @unique
+  isActive   Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([categoryId, name])
+  @@index([categoryId])
+  @@index([sortOrder])
 }
 
 model Product {

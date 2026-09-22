@@ -2,6 +2,11 @@
 // Single source of truth for divisions, labels, subcategories and copy.
 // The storefront, admin taxonomy and DB seeding all read from here so every
 // name/title/subtitle lives in one file and is trivially editable.
+//
+// NOTE: divisions/subcategories are DB-driven now (`/api/categories`, editable
+// in Admin → Categories). This file is the SEED INPUT + offline fallback only.
+
+import type { Category } from '../types';
 
 export const AKS_MART = {
   name: 'AKS Mart',
@@ -254,3 +259,42 @@ export const DIVISION_IMAGES: Record<string, string[]> = {
     W('1522542550221-31fd19575a2d'),
   ],
 };
+
+/** Same slug rule the API/seed use — keeps fallback ids stable. */
+const fallbackSlug = (categorySlug: string, name: string) =>
+  `${categorySlug}-${name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')}`;
+
+/**
+ * Offline fallback for the DB-driven taxonomy — identical shape to
+ * `GET /api/categories`, used when the API is unreachable (dev without API).
+ */
+export const FALLBACK_CATEGORIES: Category[] = DIVISIONS.map((d, i) => ({
+  id: `fallback-${d.slug}`,
+  name: d.title,
+  nameBn: d.titleBn ?? null,
+  slug: d.slug,
+  description: d.description,
+  descriptionBn: d.descriptionBn ?? null,
+  tagline: d.subtitle,
+  taglineBn: d.subtitleBn ?? null,
+  brand: d.brand,
+  image: d.image,
+  heroImage: d.sliderImage,
+  gridImage: d.gridImage,
+  badge: d.badge,
+  accentColor: d.accent,
+  isActive: true,
+  sortOrder: i + 1,
+  subcategories: d.subcategories.map((name, j) => ({
+    id: `fallback-${d.slug}-${j}`,
+    categoryId: `fallback-${d.slug}`,
+    name,
+    nameBn: d.subcategoriesBn?.[j] ?? null,
+    slug: fallbackSlug(d.slug, name),
+    isActive: true,
+    sortOrder: j + 1,
+  })),
+}));

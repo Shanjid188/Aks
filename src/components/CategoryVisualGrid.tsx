@@ -2,16 +2,15 @@ import React from 'react';
 import { Link } from '../lib/router';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
-import { DIVISIONS } from '../data/aksMart';
 import { useStore } from '../context/StoreContext';
 
 /**
  * Homepage division showcase — premium bento grid.
- * First division gets a hero-sized tile; every tile shows a real product
- * count computed from the live catalog and navigates to /category/:slug.
+ * Fully API-driven: first division gets a hero-sized tile; every tile shows a
+ * real product count computed from the live catalog and navigates to /category/:slug.
  */
 export const CategoryVisualGrid: React.FC = () => {
-  const { products } = useStore();
+  const { products, categories } = useStore();
 
   return (
     <section className="py-14 sm:py-20 bg-white">
@@ -37,21 +36,21 @@ export const CategoryVisualGrid: React.FC = () => {
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 lg:auto-rows-[17rem] gap-4 sm:gap-5">
-          {DIVISIONS.map((d, idx) => {
+          {categories.map((d, idx) => {
             const count = products.filter((p) => p.category === d.slug).length;
             const isFeature = idx === 0;
             return (
               <Link
                 key={d.slug}
                 to={`/category/${d.slug}`}
-                ariaLabel={`Shop ${d.title}`}
+                ariaLabel={`Shop ${d.name}`}
                 className={`group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-neutral-100 transition-all duration-300 cursor-pointer flex flex-col justify-end p-5 sm:p-6 h-64 sm:h-72 lg:h-full ${
                   isFeature ? 'sm:col-span-2 lg:col-span-2 lg:row-span-2 sm:h-80' : ''
                 }`}
               >
                 <img
-                  src={d.gridImage}
-                  alt={d.title}
+                  src={d.gridImage || d.image || ''}
+                  alt={d.name}
                   referrerPolicy="no-referrer"
                   loading="lazy"
                   decoding="async"
@@ -61,9 +60,10 @@ export const CategoryVisualGrid: React.FC = () => {
 
                 <div className="relative z-10 mb-auto">
                   <span
-                    className={`inline-block text-[11px] font-extrabold uppercase tracking-wider text-white px-2.5 py-1 rounded-full shadow-sm ${d.badgeClass}`}
+                    className="inline-block text-[11px] font-extrabold uppercase tracking-wider text-white px-2.5 py-1 rounded-full shadow-sm"
+                    style={{ backgroundColor: d.accentColor }}
                   >
-                    {d.badge}
+                    {d.badge || d.name}
                   </span>
                 </div>
 
@@ -73,10 +73,10 @@ export const CategoryVisualGrid: React.FC = () => {
                       isFeature ? 'text-2xl' : 'text-lg'
                     }`}
                   >
-                    {d.title}
+                    {d.name}
                   </h3>
                   <p className={`text-neutral-300 mt-1 ${isFeature ? 'text-sm line-clamp-2' : 'text-xs line-clamp-1'}`}>
-                    {d.subtitle}
+                    {d.tagline}
                   </p>
                   <div className="flex items-center justify-between mt-3 gap-2">
                     <span className="flex items-center gap-1.5 text-xs font-bold text-white group-hover:translate-x-1 transition-transform">

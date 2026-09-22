@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { INITIAL_PRODUCTS, INITIAL_REVIEWS } from '../../src/data/products.ts';
 import { DIVISIONS } from '../../src/data/aksMart.ts';
+import { seedCategories } from './seed-categories.ts';
 import { ALL_PERMISSIONS, PERM } from '../src/lib/permissions.ts';
 
 const prisma = new PrismaClient();
@@ -32,6 +33,7 @@ const DEFAULT_ROLES: { name: string; description: string; isSuper?: boolean; per
       'DASHBOARD_VIEW', 'DASHBOARD_ANALYTICS',
       'ORDERS_VIEW', 'ORDERS_DETAILS', 'ORDERS_EDIT', 'ORDERS_STATUS', 'ORDERS_CANCEL',
       'PRODUCTS_VIEW', 'PRODUCTS_CREATE', 'PRODUCTS_EDIT', 'PRODUCTS_DELETE', 'PRODUCTS_UPLOAD',
+      'CATEGORIES_VIEW', 'CATEGORIES_CREATE', 'CATEGORIES_EDIT', 'CATEGORIES_DELETE',
       'CUSTOMERS_VIEW', 'CUSTOMERS_DETAILS', 'CUSTOMERS_EDIT',
       'COUPONS_VIEW', 'COUPONS_CREATE', 'COUPONS_EDIT', 'COUPONS_DELETE',
       'REVIEWS_VIEW', 'REVIEWS_MODERATE',
@@ -54,6 +56,7 @@ const DEFAULT_ROLES: { name: string; description: string; isSuper?: boolean; per
     permissions: [
       'DASHBOARD_VIEW',
       'PRODUCTS_VIEW', 'PRODUCTS_CREATE', 'PRODUCTS_EDIT', 'PRODUCTS_DELETE', 'PRODUCTS_UPLOAD',
+      'CATEGORIES_VIEW', 'CATEGORIES_CREATE', 'CATEGORIES_EDIT', 'CATEGORIES_DELETE',
       'CUSTOMERS_VIEW',
     ],
   },
@@ -146,25 +149,14 @@ async function main() {
     console.log('ℹ️  Admin already exists, skipping.');
   }
 
-  // ---------- Categories (parent category + subcategory children) ----------
-  const categoryRows = DIVISIONS.map((d) => ({ name: d.brand, slug: d.slug, children: d.subcategories }));
-  for (const row of categoryRows) {
-    const parent = await prisma.category.upsert({
-      where: { slug: row.slug },
-      update: { name: row.name },
-      create: { name: row.name, slug: row.slug, sortOrder: 0 },
-    });
-    for (let i = 0; i < row.children.length; i += 1) {
-      const child = row.children[i];
-      const childSlug = `${row.slug}-${child.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`;
-      await prisma.category.upsert({
-        where: { slug: childSlug },
-        update: { name: child, parentId: parent.id, sortOrder: i },
-        create: { name: child, slug: childSlug, parentId: parent.id, sortOrder: i },
-      });
-    }
-  }
-  console.log(`✅ Categories synced (${categoryRows.length} top-level)`);
+  // ---------- Categories & subcategories (divisions) ----------
+  // Storefront divisions/subcategories now live in the DB and are editable from
+  // Admin → Categories. src/data/aksMart.ts is only the seed input + fallback.
+  const catResult = await seedCategories(prisma);
+  console.log(
+    `✅ Categories synced (${catResult.categories} divisions, ${catResult.subcategories} subcategories` +
+      `${catResult.legacyRemoved ? `, ${catResult.legacyRemoved} legacy nested rows migrated` : ''})`
+  );
 
   // ---------- Products ----------
   let productCreated = 0;

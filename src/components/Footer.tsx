@@ -23,6 +23,7 @@ export const Footer: React.FC = () => {
     setFilters,
     setActiveProductPage,
     addToast,
+    categories,
   } = useStore();
 
   // Store contact info — DB-driven via /settings/public, bundled AKS_MART as fallback.
@@ -113,35 +114,17 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          {/* Shop Categories */}
+          {/* Shop Categories — API-driven divisions (Admin → Categories) */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">Divisions</h4>
             <ul className="space-y-2 text-xs text-neutral-400">
-              <li>
-                <button onClick={() => handleCategoryClick('food')} className="hover:text-white transition-colors cursor-pointer">
-                  SHUDDHO — Food
-                </button>
-              </li>
-              <li>
-                <button onClick={() => handleCategoryClick('craft')} className="hover:text-white transition-colors cursor-pointer">
-                  AKS Craft — Handicrafts
-                </button>
-              </li>
-              <li>
-                <button onClick={() => handleCategoryClick('home')} className="hover:text-white transition-colors cursor-pointer">
-                  AKS Home — Living
-                </button>
-              </li>
-              <li>
-                <button onClick={() => handleCategoryClick('beauty')} className="hover:text-white transition-colors cursor-pointer">
-                  AKS Beauty — Care
-                </button>
-              </li>
-              <li>
-                <button onClick={() => handleCategoryClick('print')} className="hover:text-white transition-colors cursor-pointer">
-                  AKS Print — Custom
-                </button>
-              </li>
+              {categories.map((c) => (
+                <li key={c.id}>
+                  <button onClick={() => handleCategoryClick(c.slug as CategoryType)} className="hover:text-white transition-colors cursor-pointer">
+                    {c.name}
+                  </button>
+                </li>
+              ))}
               <li>
                 <button onClick={() => handleCategoryClick('all')} className="hover:text-white transition-colors cursor-pointer">
                   <Bi en="All Departments" bn="সব পণ্য" />

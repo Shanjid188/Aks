@@ -261,6 +261,20 @@ export interface Announcement {
   bgColor: string; textColor: string; isActive: boolean; createdAt: string; updatedAt: string;
 }
 
+export interface Subcategory {
+  id: string; categoryId: string; name: string; nameBn: string | null; slug: string;
+  isActive: boolean; sortOrder: number;
+}
+
+export interface Category {
+  id: string; name: string; nameBn: string | null; slug: string;
+  description: string; descriptionBn: string | null;
+  tagline: string; taglineBn: string | null;
+  brand: string; image: string | null; heroImage: string | null; gridImage: string | null;
+  badge: string; accentColor: string; isActive: boolean; sortOrder: number;
+  subcategories: Subcategory[];
+}
+
 export interface Supplier {
   id: string; name: string; phone: string | null; email: string | null; address: string | null;
   company: string | null; notes: string | null; isActive: boolean; createdAt: string; updatedAt: string; _count?: { purchases: number };
