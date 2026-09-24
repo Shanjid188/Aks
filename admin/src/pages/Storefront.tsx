@@ -1,10 +1,11 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Announcement, Promotion } from '../types';
 import { Button, EmptyState, Field, Modal, Spinner, TextArea, TextInput } from '../components/ui';
 import { Plus, RefreshCw, Megaphone, Tag, Trash2, Pencil } from 'lucide-react';
+import { DEFAULT_SITE_CONTENT, SITE_CONTENT_KEYS } from '../../../src/data/siteContent';
 
-/* Announcements manager — real DB-backed CRUD. */
+/* Announcements manager � real DB-backed CRUD. */
 interface AF { id: string | null; text: string; textBn: string; link: string; bgColor: string; isActive: boolean }
 const blankA = (): AF => ({ id: null, text: '', textBn: '', link: '', bgColor: '#D8232A', isActive: true });
 
@@ -64,7 +65,7 @@ function AnnouncementManager() {
               <Field label="Link"><TextInput value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} /></Field>
             </div>
             <label className="flex items-center gap-2 text-xs font-bold cursor-pointer"><input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="accent-[#D8232A]" /> Active</label>
-            <div className="flex justify-end gap-2"><Button variant="ghost" onClick={() => setForm(null)}>Cancel</Button><Button disabled={saving || !form.text.trim()} onClick={save}>{saving ? 'Saving…' : 'Save'}</Button></div>
+            <div className="flex justify-end gap-2"><Button variant="ghost" onClick={() => setForm(null)}>Cancel</Button><Button disabled={saving || !form.text.trim()} onClick={save}>{saving ? 'Saving�' : 'Save'}</Button></div>
           </div>
         )}
       </Modal>
@@ -108,7 +109,7 @@ function PromoManager() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-neutral-500">Homepage promo banners — stored in the database.</p>
+        <p className="text-xs text-neutral-500">Homepage promo banners � stored in the database.</p>
         <Button onClick={() => { setError(null); setForm(blankP()); }}><Plus className="w-3.5 h-3.5" /> New Promotion</Button>
       </div>
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
@@ -145,7 +146,7 @@ function PromoManager() {
               <Field label="Sort order"><TextInput type="number" value={String(form.sortOrder)} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) || 0 })} /></Field>
               <label className="flex items-center gap-2 text-xs font-bold cursor-pointer justify-center pt-7"><input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="accent-[#D8232A]" /> Active</label>
             </div>
-            <div className="flex justify-end gap-2"><Button variant="ghost" onClick={() => setForm(null)}>Cancel</Button><Button disabled={saving || !form.title.trim()} onClick={save}>{saving ? 'Saving…' : 'Save'}</Button></div>
+            <div className="flex justify-end gap-2"><Button variant="ghost" onClick={() => setForm(null)}>Cancel</Button><Button disabled={saving || !form.title.trim()} onClick={save}>{saving ? 'Saving�' : 'Save'}</Button></div>
           </div>
         )}
       </Modal>
@@ -153,19 +154,42 @@ function PromoManager() {
   );
 }
 
-/* Homepage copy manager — edits the `content.*` store settings that the
- * storefront home page reads (defaults live in src/data/siteContent.ts). */
-interface ContentField { key: string; label: string; long?: boolean }
+/* Homepage copy manager � edits the `content.*` store settings that the
+ * storefront home page reads (defaults live in src/data/siteContent.ts). Every
+ * row is an English/Bangla pair: the Bangla field is the same key with `.bn`
+ * appended, derived here exactly like the storefront derives it. */
+interface ContentField {
+  key: string;
+  label: string;
+  long?: boolean;
+  /** Bangla list/labels that have no counterpart (e.g. search keywords). */
+  single?: boolean;
+}
 interface ContentGroup { title: string; hint?: string; fields: ContentField[] }
 
-const CONTENT_GROUPS: ContentGroup[] = [
+/** The bundled default for each setting key � shown as a placeholder so the
+ *  editor always reveals what the storefront is currently rendering. */
+const CONTENT_DEFAULTS: Record<string, string> = (() => {
+  const out: Record<string, string> = {};
+  for (const [field, key] of Object.entries(SITE_CONTENT_KEYS) as [keyof typeof DEFAULT_SITE_CONTENT, string][]) {
+    const value = DEFAULT_SITE_CONTENT[field];
+    if (typeof value === 'string') out[key] = value;
+  }
+  return out;
+})();
+
+/** Every setting key a field writes (English, plus Bangla unless `single`). */
+const fieldKeys = (field: ContentField): string[] =>
+  field.single ? [field.key] : [field.key, `${field.key}.bn`];
+
+const HOMEPAGE_GROUPS: ContentGroup[] = [
   {
     title: 'Featured Products',
     fields: [
       { key: 'content.featured.eyebrow', label: 'Eyebrow' },
       { key: 'content.featured.title', label: 'Title' },
       { key: 'content.featured.subtitle', label: 'Subtitle', long: true },
-      { key: 'content.featured.action', label: '“View all” link label' },
+      { key: 'content.featured.action', label: '�View all� link label' },
     ],
   },
   {
@@ -174,7 +198,7 @@ const CONTENT_GROUPS: ContentGroup[] = [
       { key: 'content.newArrivals.eyebrow', label: 'Eyebrow' },
       { key: 'content.newArrivals.title', label: 'Title' },
       { key: 'content.newArrivals.subtitle', label: 'Subtitle', long: true },
-      { key: 'content.newArrivals.action', label: '“View all” link label' },
+      { key: 'content.newArrivals.action', label: '�View all� link label' },
     ],
   },
   {
@@ -183,7 +207,7 @@ const CONTENT_GROUPS: ContentGroup[] = [
       { key: 'content.bestSellers.eyebrow', label: 'Eyebrow' },
       { key: 'content.bestSellers.title', label: 'Title' },
       { key: 'content.bestSellers.subtitle', label: 'Subtitle', long: true },
-      { key: 'content.bestSellers.action', label: '“View all” link label' },
+      { key: 'content.bestSellers.action', label: '�View all� link label' },
     ],
   },
   {
@@ -229,11 +253,11 @@ const CONTENT_GROUPS: ContentGroup[] = [
     fields: [
       { key: 'content.header.saleChip', label: 'Sale chip (navbar)' },
       { key: 'content.header.saleChipShort', label: 'Sale chip (mobile menu)' },
-      { key: 'content.header.allDepartments', label: '“All Departments” label' },
-      { key: 'content.header.divisions', label: '“Divisions” menu label' },
-      { key: 'content.header.otherDivisions', label: '“Other Divisions” heading (mega menu)' },
+      { key: 'content.header.allDepartments', label: '�All Departments� label' },
+      { key: 'content.header.divisions', label: '�Divisions� menu label' },
+      { key: 'content.header.otherDivisions', label: '�Other Divisions� heading (mega menu)' },
       { key: 'content.header.categoriesSuffix', label: 'Categories heading suffix' },
-      { key: 'content.header.shopPrefix', label: '“Shop …” link prefix' },
+      { key: 'content.header.shopPrefix', label: '�Shop �� link prefix' },
       { key: 'content.header.trendingLabel', label: 'Trending searches heading' },
       { key: 'content.header.mobileShopBy', label: 'Mobile menu division heading' },
       { key: 'content.header.quickTrack', label: 'Top-bar link: track order' },
@@ -241,12 +265,65 @@ const CONTENT_GROUPS: ContentGroup[] = [
       { key: 'content.header.outfitMatcher', label: 'Top-bar link: outfit matcher' },
       { key: 'content.header.searchPlaceholder', label: 'Search box placeholder' },
       { key: 'content.header.searchPlaceholderMobile', label: 'Search placeholder (mobile)' },
-      { key: 'content.header.trendingSearches', label: 'Trending searches (comma separated)', long: true },
+      { key: 'content.header.trendingSearches', label: 'Trending searches (comma separated)', long: true, single: true },
+    ],
+  },
+  /* �Why Shop With Us� strip � sits right above the footer. */
+  {
+    title: 'Why Shop With Us strip',
+    hint: 'The four promise cards above the footer. Keep {amount} in the delivery note to show the live free-delivery threshold.',
+    fields: [
+      { key: 'content.promoBar.tagline', label: 'Tagline (pill above the title)' },
+      { key: 'content.promoBar.title', label: 'Heading' },
+      { key: 'content.promoBar.subtitle', label: 'Intro paragraph', long: true },
+      { key: 'content.promoBar.item1Title', label: 'Card 1 title' },
+      { key: 'content.promoBar.item1Sub', label: 'Card 1 note ({amount} = live threshold)' },
+      { key: 'content.promoBar.item2Title', label: 'Card 2 title' },
+      { key: 'content.promoBar.item2Sub', label: 'Card 2 note' },
+      { key: 'content.promoBar.item4Title', label: 'Card 4 title' },
+      { key: 'content.promoBar.item4Sub', label: 'Card 4 note' },
+      { key: 'content.promoBar.cta', label: 'Button label' },
     ],
   },
 ];
 
-function HomepageContentManager() {
+/* Footer copy (Admin ? Storefront ? Footer tab). */
+const FOOTER_GROUPS: ContentGroup[] = [
+  {
+    title: 'Brand & newsletter',
+    hint: 'Leave a field empty to keep the built-in default. Payment badges come from Admin ? Settings ? Delivery & Payment.',
+    fields: [
+      { key: 'content.footer.brand', label: 'About paragraph', long: true },
+      { key: 'content.footer.newsletterTitle', label: 'Newsletter heading' },
+      { key: 'content.footer.newsletterNote', label: 'Newsletter note', long: true },
+      { key: 'content.footer.newsletterCta', label: 'Newsletter button' },
+      { key: 'content.footer.copyright', label: 'Copyright line ({year}, {store}, {site})', long: true },
+    ],
+  },
+  {
+    title: 'Footer columns',
+    fields: [
+      { key: 'content.footer.divisionsHeading', label: 'Divisions column heading' },
+      { key: 'content.footer.careHeading', label: 'Customer care heading' },
+      { key: 'content.footer.track', label: 'Link: track order' },
+      { key: 'content.footer.guides', label: 'Link: product & fit guides' },
+      { key: 'content.footer.club', label: 'Link: club rewards' },
+      { key: 'content.footer.contactHeading', label: 'Contact column heading' },
+      { key: 'content.footer.contactPhoneLabel', label: 'Contact phone label' },
+    ],
+  },
+];
+
+/** Shared editor for one set of admin-editable copy groups. */
+function ContentManager({
+  groups,
+  title,
+  hint,
+}: {
+  groups: ContentGroup[];
+  title: string;
+  hint: string;
+}) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -259,10 +336,12 @@ function HomepageContentManager() {
       .get<{ settings: Record<string, unknown> }>('/admin/settings')
       .then((res) => {
         const next: Record<string, string> = {};
-        for (const group of CONTENT_GROUPS) {
+        for (const group of groups) {
           for (const field of group.fields) {
-            const value = res.settings[field.key];
-            next[field.key] = typeof value === 'string' ? value : '';
+            for (const key of fieldKeys(field)) {
+              const value = res.settings[key];
+              next[key] = typeof value === 'string' ? value : '';
+            }
           }
         }
         setValues(next);
@@ -281,11 +360,13 @@ function HomepageContentManager() {
     setStatus(null);
     try {
       const payload: Record<string, string> = {};
-      for (const group of CONTENT_GROUPS) {
-        for (const field of group.fields) payload[field.key] = values[field.key] ?? '';
+      for (const group of groups) {
+        for (const field of group.fields) {
+          for (const key of fieldKeys(field)) payload[key] = values[key] ?? '';
+        }
       }
       const res = await api.put<{ updated: number }>('/admin/settings', payload);
-      setStatus(`Saved ${res.updated} fields — refresh the storefront to see them.`);
+      setStatus(`Saved ${res.updated} fields � refresh the storefront to see them.`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -299,17 +380,15 @@ function HomepageContentManager() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-black text-neutral-900">Homepage content</h2>
-          <p className="text-xs text-neutral-400">
-            Section headings and copy for the storefront home page. Leave a field empty to keep the built-in default.
-          </p>
+          <h2 className="text-lg font-black text-neutral-900">{title}</h2>
+          <p className="text-xs text-neutral-400">{hint}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={load} className="gap-1">
             <RefreshCw className="w-3.5 h-3.5" /> Reload
           </Button>
           <Button onClick={() => void save()} disabled={saving}>
-            {saving ? 'Saving…' : 'Save changes'}
+            {saving ? 'Saving�' : 'Save changes'}
           </Button>
         </div>
       </div>
@@ -318,26 +397,51 @@ function HomepageContentManager() {
       {status && <p className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{status}</p>}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {CONTENT_GROUPS.map((group) => (
+        {groups.map((group) => (
           <div key={group.title} className="bg-white rounded-2xl border border-neutral-200 p-5 space-y-3">
             <div>
               <h3 className="text-sm font-bold text-neutral-900">{group.title}</h3>
               {group.hint && <p className="text-[11px] text-neutral-400 mt-0.5">{group.hint}</p>}
             </div>
             {group.fields.map((field) => (
-              <Field key={field.key} label={field.label}>
-                {field.long ? (
-                  <TextArea
-                    value={values[field.key] ?? ''}
-                    onChange={(e) => setValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                  />
-                ) : (
-                  <TextInput
-                    value={values[field.key] ?? ''}
-                    onChange={(e) => setValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                  />
+              <div key={field.key} className={field.single ? '' : 'grid gap-2 sm:grid-cols-2'}>
+                <Field label={field.label}>
+                  {field.long ? (
+                    <TextArea
+                      value={values[field.key] ?? ''}
+                      placeholder={CONTENT_DEFAULTS[field.key] ?? ''}
+                      onChange={(e) => setValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                    />
+                  ) : (
+                    <TextInput
+                      value={values[field.key] ?? ''}
+                      placeholder={CONTENT_DEFAULTS[field.key] ?? ''}
+                      onChange={(e) => setValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                    />
+                  )}
+                </Field>
+                {!field.single && (
+                  <Field label="?????">
+                    {field.long ? (
+                      <TextArea
+                        value={values[`${field.key}.bn`] ?? ''}
+                        placeholder={CONTENT_DEFAULTS[`${field.key}.bn`] ?? ''}
+                        onChange={(e) =>
+                          setValues((prev) => ({ ...prev, [`${field.key}.bn`]: e.target.value }))
+                        }
+                      />
+                    ) : (
+                      <TextInput
+                        value={values[`${field.key}.bn`] ?? ''}
+                        placeholder={CONTENT_DEFAULTS[`${field.key}.bn`] ?? ''}
+                        onChange={(e) =>
+                          setValues((prev) => ({ ...prev, [`${field.key}.bn`]: e.target.value }))
+                        }
+                      />
+                    )}
+                  </Field>
                 )}
-              </Field>
+              </div>
             ))}
           </div>
         ))}
@@ -351,7 +455,7 @@ function FeaturedManager() {
     <div className="bg-white rounded-2xl border border-neutral-200 p-6">
       <h2 className="text-lg font-semibold mb-4">Featured Products</h2>
       <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
-        <p className="text-sm text-amber-800">💡 Go to <strong>Products</strong> → Edit product → turn on <strong>Featured on homepage</strong> (and optionally set a <strong>Featured order</strong>, 1 = first). Section headings/copy live in the <strong>Homepage</strong> tab.</p>
+        <p className="text-sm text-amber-800">?? Go to <strong>Products</strong> ? Edit product ? turn on <strong>Featured on homepage</strong> (and optionally set a <strong>Featured order</strong>, 1 = first). Section headings/copy live in the <strong>Homepage</strong> tab.</p>
       </div>
     </div>
   );
@@ -363,7 +467,7 @@ export default function StorefrontPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-neutral-900">Storefront Management</h1>
-        <p className="text-sm text-neutral-500 mt-1">Hero slider, promotions, announcement bar and homepage copy — stored in the database.</p>
+        <p className="text-sm text-neutral-500 mt-1">Hero slider, promotions, announcement bar and homepage copy � stored in the database.</p>
       </div>
       <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl w-fit overflow-x-auto max-w-full">
         {[
@@ -372,6 +476,7 @@ export default function StorefrontPage() {
           { id: 'featured', label: 'Featured Products' },
           { id: 'promo', label: 'Promotions' },
           { id: 'content', label: 'Homepage' },
+        { id: 'footer', label: 'Footer' },
         ].map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}>
             {tab.label}
@@ -382,18 +487,31 @@ export default function StorefrontPage() {
       {activeTab === 'announcements' && <AnnouncementManager />}
       {activeTab === 'featured' && <FeaturedManager />}
       {activeTab === 'promo' && <PromoManager />}
-      {activeTab === 'content' && <HomepageContentManager />}
+      {activeTab === 'content' && (
+        <ContentManager
+          groups={HOMEPAGE_GROUPS}
+          title="Homepage content"
+          hint="Section headings and copy for the storefront home page — English and বাংলা. Leave a field empty to keep the built-in default (shown as a placeholder)."
+        />
+      )}
+      {activeTab === 'footer' && (
+        <ContentManager
+          groups={FOOTER_GROUPS}
+          title="Footer content"
+          hint="Footer copy in both languages. Leave a field empty to keep the built-in default (shown as a placeholder)."
+        />
+      )}
     </div>
   );
 }
 
-/** Hero slides live on the separate Hero Slides module — this stub links there. */
+/** Hero slides live on the separate Hero Slides module � this stub links there. */
 function HeroSlidesManagerStub() {
   return (
     <div className="bg-white rounded-2xl border border-neutral-200 p-6">
       <h2 className="text-lg font-semibold mb-3">Hero Slider</h2>
       <p className="text-sm text-neutral-500 mb-3">Manage hero slides from the dedicated <strong>Hero Slides</strong> module in the sidebar.</p>
-      <button onClick={() => window.dispatchEvent(new CustomEvent('aks-admin-navigate', { detail: 'slides' }))} className="px-4 py-2 bg-[#D8232A] text-white text-xs font-bold rounded-lg hover:bg-[#b51c22] cursor-pointer">Open Hero Slides →</button>
+      <button onClick={() => window.dispatchEvent(new CustomEvent('aks-admin-navigate', { detail: 'slides' }))} className="px-4 py-2 bg-[#D8232A] text-white text-xs font-bold rounded-lg hover:bg-[#b51c22] cursor-pointer">Open Hero Slides ?</button>
     </div>
   );
 }
