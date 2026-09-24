@@ -38,6 +38,7 @@ const mapContentPage = (p: API.ApiContentPage): ContentPageData => ({
   seoTitle: p.seoTitle ?? '',
   seoDescription: p.seoDescription ?? '',
   showInFooter: p.showInFooter,
+  contactForm: p.contactForm,
   sortOrder: p.sortOrder,
 });
 

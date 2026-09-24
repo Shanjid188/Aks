@@ -14,6 +14,28 @@ export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
   return (await res.json()) as T;
 }
 
+/**
+ * Turn an `api()` rejection into the message the server actually sent.
+ * `api()` throws "<status> {json}", which is useful in a log but ugly on screen,
+ * so forms use this to show "Please write your message" instead of a raw dump.
+ */
+export function apiErrorMessage(
+  error: unknown,
+  fallback = 'Something went wrong. Please try again.'
+): string {
+  const raw = error instanceof Error ? error.message : String(error ?? '');
+  const json = raw.match(/\{[\s\S]*\}$/);
+  if (json) {
+    try {
+      const parsed = JSON.parse(json[0]) as { error?: string };
+      if (typeof parsed.error === 'string' && parsed.error.trim()) return parsed.error;
+    } catch {
+      // Not JSON after all — fall through to the raw text.
+    }
+  }
+  return raw.trim() || fallback;
+}
+
 // ── Public storefront endpoints ────────────────────────────────────────────
 export interface ApiProduct {
   id: string;
@@ -233,6 +255,7 @@ export interface ApiContentPage {
   seoTitle: string;
   seoDescription: string;
   showInFooter: boolean;
+  contactForm: boolean;
   sortOrder: number;
 }
 
@@ -312,3 +335,28 @@ export interface ApiCreateOrderBody {
 
 export const createOrderAPI = (body: ApiCreateOrderBody) =>
   api<{ order: ApiOrder }>('/orders', { method: 'POST', body });
+
+// ── Newsletter & contact form (storefront → the merchant's admin inbox) ─────
+
+/**
+ * Subscribe to the newsletter. The API answers honestly, so the storefront can
+ * tell the shopper whether they were added or were already on the list.
+ */
+export const subscribeNewsletter = (email: string, source = 'footer') =>
+  api<{ subscribed: boolean; alreadySubscribed: boolean; reactivated: boolean }>('/newsletter', {
+    method: 'POST',
+    body: { email, source },
+  });
+
+export interface ApiContactBody {
+  name: string;
+  email?: string;
+  phone?: string;
+  subject?: string;
+  message: string;
+  pageSlug?: string;
+}
+
+/** Send a message from a content page's contact form (Admin → Messages). */
+export const submitContactMessage = (body: ApiContactBody) =>
+  api<{ received: boolean; id: string }>('/contact', { method: 'POST', body });

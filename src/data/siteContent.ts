@@ -87,6 +87,7 @@ interface SiteContentBase {
   footerNewsletterTitle: string;
   footerNewsletterNote: string;
   footerNewsletterCta: string;
+  footerNewsletterPlaceholder: string;
   /** `{year}` and `{site}` are replaced automatically; `{store}` is the store name. */
   footerCopyright: string;
 }
@@ -178,6 +179,7 @@ const DEFAULT_SITE_CONTENT_BASE: SiteContentBase = {
   footerNewsletterTitle: 'Subscribe to the AKS Mart Gazette',
   footerNewsletterNote: 'Receive seasonal offers, division launches and private sale alerts.',
   footerNewsletterCta: 'Join',
+  footerNewsletterPlaceholder: 'Your email address',
   footerCopyright: '© {year} {store} (Bangladesh). All rights reserved. {site}',
 };
 
@@ -263,6 +265,7 @@ const DEFAULT_SITE_CONTENT_BN: BanglaOf<SiteContentBase> = {
   footerNewsletterTitleBn: 'AKS Mart Gazette-এ সাবস্ক্রাইব করুন',
   footerNewsletterNoteBn: 'মৌসুমি অফার, নতুন বিভাগের খবর ও প্রাইভেট সেলের তথ্য পেতে সাবস্ক্রাইব করুন।',
   footerNewsletterCtaBn: 'যোগ দিন',
+  footerNewsletterPlaceholderBn: 'আপনার ইমেইল ঠিকানা',
   footerCopyrightBn: '© {year} {store} (বাংলাদেশ)। সর্বস্বত্ব সংরক্ষিত। {site}',
 };
 
@@ -347,6 +350,7 @@ const SITE_CONTENT_BASE_KEYS: Record<keyof SiteContentBase, string> = {
   footerNewsletterTitle: 'content.footer.newsletterTitle',
   footerNewsletterNote: 'content.footer.newsletterNote',
   footerNewsletterCta: 'content.footer.newsletterCta',
+  footerNewsletterPlaceholder: 'content.footer.newsletterPlaceholder',
   footerCopyright: 'content.footer.copyright',
 };
 

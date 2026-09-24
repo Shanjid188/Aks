@@ -20,6 +20,8 @@ export interface ContentPageData {
   seoTitle: string;
   seoDescription: string;
   showInFooter: boolean;
+  /** Render the contact form under the body (Admin → Content Pages). */
+  contactForm: boolean;
   sortOrder: number;
 }
 
@@ -52,6 +54,7 @@ Our team is happy to help — see the Contact Us page for phone, email and our D
     seoDescription:
       'AKS Mart is a multi-division marketplace in Bangladesh: SHUDDHO food, AKS CRAFT, AKS HOME, AKS BEAUTY and AKS PRINT — quality checked and delivered nationwide.',
     showInFooter: true,
+    contactForm: false,
     sortOrder: 1,
   },
   {
@@ -80,6 +83,7 @@ Cash on Delivery (COD) is available at checkout: you pay when the order arrives.
     seoDescription:
       'Reach AKS Mart by phone or WhatsApp at +8801728-843503, by email at info@aksgarments.com.bd, or visit Paltan Tower, 87 Purana Paltan Line, Dhaka.',
     showInFooter: true,
+    contactForm: true,
     sortOrder: 2,
   },
   {
@@ -114,6 +118,7 @@ Tell us within 3 days of delivery with a photo of the item and the packaging, an
     seoDescription:
       'AKS Mart accepts returns within 30 days of delivery. Learn how to start a return, the condition requirements and how refunds and exchanges are processed.',
     showInFooter: true,
+    contactForm: false,
     sortOrder: 3,
   },
   {
@@ -151,6 +156,7 @@ Write to info@aksgarments.com.bd with your order number and we will delete the p
     seoDescription:
       'How AKS Mart collects, uses and protects customer information for orders, delivery and support — and how to ask us to remove your data.',
     showInFooter: true,
+    contactForm: false,
     sortOrder: 4,
   },
   {
@@ -190,6 +196,7 @@ Questions about these terms: info@aksgarments.com.bd or +8801728-843503.`,
     seoDescription:
       'Ordering, delivery, payment, product and returns terms for shopping at AKS Mart Bangladesh.',
     showInFooter: true,
+    contactForm: false,
     sortOrder: 5,
   },
 ];

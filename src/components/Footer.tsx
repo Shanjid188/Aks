@@ -16,6 +16,7 @@ import { dataLoader, DEFAULT_STORE_INFO } from '../lib/dataLoader';
 import type { StoreInfo } from '../lib/dataLoader';
 import { useSiteContent } from '../context/SiteContentContext';
 import { useLocalized, fillTokens } from './Localized';
+import { apiErrorMessage, subscribeNewsletter } from '../api';
 import type { ContentPageData } from '../data/pages';
 import type { CategoryType } from '../types';
 
@@ -61,17 +62,39 @@ export const Footer: React.FC = () => {
   }, []);
 
   const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterState, setNewsletterState] = useState<'idle' | 'sending'>('idle');
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  /**
+   * Subscribe through the API, which stores the address for Admin → Subscribers.
+   * The toast repeats exactly what the server said, so "already subscribed" is
+   * never dressed up as a fresh sign-up.
+   */
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newsletterEmail) return;
-    // Honest feedback: nothing is emailed yet, so we never claim a promo code was sent.
-    addToast({
-      type: 'success',
-      title: 'Thanks for subscribing!',
-      message: "We'll keep you updated with new products and offers.",
-    });
-    setNewsletterEmail('');
+    if (!newsletterEmail.trim() || newsletterState === 'sending') return;
+
+    setNewsletterState('sending');
+    try {
+      const result = await subscribeNewsletter(newsletterEmail.trim(), 'footer');
+      addToast({
+        type: 'success',
+        title: result.alreadySubscribed ? 'You are already on the list' : 'Thanks for subscribing!',
+        message: result.reactivated
+          ? 'Welcome back — we have switched your subscription on again.'
+          : result.alreadySubscribed
+            ? 'This email address is already registered with us.'
+            : "We'll keep you updated with new products and offers.",
+      });
+      setNewsletterEmail('');
+    } catch (err) {
+      addToast({
+        type: 'error',
+        title: 'Subscription failed',
+        message: apiErrorMessage(err, 'Please try again in a moment.'),
+      });
+    } finally {
+      setNewsletterState('idle');
+    }
   };
 
   const handleCategoryClick = (category: CategoryType) => {
@@ -120,13 +143,14 @@ export const Footer: React.FC = () => {
                   type="email"
                   value={newsletterEmail}
                   onChange={(e) => setNewsletterEmail(e.target.value)}
-                  placeholder="Your email address"
+                  placeholder={t(content.footerNewsletterPlaceholder, content.footerNewsletterPlaceholderBn)}
                   required
                   className="flex-1 px-3.5 py-2.5 bg-neutral-800 text-xs text-white rounded-xl border border-neutral-700 outline-none focus:border-[#D8232A] transition-colors"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-[#D8232A] text-white text-xs font-bold rounded-xl hover:bg-[#b51c22] transition-colors shrink-0 cursor-pointer"
+                  disabled={newsletterState === 'sending'}
+                  className="px-4 py-2.5 bg-[#D8232A] text-white text-xs font-bold rounded-xl hover:bg-[#b51c22] transition-colors shrink-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <Bi en={content.footerNewsletterCta} bn={content.footerNewsletterCtaBn} />
                 </button>

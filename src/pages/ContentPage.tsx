@@ -5,6 +5,7 @@ import { applySeo, claimSeo } from '../lib/seo';
 import { useLanguage } from '../context/LanguageContext';
 import { useSiteContent } from '../context/SiteContentContext';
 import { ArrowLeft } from 'lucide-react';
+import { ContactForm } from '../components/ContactForm';
 import type { ContentPageData } from '../data/pages';
 
 /**
@@ -129,6 +130,8 @@ export const ContentPage: React.FC = () => {
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-neutral-900">{title}</h1>
           <div className="mt-2.5 h-1 w-16 rounded-full bg-[#D8232A]/70" />
           <div className="mt-6 space-y-4">{renderBody(body)}</div>
+          {/* Admin → Content Pages → “Show contact form” */}
+          {page.contactForm && <ContactForm pageSlug={page.slug} />}
         </article>
       </div>
     </div>
