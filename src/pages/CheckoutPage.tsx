@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
 import { isFreeDeliveryCoupon } from '../utils/coupons';
 import { navigate } from '../lib/router';
+import { useSiteContent } from '../context/SiteContentContext';
+import type { Order } from '../types';
 import {
   Banknote,
   Loader2,
@@ -20,14 +22,8 @@ const BD_PHONE_REGEX = /^01[3-9]\d{8}$/;
 const PHONE_ERROR_MESSAGE =
   'Please enter a valid Bangladeshi mobile number — সঠিক বাংলাদেশি মোবাইল নম্বর দিন (01712345678)।';
 
-/** Delivery zones — same fees as the backend order flow. */
-const DELIVERY_ZONES = [
-  { id: 'inside_dhaka', en: 'Inside Dhaka', bn: 'ঢাকার ভিতরে', fee: 120 },
-  { id: 'sub_dhaka', en: 'Sub-Dhaka Area', bn: 'ঢাকার আশপাশে', fee: 150 },
-  { id: 'outside_dhaka', en: 'Outside Dhaka', bn: 'ঢাকার বাইরে', fee: 200 },
-] as const;
-
-type ZoneId = (typeof DELIVERY_ZONES)[number]['id'];
+// Delivery zones and payment methods come from Admin -> Settings (see src/data/checkout.ts);
+// the values in DEFAULT_CHECKOUT_CONFIG are the fallback used while settings load.
 
 const inputClass =
   'w-full pl-9 pr-3 py-2.5 text-sm border border-neutral-300 rounded-xl outline-none focus:border-[#D8232A] transition-colors';
@@ -54,7 +50,22 @@ export function CheckoutPage() {
   const [streetAddress, setStreetAddress] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
-  const [deliveryMethod, setDeliveryMethod] = useState<ZoneId>('inside_dhaka');
+  // Delivery zones + payment methods come from Admin → Settings through the
+  // shared settings context; the default config is used until that arrives.
+  const { checkout: checkoutConfig } = useSiteContent();
+  const [deliveryMethod, setDeliveryMethod] = useState(checkoutConfig.zones[0].id);
+  const [paymentMethodId, setPaymentMethodId] = useState(checkoutConfig.paymentMethods[0].id);
+  const [paymentReference, setPaymentReference] = useState('');
+
+  useEffect(() => {
+    // Once the configured zones/methods arrive, keep the current selection valid.
+    setDeliveryMethod((current) =>
+      checkoutConfig.zones.some((z) => z.id === current) ? current : checkoutConfig.zones[0].id
+    );
+    setPaymentMethodId((current) =>
+      checkoutConfig.paymentMethods.some((m) => m.id === current) ? current : checkoutConfig.paymentMethods[0].id
+    );
+  }, [checkoutConfig]);
 
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -65,8 +76,10 @@ export function CheckoutPage() {
   const isFreeShip =
     cart.length > 0 &&
     (isFreeDeliveryCoupon(appliedCoupon) || cartSubtotal >= freeShippingThreshold);
-  const activeZone = DELIVERY_ZONES.find((z) => z.id === deliveryMethod) ?? DELIVERY_ZONES[0];
+  const activeZone = checkoutConfig.zones.find((z) => z.id === deliveryMethod) ?? checkoutConfig.zones[0];
   const zoneShipping = isFreeShip ? 0 : activeZone.fee;
+  const selectedPayment =
+    checkoutConfig.paymentMethods.find((m) => m.id === paymentMethodId) ?? checkoutConfig.paymentMethods[0];
   const orderTotal = Math.max(0, cartSubtotal - cartDiscount + zoneShipping);
 
   // Empty-cart guard — never allow checkout without items.
@@ -98,6 +111,12 @@ export function CheckoutPage() {
     }
     // Guard: ignore accidental double-clicks while an order is being placed.
     if (isPlacingOrder) return;
+    // A manual transfer needs its transaction ID before the order can be taken.
+    if (selectedPayment.manual && !paymentReference.trim()) {
+      setOrderError(`${selectedPayment.label} needs the transaction ID from your payment.`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
     setIsPlacingOrder(true);
     setOrderError(null);
@@ -116,7 +135,8 @@ export function CheckoutPage() {
           deliveryInstructions,
         },
         deliveryMethod,
-        paymentMethod: 'cod',
+        paymentMethod: selectedPayment.id as Order['paymentMethod'],
+        paymentReference: selectedPayment.manual ? paymentReference.trim() : undefined,
         subtotal: cartSubtotal,
         discount: cartDiscount,
         shippingFee: zoneShipping,
@@ -231,7 +251,7 @@ export function CheckoutPage() {
 
             {/* Delivery zones */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-              {DELIVERY_ZONES.map((zone) => {
+              {checkoutConfig.zones.map((zone) => {
                 const selected = deliveryMethod === zone.id;
                 return (
                   <button
@@ -245,10 +265,10 @@ export function CheckoutPage() {
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-bold text-neutral-900">{zone.en}</span>
+                      <span className="text-xs font-bold text-neutral-900">{zone.label}</span>
                       {selected && <span className="w-2 h-2 rounded-full bg-[#D8232A]" />}
                     </div>
-                    <span className="text-[11px] text-neutral-500">{zone.bn}</span>
+                    <span className="text-[11px] text-neutral-500">{zone.labelBn}</span>
                     <p className="text-sm font-black text-[#D8232A] mt-1">
                       {isFreeShip ? 'Free' : `BDT ${zone.fee}`}
                     </p>
@@ -257,16 +277,59 @@ export function CheckoutPage() {
               })}
             </div>
 
-            {/* Payment method — only what's actually supported */}
-            <div className="rounded-xl border-2 border-[#D8232A] bg-red-50/40 p-3 flex items-center gap-3">
-              <span className="w-5 h-5 rounded-full border-2 border-[#D8232A] flex items-center justify-center shrink-0">
-                <span className="w-2 h-2 rounded-full bg-[#D8232A]" />
-              </span>
-              <div className="flex-1">
-                <p className="text-xs font-bold text-neutral-900">Cash on Delivery</p>
-                <p className="text-[11px] text-neutral-500">ক্যাশ অন ডেলিভারি — pay when your order arrives</p>
-              </div>
-              <Banknote className="w-4 h-4 text-[#D8232A]" />
+            {/* Payment method — only methods the merchant has enabled & configured */}
+            <div className="space-y-2.5">
+              {checkoutConfig.paymentMethods.map((method) => {
+                const selected = method.id === paymentMethodId;
+                return (
+                  <div key={method.id}>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethodId(method.id)}
+                      className={`w-full text-left rounded-xl border-2 p-3 flex items-center gap-3 transition-colors cursor-pointer ${
+                        selected ? 'border-[#D8232A] bg-red-50/40' : 'border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      <span
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                          selected ? 'border-[#D8232A]' : 'border-neutral-300'
+                        }`}
+                      >
+                        {selected && <span className="w-2 h-2 rounded-full bg-[#D8232A]" />}
+                      </span>
+                      <span className="flex-1">
+                        <span className="block text-xs font-bold text-neutral-900">{method.label}</span>
+                        <span className="block text-[11px] text-neutral-500">
+                          {method.manual ? method.labelBn || 'Send the money first, then add the transaction ID' : method.labelBn || 'Pay when your order arrives'}
+                        </span>
+                      </span>
+                      <Banknote className="w-4 h-4 text-[#D8232A]" />
+                    </button>
+
+                    {selected && method.manual && (
+                      <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50/70 p-3 space-y-2">
+                        <p className="text-[11px] font-bold text-amber-900">
+                          Send {formatPrice(orderTotal, currency)} to:
+                        </p>
+                        <p className="text-xs text-amber-900 whitespace-pre-line break-words">{method.instructions}</p>
+                        <label className="block text-[11px] font-bold text-amber-900" htmlFor="payment-reference">
+                          Transaction ID (TrxID)
+                        </label>
+                        <input
+                          id="payment-reference"
+                          value={paymentReference}
+                          onChange={(e) => setPaymentReference(e.target.value)}
+                          placeholder="e.g. 8N7A2K4LQ9"
+                          className="w-full px-3 py-2.5 text-sm border border-amber-300 rounded-xl outline-none focus:border-[#D8232A] bg-white"
+                        />
+                        <p className="text-[10px] text-amber-800">
+                          Your order stays unpaid until our team verifies the transfer.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
 
@@ -312,7 +375,7 @@ export function CheckoutPage() {
                 </div>
               )}
               <div className="flex justify-between text-neutral-600">
-                <dt>Delivery ({activeZone.en})</dt>
+                <dt>Delivery ({activeZone.label})</dt>
                 <dd className="font-semibold text-neutral-900">
                   {zoneShipping === 0 ? <span className="text-emerald-600 font-bold">Free</span> : formatPrice(zoneShipping, currency)}
                 </dd>
@@ -341,7 +404,7 @@ export function CheckoutPage() {
               )}
             </button>
             <p className="mt-2.5 flex items-center justify-center gap-1.5 text-[10px] text-neutral-400">
-              <ShieldCheck className="w-3 h-3" /> Secure checkout · Cash on Delivery
+              <ShieldCheck className="w-3 h-3" /> Secure checkout · {selectedPayment.label}
             </p>
           </div>
         </div>

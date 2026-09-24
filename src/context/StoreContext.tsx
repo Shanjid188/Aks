@@ -579,6 +579,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         deliveryMethod: orderData.deliveryMethod,
         pickupStore: orderData.pickupStore,
         paymentMethod: orderData.paymentMethod,
+        paymentReference: orderData.paymentReference,
         shippingFee: orderData.shippingFee,
         couponCode: orderData.couponApplied?.code,
       };

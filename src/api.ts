@@ -304,6 +304,8 @@ export interface ApiCreateOrderBody {
   deliveryMethod: string;
   pickupStore?: string;
   paymentMethod: string;
+  /** Required for manual transfer methods (bKash/Nagad/bank) — the TrxID. */
+  paymentReference?: string;
   shippingFee: number;
   couponCode?: string;
 }

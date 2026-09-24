@@ -82,6 +82,8 @@ export interface Order {
   orderNumber: string;
   trackingCode: string;
   status: string;
+  /** Customer-declared TrxID for manual transfers (bKash/Nagad/bank). */
+  paymentReference?: string | null;
   customerName: string;
   customerPhone: string;
   customerEmail: string;
@@ -331,12 +333,21 @@ export interface ContentPage {
   updatedAt: string;
 }
 
+export interface ShippingZoneSetting {
+  id: string;
+  label: string;
+  labelBn: string;
+  fee: number;
+}
+
 export interface StoreSettings {
   storeName?: string; storeTagline?: string; storeLogo?: string; favicon?: string; phone?: string; email?: string;
   website?: string; address?: string; addressBn?: string; mottoEn?: string; mottoBn?: string; facebook?: string; whatsapp?: string; instagram?: string; youtube?: string; tiktok?: string; currency?: string; currencySymbol?: string;
   defaultShippingCharge?: number; freeShippingThreshold?: number; taxPercent?: number; invoiceFooter?: string;
   returnPolicy?: string; packagingNote?: string; thankYouMessage?: string; invoicePaperSize?: string; thermalWidth?: string;
   seoTitle?: string; seoDescription?: string; ogImage?: string;
+  shippingZones?: ShippingZoneSetting[]; paymentMethods?: string[];
+  bkashNumber?: string; nagadNumber?: string; bankDetails?: string;
   lowStockThreshold?: number; orderPrefix?: string; posPrefix?: string; timezone?: string; language?: string;
 }
 

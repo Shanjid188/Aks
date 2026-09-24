@@ -2,6 +2,7 @@ import React from 'react';
 import { Bi } from './Bi';
 import { useLanguage } from '../context/LanguageContext';
 import { useStore } from '../context/StoreContext';
+import { useSiteContent } from '../context/SiteContentContext';
 import { formatPrice } from '../utils/format';
 import { Sparkles, Gift, Truck, CreditCard, ArrowRight } from 'lucide-react';
 
@@ -14,7 +15,15 @@ export const PromoBar: React.FC = () => {
   // The delivery promise must match what checkout actually charges, so it is
   // rendered from the live Admin → Settings threshold instead of a fixed number.
   const { freeShippingThreshold, currency } = useStore();
+  // Payment methods too: only the ones the merchant actually offers are named.
+  const { checkout } = useSiteContent();
   const thresholdLabel = formatPrice(freeShippingThreshold, currency);
+  const paymentLabel = checkout.paymentMethods.length
+    ? {
+        en: checkout.paymentMethods.map((m) => m.label).join(' · '),
+        bn: checkout.paymentMethods.map((m) => m.labelBn || m.label).join(' · '),
+      }
+    : { en: 'Cash on Delivery', bn: 'ক্যাশ অন ডেলিভারি' };
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-[#FDF6EC]/70 via-white to-white border-t border-b border-amber-200/50">
@@ -90,7 +99,7 @@ export const PromoBar: React.FC = () => {
               <Bi en="Secure Payment" bn="নিরাপদ পেমেন্ট" />
             </h3>
             <p className="text-[11px] text-neutral-500 leading-snug">
-              <Bi en="bKash, Nagad, Card & COD" bn="বিকাশ, নগদ, কার্ড ও COD" />
+              <Bi en={paymentLabel.en} bn={paymentLabel.bn} />
             </p>
           </div>
 

@@ -549,6 +549,9 @@ return (
               <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
                 <p className="text-[10px] font-bold uppercase text-neutral-400">Payment</p>
                 <p className="text-xs font-bold text-neutral-900 uppercase mt-0.5">{detail.paymentMethod}</p>
+                {detail.paymentReference && (
+                  <p className="text-[10px] font-bold text-amber-700 mt-0.5">TrxID: {detail.paymentReference}</p>
+                )}
                 <p className="text-[10px] text-neutral-400 mt-0.5">{detail.couponCode ? `Coupon: ${detail.couponCode}` : '—'}</p>
               </div>
             </div>

@@ -1,4 +1,4 @@
-// Safe API wrapper with fallback - used for optional data like products.
+  // Safe API wrapper with fallback - used for optional data like products.
 // Order creation lives in StoreContext (it needs cart + state access).
 import * as API from '../api';
 import * as adapter from './apiAdapter';
@@ -22,6 +22,8 @@ import { DEFAULT_COMMERCE } from '../data/commerce';
 import type { CommerceSettings } from '../data/commerce';
 import { DEFAULT_PAGES } from '../data/pages';
 import type { ContentPageData } from '../data/pages';
+import { DEFAULT_CHECKOUT_CONFIG, checkoutConfigFromSettings } from '../data/checkout';
+import type { CheckoutConfig } from '../data/checkout';
 import { Category, Coupon, Product, Review } from '../types';
 
 const USE_API = import.meta.env.VITE_USE_API !== 'false';
@@ -210,6 +212,7 @@ export const dataLoader = {
       content: DEFAULT_SITE_CONTENT,
       trendingSearches: DEFAULT_TRENDING_SEARCHES,
       seo: DEFAULT_SITE_SEO,
+      checkout: DEFAULT_CHECKOUT_CONFIG,
       storeName: DEFAULT_STORE_NAME,
     };
     if (!USE_API) return fallback;
@@ -220,6 +223,7 @@ export const dataLoader = {
         content: siteContentFromSettings(raw),
         trendingSearches: trendingSearchesFromSettings(raw),
         seo: siteSeoFromSettings(raw),
+        checkout: checkoutConfigFromSettings(raw),
         storeName:
           typeof raw[STORE_NAME_KEY] === 'string' && String(raw[STORE_NAME_KEY]).trim() !== ''
             ? String(raw[STORE_NAME_KEY])
@@ -286,6 +290,8 @@ export interface SiteContentBundle {
   content: SiteContent;
   trendingSearches: string[];
   seo: SiteSeo;
+  /** Delivery zones + payment methods (Admin → Settings). */
+  checkout: CheckoutConfig;
   /** Store name from settings — used to build page titles. */
   storeName: string;
 }

@@ -1,10 +1,17 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
-import { Button, Field, Spinner, TextArea, TextInput } from '../components/ui';
-import { Save, RefreshCw, Settings as SettingsIcon } from 'lucide-react';
-import type { StoreSettings } from '../types';
+import { Button, Field, Spinner, TextArea, TextInput, Toggle } from '../components/ui';
+import { Save, RefreshCw, Settings as SettingsIcon, Plus } from 'lucide-react';
+import type { ShippingZoneSetting, StoreSettings } from '../types';
 
 const num = (v: unknown) => (v === undefined || v === null || v === '' ? '' : String(v));
+
+/** Same delivery zones the API falls back to when nothing is configured. */
+const DEFAULT_ZONES: ShippingZoneSetting[] = [
+  { id: 'inside_dhaka', label: 'Inside Dhaka', labelBn: 'ঢাকার ভিতরে', fee: 120 },
+  { id: 'sub_dhaka', label: 'Sub-Dhaka Area', labelBn: 'ঢাকার আশপাশে', fee: 150 },
+  { id: 'outside_dhaka', label: 'Outside Dhaka', labelBn: 'ঢাকার বাইরে', fee: 200 },
+];
 
 export function SettingsPage() {
   const [settings, setSettings] = useState<StoreSettings>({});
@@ -23,6 +30,20 @@ export function SettingsPage() {
   useEffect(() => { load(); }, [load]);
 
   const set = (key: keyof StoreSettings, value: unknown) => setSettings((s) => ({ ...s, [key]: value }));
+
+  // Delivery & payment helpers (Admin → Settings → Delivery & Payment).
+  const zones: ShippingZoneSetting[] =
+    Array.isArray(settings.shippingZones) && settings.shippingZones.length > 0
+      ? settings.shippingZones
+      : DEFAULT_ZONES;
+  const enabledMethods = Array.isArray(settings.paymentMethods) ? settings.paymentMethods : ['cod'];
+  const updateZone = (index: number, patch: Partial<ShippingZoneSetting>) =>
+    set('shippingZones', zones.map((z, i) => (i === index ? { ...z, ...patch } : z)));
+  const toggleMethod = (id: string, on: boolean) =>
+    set(
+      'paymentMethods',
+      on ? Array.from(new Set([...enabledMethods, id])) : enabledMethods.filter((m) => m !== id)
+    );
 
   const save = async () => {
     setSaving(true); setError(null); setNotice(null);
@@ -66,6 +87,93 @@ export function SettingsPage() {
               <Field label="Default shipping charge"><TextInput type="number" value={num(settings.defaultShippingCharge)} onChange={(e) => set('defaultShippingCharge', Number(e.target.value) || 0)} /></Field>
               <Field label="Free shipping threshold"><TextInput type="number" value={num(settings.freeShippingThreshold)} onChange={(e) => set('freeShippingThreshold', Number(e.target.value) || 0)} /></Field>
               <Field label="Low-stock threshold"><TextInput type="number" value={num(settings.lowStockThreshold)} onChange={(e) => set('lowStockThreshold', Number(e.target.value) || 0)} /></Field>
+            </div>
+          </section>
+          <section className="bg-white rounded-2xl border border-neutral-200 p-5">
+            <h3 className="text-sm font-black text-neutral-900 flex items-center gap-2 mb-4"><SettingsIcon className="w-4 h-4 text-[#D8232A]" /> Delivery &amp; Payment</h3>
+
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-bold text-neutral-700">Delivery areas &amp; charges</p>
+              <Button
+                variant="ghost"
+                className="gap-1"
+                onClick={() =>
+                  set('shippingZones', [
+                    ...zones,
+                    { id: `zone_${Date.now().toString().slice(-6)}`, label: 'New area', labelBn: '', fee: 120 },
+                  ])
+                }
+              >
+                <Plus className="w-3.5 h-3.5" /> Add area
+              </Button>
+            </div>
+            <p className="mt-1 text-[11px] text-neutral-400">
+              Checkout charges exactly these amounts — the order API recalculates the fee server-side, so a tampered
+              request cannot ship an order for free.
+            </p>
+
+            <div className="mt-3 space-y-3">
+              {zones.map((zone, i) => (
+                <div key={zone.id} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_8rem_auto] gap-2 items-end rounded-xl border border-neutral-200 p-3">
+                  <Field label="Name (English)">
+                    <TextInput value={zone.label} onChange={(e) => updateZone(i, { label: e.target.value })} />
+                  </Field>
+                  <Field label="Name (Bangla)">
+                    <TextInput value={zone.labelBn} onChange={(e) => updateZone(i, { labelBn: e.target.value })} />
+                  </Field>
+                  <Field label="Fee (BDT)">
+                    <TextInput
+                      type="number"
+                      value={String(zone.fee)}
+                      onChange={(e) => updateZone(i, { fee: Number(e.target.value) || 0 })}
+                    />
+                  </Field>
+                  <Button
+                    variant="ghost"
+                    onClick={() => set('shippingZones', zones.filter((z) => z.id !== zone.id))}
+                    disabled={zones.length <= 1}
+                  >
+                    Remove
+                  </Button>
+                  <p className="text-[10px] text-neutral-400 sm:col-span-4">
+                    Key: <span className="font-mono">{zone.id}</span>
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 space-y-3 border-t border-neutral-100 pt-4">
+              <p className="text-xs font-bold text-neutral-700">Payment methods</p>
+              <p className="text-[11px] text-neutral-400">
+                bKash, Nagad and bank transfer are <strong>manual transfers</strong>: the customer sends the money and
+                enters the transaction ID, and the order stays unpaid until you verify it. A manual method is only
+                offered at checkout once its pay-to details are filled in below.
+              </p>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                <Toggle checked={enabledMethods.includes('cod')} onChange={(v) => toggleMethod('cod', v)} label="Cash on Delivery" />
+                <Toggle checked={enabledMethods.includes('bkash')} onChange={(v) => toggleMethod('bkash', v)} label="bKash (manual)" />
+                <Toggle checked={enabledMethods.includes('nagad')} onChange={(v) => toggleMethod('nagad', v)} label="Nagad (manual)" />
+                <Toggle checked={enabledMethods.includes('bank')} onChange={(v) => toggleMethod('bank', v)} label="Bank transfer (manual)" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Field label="bKash number" hint="Shown at checkout — leave empty to hide bKash">
+                  <TextInput
+                    value={settings.bkashNumber || ''}
+                    onChange={(e) => set('bkashNumber', e.target.value)}
+                    placeholder="01XXXXXXXXX (Personal)"
+                  />
+                </Field>
+                <Field label="Nagad number" hint="Leave empty to hide Nagad">
+                  <TextInput value={settings.nagadNumber || ''} onChange={(e) => set('nagadNumber', e.target.value)} placeholder="01XXXXXXXXX" />
+                </Field>
+                <Field label="Bank details" hint="Leave empty to hide bank transfer">
+                  <TextInput
+                    value={settings.bankDetails || ''}
+                    onChange={(e) => set('bankDetails', e.target.value)}
+                    placeholder="Bank · A/C name · A/C no · Branch"
+                  />
+                </Field>
+              </div>
             </div>
           </section>
           <section className="bg-white rounded-2xl border border-neutral-200 p-5">

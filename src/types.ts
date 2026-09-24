@@ -192,7 +192,9 @@ export interface Order {
   shippingAddress: ShippingAddress;
   deliveryMethod: 'standard' | 'express' | 'pickup' | 'inside_dhaka' | 'sub_dhaka' | 'outside_dhaka';
   pickupStore?: string;
-  paymentMethod: 'bkash' | 'nagad' | 'card' | 'cod';
+  paymentMethod: 'bkash' | 'nagad' | 'card' | 'cod' | 'bank' | 'cash';
+  /** Customer-declared transaction ID for manual transfers (bKash/Nagad/bank). */
+  paymentReference?: string;
   subtotal: number;
   discount: number;
   shippingFee: number;
