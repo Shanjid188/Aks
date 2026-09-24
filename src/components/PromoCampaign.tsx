@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { VALID_COUPONS } from '../data/promos';
+import React, { useEffect, useState } from 'react';
+import { dataLoader } from '../lib/dataLoader';
 import { Coupon } from '../types';
 import { useStore } from '../context/StoreContext';
 import { ArrowRight, Tag, Truck, Gift, Copy, Check } from 'lucide-react';
@@ -27,7 +27,23 @@ const couponIcon = (c: Coupon) => {
 export const PromoCampaign: React.FC = () => {
   const { addToast } = useStore();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [anchor, ...rest] = VALID_COUPONS;
+  // DB-driven offers (Admin → Coupons). dataLoader falls back to the bundled
+  // coupon list when the API is unreachable, so the section never goes blank.
+  const [offers, setOffers] = useState<Coupon[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    dataLoader.loadCoupons().then((list) => {
+      if (!cancelled) setOffers(list);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Nothing to advertise yet — hide the section instead of flashing placeholders.
+  if (offers === null || offers.length === 0) return null;
+  const [anchor, ...rest] = offers;
 
   const copyCode = async (code: string) => {
     try {

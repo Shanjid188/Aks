@@ -464,6 +464,9 @@ model Coupon {
   value        Float
   minSpend     Float    @default(0)
   description  String
+  descriptionBn String  @default("") // Bangla copy shown on the storefront offers section
+  image        String? // optional ticket artwork (uploaded via Admin → Coupons)
+  sortOrder    Int      @default(0) // order inside the storefront "Active Offers" section
   active       Boolean  @default(true)
   usedCount    Int      @default(0)
   createdAt    DateTime @default(now())

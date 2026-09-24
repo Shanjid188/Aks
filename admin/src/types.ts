@@ -121,6 +121,9 @@ export interface Coupon {
   value: number;
   minSpend: number;
   description: string;
+  descriptionBn: string;
+  image: string | null;
+  sortOrder: number;
   active: boolean;
   usedCount: number;
   createdAt: string;

@@ -24,6 +24,30 @@ router.post(
   })
 );
 
+/**
+ * Public: active coupons for the storefront "Active Offers" section.
+ * Only display-safe fields are exposed (no usedCount / admin bookkeeping).
+ */
+router.get(
+  '/coupons',
+  asyncHandler(async (_req, res) => {
+    const coupons = await prisma.coupon.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      select: {
+        code: true,
+        discountType: true,
+        value: true,
+        minSpend: true,
+        description: true,
+        descriptionBn: true,
+        image: true,
+      },
+    });
+    res.json({ coupons });
+  })
+);
+
 /* =========================== ADMIN COUPON CRUD =========================== */
 
 router.get(
@@ -58,6 +82,9 @@ router.post(
           value,
           minSpend,
           description: String(body.description || ''),
+          descriptionBn: String(body.descriptionBn || ''),
+          image: body.image ? String(body.image) : null,
+          sortOrder: Number(body.sortOrder) || 0,
           active: Boolean(body.active ?? true),
         },
       });
@@ -79,6 +106,9 @@ router.patch(
     const body = (req.body || {}) as Record<string, unknown>;
     const data: Record<string, unknown> = {};
     if (body.description !== undefined) data.description = String(body.description);
+    if (body.descriptionBn !== undefined) data.descriptionBn = String(body.descriptionBn);
+    if (body.image !== undefined) data.image = body.image ? String(body.image) : null;
+    if (body.sortOrder !== undefined) data.sortOrder = Number(body.sortOrder) || 0;
     if (body.active !== undefined) data.active = Boolean(body.active);
     if (body.discountType !== undefined) data.discountType = String(body.discountType);
     if (body.value !== undefined) data.value = Number(body.value);

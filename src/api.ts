@@ -236,6 +236,19 @@ export interface ApiPublicSettings {
 
 export const fetchPublicSettings = () => api<{ settings: ApiPublicSettings }>('/settings/public');
 
+/** Public: active coupons for the storefront "Active Offers" section (Admin → Coupons). */
+export interface ApiPublicCoupon {
+  code: string;
+  discountType: string;
+  value: number;
+  minSpend: number;
+  description: string;
+  descriptionBn: string | null;
+  image: string | null;
+}
+
+export const fetchCoupons = () => api<{ coupons: ApiPublicCoupon[] }>('/coupons');
+
 export const validateCoupon = (code: string) =>
   api<{ valid: boolean; message?: string; coupon: ApiCoupon }>(`/coupons/validate`, {
     method: 'POST',

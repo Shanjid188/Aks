@@ -3,11 +3,11 @@
 import * as API from '../api';
 import * as adapter from './apiAdapter';
 import { INITIAL_PRODUCTS, INITIAL_REVIEWS } from '../data/products';
-import { HERO_SLIDES, DEFAULT_ANNOUNCEMENTS } from '../data/promos';
+import { HERO_SLIDES, DEFAULT_ANNOUNCEMENTS, VALID_COUPONS } from '../data/promos';
 import type { HeroSlide, Announcement } from '../data/promos';
 import { AKS_MART } from '../data/aksMart';
 import { FALLBACK_CATEGORIES } from '../data/aksMart';
-import { Category, Product, Review } from '../types';
+import { Category, Coupon, Product, Review } from '../types';
 
 const USE_API = import.meta.env.VITE_USE_API !== 'false';
 
@@ -113,6 +113,28 @@ export const dataLoader = {
     } catch (e) {
       console.warn('[dataLoader] API categories failed, falling back to bundled divisions:', e);
       return FALLBACK_CATEGORIES;
+    }
+  },
+
+  /** Active coupons for the storefront "Active Offers" section (Admin → Coupons),
+   *  falling back to the bundled coupon list when the API is unavailable. */
+  async loadCoupons(): Promise<Coupon[]> {
+    if (!USE_API) return VALID_COUPONS;
+    try {
+      const { coupons } = await API.fetchCoupons();
+      if (coupons.length === 0) return VALID_COUPONS;
+      return coupons.map((c) => ({
+        code: c.code,
+        discountType: c.discountType === 'fixed' ? 'fixed' : 'percent',
+        value: c.value,
+        minSpend: c.minSpend,
+        description: c.description,
+        descriptionBn: c.descriptionBn ?? undefined,
+        image: c.image ?? undefined,
+      }));
+    } catch (e) {
+      console.warn('[dataLoader] API coupons failed, falling back to bundled offers:', e);
+      return VALID_COUPONS;
     }
   },
 

@@ -64,6 +64,11 @@ export const HERO_SLIDES: HeroSlide[] = DIVISIONS.map((d, i) => ({
   taglineBn: d.subtitleBn,
 }));
 
+/**
+ * Offline fallback offers only — the storefront "Active Offers" section reads
+ * the live list from `GET /api/coupons` (Admin → Coupons) and falls back to
+ * these bundled entries when the API is unreachable.
+ */
 export const VALID_COUPONS: Coupon[] = [
   {
     code: 'AKS15',

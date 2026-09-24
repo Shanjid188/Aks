@@ -2,9 +2,20 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Coupon } from '../types';
 import { Badge, Button, EmptyState, Field, Modal, Select, Spinner, TextArea, TextInput, Toggle } from '../components/ui';
+import { UploadImageButton } from '../components/ImageUpload';
 import { Plus, Tag, Pencil, Trash2 } from 'lucide-react';
 
-const empty = { code: '', discountType: 'percent', value: '', minSpend: '', description: '', active: true };
+const empty = {
+  code: '',
+  discountType: 'percent',
+  value: '',
+  minSpend: '',
+  description: '',
+  descriptionBn: '',
+  image: '',
+  sortOrder: '0',
+  active: true,
+};
 
 export function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -41,6 +52,9 @@ export function CouponsPage() {
       value: String(c.value),
       minSpend: String(c.minSpend),
       description: c.description,
+      descriptionBn: c.descriptionBn ?? '',
+      image: c.image ?? '',
+      sortOrder: String(c.sortOrder ?? 0),
       active: c.active,
     });
     setModalOpen(true);
@@ -57,6 +71,9 @@ export function CouponsPage() {
         value: Number(form.value) || 0,
         minSpend: Number(form.minSpend) || 0,
         description: form.description,
+        descriptionBn: form.descriptionBn,
+        image: form.image || undefined,
+        sortOrder: Number(form.sortOrder) || 0,
         active: form.active,
       };
       if (editing) {
@@ -85,7 +102,9 @@ export function CouponsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-black text-neutral-900">Coupons</h2>
-          <p className="text-xs text-neutral-400">{coupons.length} promo codes</p>
+          <p className="text-xs text-neutral-400">
+            {coupons.length} promo codes · active ones appear in the storefront “Active Offers” section
+          </p>
         </div>
         <Button onClick={openCreate} className="gap-1">
           <Plus className="w-3.5 h-3.5" /> New coupon
@@ -172,6 +191,29 @@ export function CouponsPage() {
           </Field>
           <Field label="Description">
             <TextArea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </Field>
+          <Field label="Description (Bangla)">
+            <TextArea value={form.descriptionBn} onChange={(e) => setForm({ ...form, descriptionBn: e.target.value })} />
+          </Field>
+          <Field
+            label="Ticket image"
+            hint="Optional artwork for the offer ticket — upload from your PC or paste an image URL / path."
+          >
+            <div className="flex items-start gap-2">
+              <TextInput
+                value={form.image}
+                placeholder="/images/my-offer.jpg or https://…"
+                onChange={(e) => setForm({ ...form, image: e.target.value })}
+              />
+              <UploadImageButton onUploaded={(url) => setForm({ ...form, image: url })} />
+            </div>
+          </Field>
+          <Field label="Sort order" hint="Lower numbers appear first in the storefront “Active Offers” section.">
+            <TextInput
+              type="number"
+              value={form.sortOrder}
+              onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
+            />
           </Field>
           <Toggle checked={form.active} onChange={(v) => setForm({ ...form, active: v })} label="Active" />
           <div className="flex justify-end gap-2 pt-2">
