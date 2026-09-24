@@ -297,6 +297,7 @@ const FOOTER_GROUPS: ContentGroup[] = [
       { key: 'content.footer.newsletterTitle', label: 'Newsletter heading' },
       { key: 'content.footer.newsletterNote', label: 'Newsletter note', long: true },
       { key: 'content.footer.newsletterCta', label: 'Newsletter button' },
+      { key: 'content.footer.newsletterPlaceholder', label: 'Email field placeholder' },
       { key: 'content.footer.copyright', label: 'Copyright line ({year}, {store}, {site})', long: true },
     ],
   },

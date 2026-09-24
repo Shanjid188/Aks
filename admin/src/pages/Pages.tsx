@@ -15,6 +15,8 @@ interface FormState {
   seoDescription: string;
   isPublished: boolean;
   showInFooter: boolean;
+  /** Render the contact form under the page body. */
+  contactForm: boolean;
   sortOrder: string;
 }
 
@@ -29,6 +31,7 @@ const blank = (): FormState => ({
   seoDescription: '',
   isPublished: true,
   showInFooter: true,
+  contactForm: false,
   sortOrder: '0',
 });
 
@@ -71,6 +74,7 @@ export function PagesPage() {
         seoDescription: form.seoDescription,
         isPublished: form.isPublished,
         showInFooter: form.showInFooter,
+        contactForm: form.contactForm,
         sortOrder: Number(form.sortOrder) || 0,
       };
       if (form.id) await api.patch(`/admin/pages/${form.id}`, payload);
@@ -106,6 +110,7 @@ export function PagesPage() {
       seoDescription: p.seoDescription,
       isPublished: p.isPublished,
       showInFooter: p.showInFooter,
+      contactForm: p.contactForm,
       sortOrder: String(p.sortOrder),
     });
 
@@ -151,6 +156,7 @@ export function PagesPage() {
                 <th className="py-3 px-4">URL</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4">Footer</th>
+                <th className="py-3 px-4">Contact form</th>
                 <th className="py-3 px-4">Order</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
@@ -171,6 +177,7 @@ export function PagesPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-neutral-500">{p.showInFooter ? 'Yes' : 'No'}</td>
+                  <td className="px-4 py-3 text-neutral-500">{p.contactForm ? 'Yes' : 'No'}</td>
                   <td className="px-4 py-3 text-neutral-500">{p.sortOrder}</td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     <a
@@ -230,6 +237,11 @@ export function PagesPage() {
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
               <Toggle checked={form.isPublished} onChange={(v) => set('isPublished', v)} label="Published" />
               <Toggle checked={form.showInFooter} onChange={(v) => set('showInFooter', v)} label="Link in footer" />
+          <Toggle
+            checked={form.contactForm}
+            onChange={(v) => set('contactForm', v)}
+            label="Show contact form"
+          />
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={() => setForm(null)}>Cancel</Button>

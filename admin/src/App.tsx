@@ -29,9 +29,11 @@ import { SettingsPage } from './pages/Settings';
 import { SuppliersPage } from './pages/Suppliers';
 import StorefrontPage from './pages/Storefront';
 import { PagesPage } from './pages/Pages';
+import { SubscribersPage } from './pages/Subscribers';
+import { MessagesPage } from './pages/Messages';
 import {
   Activity, BarChart3, Boxes, Calculator, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
-  Clock, FileText, Image, LayoutDashboard, LogOut, Menu, Package,
+  Clock, FileText, Image, Inbox, LayoutDashboard, LogOut, Mail, Menu, Package,
   PackageCheck, Receipt, RotateCcw, Search, Settings, ShieldCheck, ShoppingBag,
   ShoppingCart, Sparkles, Star, Ticket, Truck, UserCog, Users, X, XCircle, Undo2,
 } from 'lucide-react';
@@ -44,6 +46,8 @@ type PageKey =
   | 'products'
   | 'categories'
   | 'pages'
+  | 'subscribers'
+  | 'messages'
   | 'inventory'
   | 'invoices'
   | 'packaging'
@@ -87,6 +91,8 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
   { key: 'slides', label: 'Hero Slides', icon: <Image className="w-[18px] h-[18px]" />, permission: PERM.SLIDES_VIEW, desc: 'Homepage banners' },
   { key: 'storefront', label: 'Storefront', icon: <Sparkles className="w-[18px] h-[18px]" />, permission: PERM.STOREFRONT_VIEW, desc: 'Promos & announcements' },
   { key: 'pages', label: 'Content Pages', icon: <FileText className="w-[18px] h-[18px]" />, permission: PERM.STOREFRONT_VIEW, desc: 'About & policy pages' },
+  { key: 'subscribers', label: 'Subscribers', icon: <Mail className="w-[18px] h-[18px]" />, permission: PERM.MARKETING_SUBSCRIBERS_VIEW, desc: 'Newsletter audience' },
+  { key: 'messages', label: 'Messages', icon: <Inbox className="w-[18px] h-[18px]" />, permission: PERM.MARKETING_MESSAGES_VIEW, desc: 'Contact-form inbox' },
   { key: 'admins', label: 'Admin Users', icon: <UserCog className="w-[18px] h-[18px]" />, permission: PERM.ADMINS_VIEW, desc: 'Team accounts' },
   { key: 'roles', label: 'Roles & Permissions', icon: <ShieldCheck className="w-[18px] h-[18px]" />, permission: PERM.ROLES_VIEW, desc: 'Access control' },
   { key: 'settings', label: 'Settings', icon: <Settings className="w-[18px] h-[18px]" />, permission: PERM.SETTINGS_VIEW, desc: 'Store configuration' },
@@ -376,6 +382,10 @@ export default function App() {
         return <StorefrontPage />;
       case 'pages':
         return <PagesPage />;
+      case 'subscribers':
+        return <SubscribersPage />;
+      case 'messages':
+        return <MessagesPage />;
       case 'reviews':
         return <ReviewsPage />;
       case 'admins':

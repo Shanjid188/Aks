@@ -34,6 +34,7 @@ export const PERMISSION_CATALOG: PermissionModule[] = [
   { module: "promotions", label: "Promotions", icon: "megaphone", permissions: [ { key: "promotions.view", label: "View Promotions" }, { key: "promotions.create", label: "Create Promotion" }, { key: "promotions.edit", label: "Edit Promotion" }, { key: "promotions.delete", label: "Delete Promotion" } ] },
   { module: "slides", label: "Hero Slides", icon: "image", permissions: [ { key: "slides.view", label: "View Slides" }, { key: "slides.create", label: "Create Slide" }, { key: "slides.edit", label: "Edit Slide" }, { key: "slides.delete", label: "Delete Slide" } ] },
   { module: "storefront", label: "Storefront", icon: "store", permissions: [ { key: "storefront.view", label: "View Settings" }, { key: "storefront.edit", label: "Edit Settings" } ] },
+  { module: "marketing", label: "Marketing & Inbox", icon: "megaphone", permissions: [ { key: "marketing.subscribers_view", label: "View Subscribers" }, { key: "marketing.subscribers_manage", label: "Manage Subscribers" }, { key: "marketing.messages_view", label: "View Contact Messages" }, { key: "marketing.messages_manage", label: "Handle Contact Messages" } ] },
   { module: "invoices", label: "Invoices", icon: "file-text", permissions: [ { key: "invoices.view", label: "View Invoices" }, { key: "invoices.print", label: "Print Invoice" }, { key: "invoices.export", label: "Export Invoices" } ] },
   { module: "packaging", label: "Packaging", icon: "box", permissions: [ { key: "packaging.view", label: "View Packaging" }, { key: "packaging.print", label: "Print Slip" }, { key: "packaging.pack", label: "Mark Packed" } ] },
   { module: "reports", label: "Reports", icon: "bar-chart", permissions: [ { key: "reports.view", label: "View Reports" }, { key: "reports.export", label: "Export Reports" } ] },
@@ -131,6 +132,10 @@ export const PERM = {
   SETTINGS_VIEW: 'settings.view',
   SETTINGS_EDIT: 'settings.edit',
   SETTINGS_MANAGE: 'settings.manage',
+  MARKETING_SUBSCRIBERS_VIEW: 'marketing.subscribers_view',
+  MARKETING_SUBSCRIBERS_MANAGE: 'marketing.subscribers_manage',
+  MARKETING_MESSAGES_VIEW: 'marketing.messages_view',
+  MARKETING_MESSAGES_MANAGE: 'marketing.messages_manage',
   ACTIVITY_LOGS_VIEW: 'activity_logs.view',
   ACTIVITY_LOGS_EXPORT: 'activity_logs.export',
 } as const;

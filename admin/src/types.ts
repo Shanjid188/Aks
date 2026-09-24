@@ -328,6 +328,7 @@ export interface ContentPage {
   seoDescription: string;
   isPublished: boolean;
   showInFooter: boolean;
+  contactForm: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -349,5 +350,33 @@ export interface StoreSettings {
   shippingZones?: ShippingZoneSetting[]; paymentMethods?: string[];
   bkashNumber?: string; nagadNumber?: string; bankDetails?: string;
   lowStockThreshold?: number; orderPrefix?: string; posPrefix?: string; timezone?: string; language?: string;
+}
+
+/* ── Marketing: newsletter audience & the contact-message inbox ───────────── */
+
+export interface Subscriber {
+  id: string;
+  email: string;
+  /** footer | checkout | manual */
+  source: string;
+  /** False when the address was paused (unsubscribed). */
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+  /** new | read | replied | closed */
+  status: string;
+  /** Internal note the customer never sees. */
+  adminNote: string;
+  /** Which storefront page the form was on. */
+  pageSlug: string;
+  createdAt: string;
 }
 
