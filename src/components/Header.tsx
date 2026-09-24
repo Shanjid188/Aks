@@ -294,7 +294,7 @@ export const Header: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setIsSearchFocused(true)}
-                placeholder="Search products (rice, honey, kantha, bedsheets…)"
+                placeholder={content.headerSearchPlaceholder}
                 className="w-full pl-10 pr-24 py-2 bg-white hover:bg-neutral-50 focus:bg-white text-sm text-neutral-900 placeholder:text-neutral-400 rounded-full border-2 border-neutral-200 focus:border-[#D8232A] focus:ring-2 focus:ring-[#D8232A]/20 transition-all outline-none leading-none"
               />
               <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -499,7 +499,7 @@ export const Header: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products..."
+              placeholder={content.headerSearchPlaceholderMobile}
               className="w-full pl-10 pr-20 py-2 bg-neutral-100 text-xs rounded-full border border-neutral-200 outline-none focus:border-[#D8232A]"
             />
             <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />

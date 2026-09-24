@@ -239,6 +239,8 @@ const CONTENT_GROUPS: ContentGroup[] = [
       { key: 'content.header.quickTrack', label: 'Top-bar link: track order' },
       { key: 'content.header.quickClub', label: 'Top-bar link: club rewards' },
       { key: 'content.header.outfitMatcher', label: 'Top-bar link: outfit matcher' },
+      { key: 'content.header.searchPlaceholder', label: 'Search box placeholder' },
+      { key: 'content.header.searchPlaceholderMobile', label: 'Search placeholder (mobile)' },
       { key: 'content.header.trendingSearches', label: 'Trending searches (comma separated)', long: true },
     ],
   },

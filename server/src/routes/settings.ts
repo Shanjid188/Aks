@@ -33,6 +33,7 @@ const CONTENT_KEYS = [
   'content.header.categoriesSuffix', 'content.header.shopPrefix', 'content.header.trendingLabel',
   'content.header.mobileShopBy', 'content.header.quickTrack', 'content.header.quickClub',
   'content.header.outfitMatcher',
+  'content.header.searchPlaceholder', 'content.header.searchPlaceholderMobile',
   'content.header.trendingSearches',
 ];
 

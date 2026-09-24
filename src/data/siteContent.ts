@@ -59,6 +59,8 @@ export interface SiteContent {
   headerQuickTrack: string;
   headerQuickClub: string;
   headerOutfitMatcher: string;
+  headerSearchPlaceholder: string;
+  headerSearchPlaceholderMobile: string;
 }
 
 /** The bundled defaults — exactly the copy that used to live in the components. */
@@ -112,6 +114,8 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
   headerQuickTrack: 'Track Order',
   headerQuickClub: 'AKS Mart Club',
   headerOutfitMatcher: 'Outfit Matcher',
+  headerSearchPlaceholder: 'Search products (rice, honey, kantha, bedsheets…)',
+  headerSearchPlaceholderMobile: 'Search products...',
 };
 
 /** Store-setting key for every content field (namespaced `content.*`). */
@@ -164,6 +168,8 @@ export const SITE_CONTENT_KEYS: Record<keyof SiteContent, string> = {
   headerQuickTrack: 'content.header.quickTrack',
   headerQuickClub: 'content.header.quickClub',
   headerOutfitMatcher: 'content.header.outfitMatcher',
+  headerSearchPlaceholder: 'content.header.searchPlaceholder',
+  headerSearchPlaceholderMobile: 'content.header.searchPlaceholderMobile',
 };
 
 /** Trending search keywords (header search panel) — comma-separated in settings. */
