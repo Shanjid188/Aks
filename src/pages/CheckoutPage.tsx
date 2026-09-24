@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
+import { isFreeDeliveryCoupon } from '../utils/coupons';
 import { navigate } from '../lib/router';
 import {
   Banknote,
@@ -63,7 +64,7 @@ export function CheckoutPage() {
   // matches what the customer sees on this screen.
   const isFreeShip =
     cart.length > 0 &&
-    (appliedCoupon?.code === 'FREESHIP' || cartSubtotal >= freeShippingThreshold);
+    (isFreeDeliveryCoupon(appliedCoupon) || cartSubtotal >= freeShippingThreshold);
   const activeZone = DELIVERY_ZONES.find((z) => z.id === deliveryMethod) ?? DELIVERY_ZONES[0];
   const zoneShipping = isFreeShip ? 0 : activeZone.fee;
   const orderTotal = Math.max(0, cartSubtotal - cartDiscount + zoneShipping);

@@ -88,6 +88,14 @@ function computeDiscount(
 }
 
 /**
+ * A free-delivery coupon is any coupon granting 100% off. Detected by data, not
+ * by code name, so coupons created in Admin → Coupons behave correctly.
+ */
+function isFreeDeliveryCoupon(coupon: { discountType: string; value: number }): boolean {
+  return coupon.discountType === 'percent' && coupon.value >= 100;
+}
+
+/**
  * Public: place an order.
  * The server recomputes subtotal/total from the item snapshots it receives so
  * totals are trustworthy, and validates coupons against the DB.
@@ -174,15 +182,17 @@ router.post(
     // Coupon validation server-side
     let discount = 0;
     let couponCode: string | null = null;
+    let freeDeliveryCoupon = false;
     if (body.couponCode) {
       const coupon = await prisma.coupon.findUnique({
         where: { code: String(body.couponCode).trim().toUpperCase() },
       });
       if (coupon && coupon.active && subtotal >= coupon.minSpend) {
         couponCode = coupon.code;
-        // FREESHIP is a free-delivery code — its discount is already treated as zero
-        // on the storefront. Never turn it into a 100% subtotal discount.
-        if (coupon.code !== 'FREESHIP') {
+        // A free-delivery code is applied to the shipping fee, never to the
+        // subtotal — otherwise a 100% coupon would give away the whole order.
+        freeDeliveryCoupon = isFreeDeliveryCoupon(coupon);
+        if (!freeDeliveryCoupon) {
           discount = computeDiscount(subtotal, coupon.discountType, coupon.value);
         }
         await prisma.coupon.update({ where: { id: coupon.id }, data: { usedCount: { increment: 1 } } });
@@ -190,7 +200,7 @@ router.post(
     }
 
     const deliveryMethod = String(body.deliveryMethod || 'standard');
-    const isFreeShippingCoupon = couponCode === 'FREESHIP';
+    const isFreeShippingCoupon = freeDeliveryCoupon;
     const requestedFee = Number(body.shippingFee);
     // Respect a legitimate 0 shipping fee (free delivery) from the storefront instead
     // of silently charging the 120 default. Fall back to 120 only when no fee was sent.
@@ -490,15 +500,19 @@ router.put(
 
     // Recompute discount using the same coupon rules as checkout when the order still has a coupon.
     let discount = 0;
-    if (existing.couponCode && existing.couponCode !== 'FREESHIP') {
+    let freeDeliveryCoupon = false;
+    if (existing.couponCode) {
       const coupon = await prisma.coupon.findUnique({ where: { code: existing.couponCode } });
       if (coupon && coupon.active && subtotal >= coupon.minSpend) {
-        discount = computeDiscount(subtotal, coupon.discountType, coupon.value);
+        freeDeliveryCoupon = isFreeDeliveryCoupon(coupon);
+        if (!freeDeliveryCoupon) {
+          discount = computeDiscount(subtotal, coupon.discountType, coupon.value);
+        }
       }
     }
 
     const shippingFee =
-      existing.couponCode === 'FREESHIP' || existing.deliveryMethod === 'pickup' ? 0 : existing.shippingFee;
+      freeDeliveryCoupon || existing.deliveryMethod === 'pickup' ? 0 : existing.shippingFee;
     const total = Math.max(0, subtotal - discount) + shippingFee;
     // Keep the payment ledger consistent when item edits change the total:
     // never reduce the already-paid amount, only re-derive what is still due.

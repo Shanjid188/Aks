@@ -3,6 +3,7 @@ import { Product, CartItem, WishlistItem, FilterState, Coupon, Order, Review, Cu
 import { INITIAL_PRODUCTS, INITIAL_REVIEWS } from '../data/products';
 import { FALLBACK_CATEGORIES } from '../data/aksMart';
 import { VALID_COUPONS } from '../data/promos';
+import { isFreeDeliveryCoupon } from '../utils/coupons';
 import { dataLoader, USE_API } from '../lib/dataLoader';
 import * as API from '../api';
 import { adaptApiOrder } from '../lib/apiAdapter';
@@ -241,7 +242,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   let cartDiscount = 0;
   if (appliedCoupon) {
     if (appliedCoupon.discountType === 'percent') {
-      if (appliedCoupon.code === 'FREESHIP') {
+      if (isFreeDeliveryCoupon(appliedCoupon)) {
         cartDiscount = 0; // handled in shipping fee
       } else {
         cartDiscount = Math.round((cartSubtotal * appliedCoupon.value) / 100);
@@ -252,7 +253,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   const isFreeShippingByAmount = cartSubtotal >= FREE_SHIPPING_THRESHOLD;
-  const isFreeShippingByCoupon = appliedCoupon?.code === 'FREESHIP';
+  const isFreeShippingByCoupon = isFreeDeliveryCoupon(appliedCoupon);
   const shippingFee = cart.length === 0 ? 0 : isFreeShippingByAmount || isFreeShippingByCoupon ? 0 : STANDARD_SHIPPING_FEE;
   const cartTotal = Math.max(0, cartSubtotal - cartDiscount + shippingFee);
 
