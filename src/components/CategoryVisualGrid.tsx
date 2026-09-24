@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from '../lib/router';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
+import { useLocalized } from './Localized';
 import { useStore } from '../context/StoreContext';
 import { useSiteContent } from '../context/SiteContentContext';
 
@@ -13,6 +14,7 @@ import { useSiteContent } from '../context/SiteContentContext';
 export const CategoryVisualGrid: React.FC = () => {
   const { products, categories } = useStore();
   const { content } = useSiteContent();
+  const t = useLocalized();
 
   return (
     <section className="py-14 sm:py-20 bg-white">
@@ -21,17 +23,17 @@ export const CategoryVisualGrid: React.FC = () => {
           eyebrow={
             <>
               <Sparkles className="w-3.5 h-3.5" />
-              {content.divisionsEyebrow}
+              {t(content.divisionsEyebrow, content.divisionsEyebrowBn)}
             </>
           }
-          title={content.divisionsTitle}
-          subtitle={content.divisionsSubtitle}
+          title={t(content.divisionsTitle, content.divisionsTitleBn)}
+          subtitle={t(content.divisionsSubtitle, content.divisionsSubtitleBn)}
           action={
             <Link
               to="/products"
               className="flex items-center gap-1.5 text-sm font-bold text-neutral-900 hover:text-[#D8232A] transition-colors group shrink-0"
             >
-              {content.divisionsAction}
+              {t(content.divisionsAction, content.divisionsActionBn)}
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           }

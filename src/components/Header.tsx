@@ -29,6 +29,7 @@ import { dataLoader } from '../lib/dataLoader';
 import { Bi } from './Bi';
 import { Link, navigate } from '../lib/router';
 import { useLanguage } from '../context/LanguageContext';
+import { useLocalized } from './Localized';
 
 /** Icon cycle for the announcement ticker — DB announcements carry no icon,
  *  so the header rotates through a small curated set. */
@@ -64,6 +65,8 @@ export const Header: React.FC = () => {
   } = useStore();
 
   const { language, setLanguage } = useLanguage();
+  // Header copy follows the shopper's language (Admin → Storefront → Homepage).
+  const t = useLocalized();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -207,7 +210,7 @@ export const Header: React.FC = () => {
               className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
             >
               <Clock className="w-3 h-3 text-amber-400" />
-              <span>{content.headerQuickTrack}</span>
+              <span>{t(content.headerQuickTrack, content.headerQuickTrackBn)}</span>
             </Link>
 
             <span className="w-px h-2.5 bg-neutral-700" />
@@ -217,7 +220,7 @@ export const Header: React.FC = () => {
               className="flex items-center gap-1 hover:text-white transition-colors text-amber-400 font-semibold cursor-pointer"
             >
               <Award className="w-3 h-3" />
-              <span>{content.headerQuickClub}</span>
+              <span>{t(content.headerQuickClub, content.headerQuickClubBn)}</span>
             </button>
 
             <span className="w-px h-3 bg-neutral-700" />
@@ -294,7 +297,7 @@ export const Header: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setIsSearchFocused(true)}
-                placeholder={content.headerSearchPlaceholder}
+                placeholder={t(content.headerSearchPlaceholder, content.headerSearchPlaceholderBn)}
                 className="w-full pl-10 pr-24 py-2 bg-white hover:bg-neutral-50 focus:bg-white text-sm text-neutral-900 placeholder:text-neutral-400 rounded-full border-2 border-neutral-200 focus:border-[#D8232A] focus:ring-2 focus:ring-[#D8232A]/20 transition-all outline-none leading-none"
               />
               <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -387,7 +390,7 @@ export const Header: React.FC = () => {
                     <div>
                       <div className="mb-3">
                         <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
-                          {content.headerTrendingLabel}
+                          {t(content.headerTrendingLabel, content.headerTrendingLabelBn)}
                         </span>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {trendingSearches.map((kw) => (
@@ -436,7 +439,7 @@ export const Header: React.FC = () => {
               className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-full bg-gradient-to-r from-amber-50 to-rose-50 border border-amber-200/80 text-amber-900 text-xs font-bold hover:shadow-sm transition-all hover:scale-102 cursor-pointer"
             >
               <Sparkle className="w-3.5 h-3.5 text-amber-600 fill-amber-500 animate-pulse" />
-              <span>{content.headerOutfitMatcher}</span>
+              <span>{t(content.headerOutfitMatcher, content.headerOutfitMatcherBn)}</span>
             </button>
 
             {/* Compare */}
@@ -499,7 +502,7 @@ export const Header: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={content.headerSearchPlaceholderMobile}
+              placeholder={t(content.headerSearchPlaceholderMobile, content.headerSearchPlaceholderMobileBn)}
               className="w-full pl-10 pr-20 py-2 bg-neutral-100 text-xs rounded-full border border-neutral-200 outline-none focus:border-[#D8232A]"
             />
             <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -525,7 +528,7 @@ export const Header: React.FC = () => {
                   filters.category === 'all' && filters.subcategory === 'All' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
                 }`}
               >
-                {content.headerAllDepartments}
+                {t(content.headerAllDepartments, content.headerAllDepartmentsBn)}
               </button>
             </li>
 
@@ -557,7 +560,7 @@ export const Header: React.FC = () => {
                   >
                     <div>
                       <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
-                        {cat.name} {content.headerCategoriesSuffix}
+                        {cat.name} {t(content.headerCategoriesSuffix, content.headerCategoriesSuffixBn)}
                       </h4>
                       <ul className="space-y-2 text-sm text-neutral-700 font-medium">
                         {subcategoriesFor(cat.slug)
@@ -577,7 +580,7 @@ export const Header: React.FC = () => {
 
                     <div>
                       <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
-                        {content.headerOtherDivisions}
+                        {t(content.headerOtherDivisions, content.headerOtherDivisionsBn)}
                       </h4>
                       <ul className="space-y-2 text-sm text-neutral-700 font-medium">
                         {categories
@@ -608,7 +611,7 @@ export const Header: React.FC = () => {
                         onClick={() => handleSelectCategory(cat.slug, 'All')}
                         className="text-xs font-bold text-[#D8232A] flex items-center gap-1 mt-3"
                       >
-                        {content.headerShopPrefix} {cat.name} <ArrowRight className="w-3 h-3" />
+                        {t(content.headerShopPrefix, content.headerShopPrefixBn)} {cat.name} <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
                   </motion.div>
@@ -626,7 +629,7 @@ export const Header: React.FC = () => {
               <button
                 className="px-3.5 py-3 hover:text-[#D8232A] transition-colors flex items-center gap-1 cursor-pointer"
               >
-                {content.headerDivisions} <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                {t(content.headerDivisions, content.headerDivisionsBn)} <ChevronDown className="w-3.5 h-3.5 opacity-60" />
               </button>
 
               <AnimatePresence>
@@ -682,7 +685,7 @@ export const Header: React.FC = () => {
                 className="px-3.5 py-1.5 rounded-full bg-red-50 text-[#D8232A] hover:bg-[#D8232A] hover:text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                {content.headerSaleChip}
+                {t(content.headerSaleChip, content.headerSaleChipBn)}
               </button>
             </li>
           </ul>
@@ -703,7 +706,7 @@ export const Header: React.FC = () => {
                 onClick={() => handleSelectCategory('all', 'All')}
                 className="text-left font-bold text-sm py-2 px-3 rounded-lg bg-neutral-100 text-neutral-900"
               >
-                {content.headerAllDepartments}
+                {t(content.headerAllDepartments, content.headerAllDepartmentsBn)}
               </button>
               {categories.map((cat) => (
                 <button
@@ -721,13 +724,13 @@ export const Header: React.FC = () => {
                 }}
                 className="text-left font-bold text-sm py-2 px-3 rounded-lg bg-red-50 text-[#D8232A]"
               >
-                {content.headerSaleChipShort}
+                {t(content.headerSaleChipShort, content.headerSaleChipShortBn)}
               </button>
             </div>
 
             <div className="border-t border-neutral-100 pt-3">
               <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">
-                {content.headerMobileShopBy}
+                {t(content.headerMobileShopBy, content.headerMobileShopByBn)}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {categories.map((cat) => (

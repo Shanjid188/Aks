@@ -4,6 +4,7 @@ import { asyncHandler, requirePermission, currentAdmin } from '../lib/auth.ts';
 import { PERM } from '../lib/permissions.ts';
 import { CHECKOUT_KEYS, loadCheckoutConfig } from '../lib/checkout.ts';
 import { logAudit } from '../lib/audit.ts';
+import { CONTENT_SETTING_KEYS } from '../../../src/data/siteContent.ts';
 
 const router = Router();
 
@@ -13,30 +14,12 @@ const router = Router();
  */
 const SEO_KEYS = ['seoTitle', 'seoDescription', 'ogImage'];
 
-
 /**
- * Admin-editable storefront copy (Admin → Storefront → Homepage). Keys are
- * namespaced `content.*`; the storefront maps each one onto its bundled default
- * copy (see src/data/siteContent.ts), so an unset key simply keeps the default.
+ * Admin-editable storefront copy (Admin → Storefront → Homepage), in both
+ * languages. The list is derived from the storefront's own key map so a field
+ * added there is editable here without touching this file.
  */
-const CONTENT_KEYS = [
-  'content.featured.eyebrow', 'content.featured.title', 'content.featured.subtitle', 'content.featured.action',
-  'content.newArrivals.eyebrow', 'content.newArrivals.title', 'content.newArrivals.subtitle', 'content.newArrivals.action',
-  'content.bestSellers.eyebrow', 'content.bestSellers.title', 'content.bestSellers.subtitle', 'content.bestSellers.action',
-  'content.divisions.eyebrow', 'content.divisions.title', 'content.divisions.subtitle', 'content.divisions.action',
-  'content.offers.eyebrow', 'content.offers.title', 'content.offers.subtitle',
-  'content.showcase.eyebrow', 'content.showcase.title', 'content.showcase.subtitle',
-  'content.trust.item1Title', 'content.trust.item1Sub',
-  'content.trust.item2Title', 'content.trust.item2Sub',
-  'content.trust.item3Title', 'content.trust.item3Sub',
-  'content.header.saleChip', 'content.header.saleChipShort',
-  'content.header.allDepartments', 'content.header.divisions', 'content.header.otherDivisions',
-  'content.header.categoriesSuffix', 'content.header.shopPrefix', 'content.header.trendingLabel',
-  'content.header.mobileShopBy', 'content.header.quickTrack', 'content.header.quickClub',
-  'content.header.outfitMatcher',
-  'content.header.searchPlaceholder', 'content.header.searchPlaceholderMobile',
-  'content.header.trendingSearches',
-];
+const CONTENT_KEYS = CONTENT_SETTING_KEYS;
 
 /** Read all store settings as a flat object (public values only for storefront). */
 async function getSettingsMap(): Promise<Record<string, unknown>> {

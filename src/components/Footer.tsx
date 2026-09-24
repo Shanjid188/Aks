@@ -14,6 +14,8 @@ import { Bi } from './Bi';
 import { navigate } from '../lib/router';
 import { dataLoader, DEFAULT_STORE_INFO } from '../lib/dataLoader';
 import type { StoreInfo } from '../lib/dataLoader';
+import { useSiteContent } from '../context/SiteContentContext';
+import { useLocalized, fillTokens } from './Localized';
 import type { ContentPageData } from '../data/pages';
 import type { CategoryType } from '../types';
 
@@ -26,6 +28,11 @@ export const Footer: React.FC = () => {
     addToast,
     categories,
   } = useStore();
+
+  // Storefront copy — Admin → Storefront → Homepage (Footer group).
+  const { content, checkout } = useSiteContent();
+  const t = useLocalized();
+  const paymentMethods = checkout.paymentMethods;
 
   // Store contact info — DB-driven via /settings/public, bundled AKS_MART as fallback.
   const [storeInfo, setStoreInfo] = useState<StoreInfo>(DEFAULT_STORE_INFO);
@@ -94,7 +101,7 @@ export const Footer: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-neutral-400 leading-relaxed max-w-sm">
-              AKS Mart is Bangladesh's multi-division marketplace — SHUDDHO food, AKS CRAFT handicrafts, AKS HOME living, AKS BEAUTY personal care and AKS PRINT custom print — all under one roof at aksmartbd.com.
+              <Bi en={content.footerBrand} bn={content.footerBrandBn} />
             </p>
             {/* Brand motto */}
             <div className="pt-1 border-l-2 border-[#D8232A] pl-3 max-w-sm">
@@ -105,7 +112,9 @@ export const Footer: React.FC = () => {
 
             {/* Newsletter Form */}
             <div className="pt-2">
-              <p className="text-xs font-bold text-white mb-2">Subscribe to the AKS Mart Gazette</p>
+              <p className="text-xs font-bold text-white mb-2">
+                <Bi en={content.footerNewsletterTitle} bn={content.footerNewsletterTitleBn} />
+              </p>
               <form onSubmit={handleNewsletterSubmit} className="flex gap-2 max-w-sm">
                 <input
                   type="email"
@@ -119,18 +128,20 @@ export const Footer: React.FC = () => {
                   type="submit"
                   className="px-4 py-2.5 bg-[#D8232A] text-white text-xs font-bold rounded-xl hover:bg-[#b51c22] transition-colors shrink-0 cursor-pointer"
                 >
-                  Join
+                  <Bi en={content.footerNewsletterCta} bn={content.footerNewsletterCtaBn} />
                 </button>
               </form>
               <p className="text-[11px] text-neutral-500 mt-1.5">
-                Receive seasonal offers, division launches and private sale alerts.
+                <Bi en={content.footerNewsletterNote} bn={content.footerNewsletterNoteBn} />
               </p>
             </div>
           </div>
 
           {/* Shop Categories — API-driven divisions (Admin → Categories) */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">Divisions</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+              <Bi en={content.footerDivisionsHeading} bn={content.footerDivisionsHeadingBn} />
+            </h4>
             <ul className="space-y-2 text-xs text-neutral-400">
               {categories.map((c) => (
                 <li key={c.id}>
@@ -141,7 +152,7 @@ export const Footer: React.FC = () => {
               ))}
               <li>
                 <button onClick={() => handleCategoryClick('all')} className="hover:text-white transition-colors cursor-pointer">
-                  <Bi en="All Departments" bn="সব পণ্য" />
+                  <Bi en={content.headerAllDepartments} bn={content.headerAllDepartmentsBn} />
                 </button>
               </li>
             </ul>
@@ -149,21 +160,21 @@ export const Footer: React.FC = () => {
 
           {/* Customer Care */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white"><Bi en="Customer Care" bn="কাস্টমার কেয়ার" /></h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white"><Bi en={content.footerCareHeading} bn={content.footerCareHeadingBn} /></h4>
             <ul className="space-y-2 text-xs text-neutral-400">
               <li>
                 <button onClick={() => navigate('/track-order')} className="hover:text-white transition-colors cursor-pointer">
-                  Track Your Order
+                  <Bi en={content.footerTrack} bn={content.footerTrackBn} />
                 </button>
               </li>
               <li>
                 <button onClick={() => setIsSizeGuideOpen(true)} className="hover:text-white transition-colors cursor-pointer">
-                  <Bi en="Product & Fit Guides" bn="পণ্য ও সাইজ গাইড" />
+                  <Bi en={content.footerGuides} bn={content.footerGuidesBn} />
                 </button>
               </li>
               <li>
                 <button onClick={() => setIsAksMartClubOpen(true)} className="hover:text-white transition-colors cursor-pointer">
-                  <Bi en="AKS Mart Club Rewards" bn="AKS Mart ক্লাব রিওয়ার্ড" />
+                  <Bi en={content.footerClub} bn={content.footerClubBn} />
                 </button>
               </li>
               {footerPages.map((p) => (
@@ -181,14 +192,16 @@ export const Footer: React.FC = () => {
 
           {/* Contact Details */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white"><Bi en="Contact & Order" bn="যোগাযোগ ও অর্ডার" /></h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white"><Bi en={content.footerContactHeading} bn={content.footerContactHeadingBn} /></h4>
             <div className="space-y-2.5 text-xs text-neutral-400">
               <a
                 href={`tel:${storeInfo.phoneRaw}`}
                 className="flex items-center gap-2 hover:text-white transition-colors"
               >
                 <Phone className="w-4 h-4 text-[#D8232A] shrink-0" />
-                <span>WhatsApp / Call: {storeInfo.phone}</span>
+                <span>
+                  <Bi en={content.footerContactPhoneLabel} bn={content.footerContactPhoneLabelBn} />: {storeInfo.phone}
+                </span>
               </a>
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-[#D8232A] shrink-0 mt-0.5" />
@@ -212,15 +225,29 @@ export const Footer: React.FC = () => {
         {/* Bottom Bar: Payment Logos & Copyright */}
         <div className="pt-8 border-t border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
           <div className="flex items-center gap-2">
-            <span>© {new Date().getFullYear()} {storeInfo.name} (Bangladesh). All rights reserved. {storeInfo.site}</span>
+            <span>
+              {t(
+                fillTokens(content.footerCopyright, {
+                  year: String(new Date().getFullYear()),
+                  store: storeInfo.name,
+                  site: storeInfo.site,
+                }),
+                fillTokens(content.footerCopyrightBn, {
+                  year: String(new Date().getFullYear()),
+                  store: storeInfo.name,
+                  site: storeInfo.site,
+                })
+              )}
+            </span>
           </div>
 
-          {/* Payment Gateways Badges */}
-          <div className="flex items-center gap-3 text-[11px] font-semibold text-neutral-400">
-            <span className="bg-neutral-800 px-2 py-1 rounded text-neutral-300">bKash</span>
-            <span className="bg-neutral-800 px-2 py-1 rounded text-neutral-300">Nagad</span>
-            <span className="bg-neutral-800 px-2 py-1 rounded text-neutral-300">Visa / Mastercard</span>
-            <span className="bg-neutral-800 px-2 py-1 rounded text-neutral-300">Cash on Delivery</span>
+          {/* Payment badges — the methods the merchant actually offers (Admin → Settings) */}
+          <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold text-neutral-400">
+            {paymentMethods.map((m) => (
+              <span key={m.id} className="bg-neutral-800 px-2 py-1 rounded text-neutral-300">
+                {t(m.label, m.labelBn || m.label)}
+              </span>
+            ))}
           </div>
         </div>
       </div>

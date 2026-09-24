@@ -3,12 +3,15 @@ import { useStore } from '../context/StoreContext';
 import { useSiteContent } from '../context/SiteContentContext';
 import { HomeProductCard } from './HomeProductCard';
 import { SectionHeader } from './SectionHeader';
+import { useLocalized } from './Localized';
 import { ArrowRight } from 'lucide-react';
 import { navigate } from '../lib/router';
 
 export const FeaturedProducts: React.FC = () => {
   const { products, setFilters } = useStore();
   const { content } = useSiteContent();
+  // Section copy follows the shopper's language (English stays the default).
+  const t = useLocalized();
 
   // A product shows here when an admin ticks “Featured on homepage” *or* gives
   // it a featured order (both controls live in Products → Edit product).
@@ -36,15 +39,15 @@ export const FeaturedProducts: React.FC = () => {
     <section className="py-14 sm:py-20 bg-neutral-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader
-          eyebrow={content.featuredEyebrow}
-          title={content.featuredTitle}
-          subtitle={content.featuredSubtitle}
+          eyebrow={t(content.featuredEyebrow, content.featuredEyebrowBn)}
+          title={t(content.featuredTitle, content.featuredTitleBn)}
+          subtitle={t(content.featuredSubtitle, content.featuredSubtitleBn)}
           action={
             <button
               onClick={handleViewAll}
               className="flex items-center gap-1.5 text-sm font-bold text-neutral-900 hover:text-[#D8232A] transition-colors group"
             >
-              <span>{content.featuredAction}</span>
+              <span>{t(content.featuredAction, content.featuredActionBn)}</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           }

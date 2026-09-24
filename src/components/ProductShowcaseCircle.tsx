@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
 import { useSiteContent } from '../context/SiteContentContext';
+import { useLocalized } from './Localized';
 import { navigate } from '../lib/router';
 import { formatPrice } from '../utils/format';
 import { Star, ArrowRight, ShieldCheck, Truck, RotateCcw } from 'lucide-react';
@@ -96,12 +97,19 @@ const TRUST_ICONS: { icon: LucideIcon; tint: string }[] = [
 export const ProductShowcaseCircle: React.FC = () => {
   const { products } = useStore();
   const { content } = useSiteContent();
+  const t = useLocalized();
 
   /** Trust-strip copy is admin-editable; the icons and tints stay in code. */
   const trustItems = TRUST_ICONS.map((item, i) => ({
     ...item,
-    title: [content.trust1Title, content.trust2Title, content.trust3Title][i] ?? '',
-    sub: [content.trust1Sub, content.trust2Sub, content.trust3Sub][i] ?? '',
+    title: t(
+      [content.trust1Title, content.trust2Title, content.trust3Title][i] ?? '',
+      [content.trust1TitleBn, content.trust2TitleBn, content.trust3TitleBn][i]
+    ),
+    sub: t(
+      [content.trust1Sub, content.trust2Sub, content.trust3Sub][i] ?? '',
+      [content.trust1SubBn, content.trust2SubBn, content.trust3SubBn][i]
+    ),
   }));
 
   const usable = products.filter((p) => imgOf(p) !== '');
@@ -135,15 +143,15 @@ export const ProductShowcaseCircle: React.FC = () => {
           <div className="flex items-center justify-center gap-2.5">
             <Dots />
             <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#D8232A]">
-              {content.showcaseEyebrow}
+              {t(content.showcaseEyebrow, content.showcaseEyebrowBn)}
             </span>
             <Dots />
           </div>
           <h2 className="mt-3 text-2xl font-black tracking-tight text-neutral-900 sm:text-4xl">
-            {content.showcaseTitle}
+            {t(content.showcaseTitle, content.showcaseTitleBn)}
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-neutral-500 sm:text-base">
-            {content.showcaseSubtitle}
+            {t(content.showcaseSubtitle, content.showcaseSubtitleBn)}
           </p>
         </div>
 

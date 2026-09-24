@@ -3,6 +3,7 @@ import { Bi } from './Bi';
 import { useLanguage } from '../context/LanguageContext';
 import { useStore } from '../context/StoreContext';
 import { useSiteContent } from '../context/SiteContentContext';
+import { fillTokens } from './Localized';
 import { formatPrice } from '../utils/format';
 import { Sparkles, Gift, Truck, CreditCard, ArrowRight } from 'lucide-react';
 
@@ -16,8 +17,10 @@ export const PromoBar: React.FC = () => {
   // rendered from the live Admin → Settings threshold instead of a fixed number.
   const { freeShippingThreshold, currency } = useStore();
   // Payment methods too: only the ones the merchant actually offers are named.
-  const { checkout } = useSiteContent();
+  const { checkout, content } = useSiteContent();
   const thresholdLabel = formatPrice(freeShippingThreshold, currency);
+  // Admin copy carries `{amount}` so the live threshold stays in the promise.
+  const fill = (text: string) => fillTokens(text, { amount: thresholdLabel });
   const paymentLabel = checkout.paymentMethods.length
     ? {
         en: checkout.paymentMethods.map((m) => m.label).join(' · '),
@@ -50,19 +53,16 @@ export const PromoBar: React.FC = () => {
         <div className="flex justify-center mb-6">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#D8232A]/8 backdrop-blur-sm border border-[#D8232A]/20 text-[#D8232A] text-xs font-semibold tracking-wide uppercase">
             <Sparkles className="w-3.5 h-3.5 text-[#D8232A]" />
-            <Bi en="Why Shop With Us" bn="কেন আমাদের থেকে কিনবেন" />
+            <Bi en={content.promoTagline} bn={content.promoTaglineBn} />
           </span>
         </div>
 
         {/* Main heading */}
         <h2 className="text-center text-2xl sm:text-3xl lg:text-4xl font-extrabold text-neutral-900 tracking-tight leading-tight mb-3">
-          <Bi en="One Mart. Many Choices." bn="এক মার্ট। অনেক পছন্দ।" />
+          <Bi en={content.promoTitle} bn={content.promoTitleBn} />
         </h2>
         <p className="text-center text-sm sm:text-base text-neutral-500 max-w-xl mx-auto mb-10 leading-relaxed">
-          <Bi
-            en="Five curated divisions, one trusted destination — quality products delivered to your doorstep across Bangladesh."
-            bn="পাঁচটি কিউরেটেড ডিভিশন, একটি বিশ্বস্ত গন্তব্য — বাংলাদেশ জুড়ে আপনার দোরগোড়ায় মানসম্পন্ন পণ্য পৌঁছে যাবে।"
-          />
+          <Bi en={content.promoSubtitle} bn={content.promoSubtitleBn} />
         </p>
 
         {/* Feature cards */}
@@ -72,10 +72,10 @@ export const PromoBar: React.FC = () => {
               <Truck className="w-6 h-6" />
             </div>
             <h3 className="text-sm font-bold text-neutral-800 mb-1">
-              <Bi en="Free Delivery" bn="ফ্রি ডেলিভারি" />
+              <Bi en={content.promoItem1Title} bn={content.promoItem1TitleBn} />
             </h3>
             <p className="text-[11px] text-neutral-500 leading-snug">
-              <Bi en={`On orders above ${thresholdLabel}`} bn={`${thresholdLabel} এর উপরে অর্ডারে`} />
+              <Bi en={fill(content.promoItem1Sub)} bn={fill(content.promoItem1SubBn)} />
             </p>
           </div>
 
@@ -84,10 +84,10 @@ export const PromoBar: React.FC = () => {
               <Gift className="w-6 h-6" />
             </div>
             <h3 className="text-sm font-bold text-neutral-800 mb-1">
-              <Bi en="Exclusive Deals" bn="এক্সক্লুসিভ ডিল" />
+              <Bi en={content.promoItem2Title} bn={content.promoItem2TitleBn} />
             </h3>
             <p className="text-[11px] text-neutral-500 leading-snug">
-              <Bi en="Member-only offers" bn="শুধুমাত্র সদস্যদের অফার" />
+              <Bi en={content.promoItem2Sub} bn={content.promoItem2SubBn} />
             </p>
           </div>
 
@@ -108,10 +108,10 @@ export const PromoBar: React.FC = () => {
               <Sparkles className="w-6 h-6" />
             </div>
             <h3 className="text-sm font-bold text-neutral-800 mb-1">
-              <Bi en="Quality Promise" bn="কোয়ালিটি প্রমিস" />
+              <Bi en={content.promoItem4Title} bn={content.promoItem4TitleBn} />
             </h3>
             <p className="text-[11px] text-neutral-500 leading-snug">
-              <Bi en="Checked before dispatch" bn="ডিসপ্যাচের আগে যাচাই" />
+              <Bi en={content.promoItem4Sub} bn={content.promoItem4SubBn} />
             </p>
           </div>
         </div>
@@ -122,7 +122,7 @@ export const PromoBar: React.FC = () => {
             href="/products"
             className="inline-flex items-center gap-2 px-6 py-3 bg-[#D8232A] text-white font-bold text-sm rounded-full shadow-lg shadow-[#D8232A]/20 hover:shadow-xl hover:bg-[#B91C1C] hover:scale-105 transition-all duration-300"
           >
-            <Bi en="Shop Now" bn="এখনই কিনুন" />
+            <Bi en={content.promoCta} bn={content.promoCtaBn} />
             <ArrowRight className="w-4 h-4" />
           </a>
         </div>

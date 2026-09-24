@@ -5,6 +5,7 @@ import { Coupon } from '../types';
 import { useStore } from '../context/StoreContext';
 import { ArrowRight, Tag, Truck, Gift, Copy, Check } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
+import { useLocalized } from './Localized';
 import { motion } from 'motion/react';
 import { navigate } from '../lib/router';
 
@@ -28,6 +29,7 @@ const couponIcon = (c: Coupon) => {
 export const PromoCampaign: React.FC = () => {
   const { addToast } = useStore();
   const { content } = useSiteContent();
+  const t = useLocalized();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   // DB-driven offers (Admin → Coupons). dataLoader falls back to the bundled
   // coupon list when the API is unreachable, so the section never goes blank.
@@ -93,9 +95,9 @@ export const PromoCampaign: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <SectionHeader
-          eyebrow={content.offersEyebrow}
-          title={content.offersTitle}
-          subtitle={content.offersSubtitle}
+          eyebrow={t(content.offersEyebrow, content.offersEyebrowBn)}
+          title={t(content.offersTitle, content.offersTitleBn)}
+          subtitle={t(content.offersSubtitle, content.offersSubtitleBn)}
           centered
         />
 

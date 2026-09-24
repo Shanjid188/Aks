@@ -4,12 +4,14 @@
  * bundled defaults. Nothing renders empty and the design stays byte-identical
  * until an admin actually edits a field.
  *
- * These strings are English-only in the UI today, so one field maps to one
- * setting. Bilingual surfaces (e.g. the “Why Shop With Us” strip, which uses
- * <Bi/>) are handled in a later pass.
+ * These strings are billed as English + Bangla pairs: `SiteContent` derives a
+ * `…Bn` counterpart for every field (see BanglaOf below), so a field can never
+ * be added in one language only. Sections that were English-only render the
+ * language the shopper picked; surfaces that already showed both languages
+ * (e.g. the “Why Shop With Us” strip) keep doing so.
  */
 
-export interface SiteContent {
+interface SiteContentBase {
   /* Featured products */
   featuredEyebrow: string;
   featuredTitle: string;
@@ -61,10 +63,45 @@ export interface SiteContent {
   headerOutfitMatcher: string;
   headerSearchPlaceholder: string;
   headerSearchPlaceholderMobile: string;
+  /* “Why Shop With Us” strip (above the footer) */
+  promoTagline: string;
+  promoTitle: string;
+  promoSubtitle: string;
+  promoItem1Title: string;
+  /** `{amount}` is replaced with the live free-delivery threshold. */
+  promoItem1Sub: string;
+  promoItem2Title: string;
+  promoItem2Sub: string;
+  promoItem4Title: string;
+  promoItem4Sub: string;
+  promoCta: string;
+  /* Footer */
+  footerBrand: string;
+  footerDivisionsHeading: string;
+  footerCareHeading: string;
+  footerTrack: string;
+  footerGuides: string;
+  footerClub: string;
+  footerContactHeading: string;
+  footerContactPhoneLabel: string;
+  footerNewsletterTitle: string;
+  footerNewsletterNote: string;
+  footerNewsletterCta: string;
+  /** `{year}` and `{site}` are replaced automatically; `{store}` is the store name. */
+  footerCopyright: string;
 }
 
-/** The bundled defaults — exactly the copy that used to live in the components. */
-export const DEFAULT_SITE_CONTENT: SiteContent = {
+/** Bangla counterpart of every field (`featuredTitleBn`, …) — always present. */
+type BanglaOf<T> = { [K in keyof T as `${K & string}Bn`]: string };
+
+/** Storefront copy: every English field plus its Bangla counterpart. */
+export type SiteContent = SiteContentBase & BanglaOf<SiteContentBase>;
+
+/** Copy that only exists as a bilingual pair — used by the admin editor. */
+export type SiteContentField = keyof SiteContentBase;
+
+/** The bundled English copy — exactly the text that used to sit in the components. */
+const DEFAULT_SITE_CONTENT_BASE: SiteContentBase = {
   featuredEyebrow: 'Curated For You',
   featuredTitle: 'Featured Products',
   featuredSubtitle: 'Handpicked essentials across all AKS Mart divisions — quality you can trust.',
@@ -116,10 +153,127 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
   headerOutfitMatcher: 'Outfit Matcher',
   headerSearchPlaceholder: 'Search products (rice, honey, kantha, bedsheets…)',
   headerSearchPlaceholderMobile: 'Search products...',
+
+  promoTagline: 'Why Shop With Us',
+  promoTitle: 'One Mart. Many Choices.',
+  promoSubtitle:
+    'Five curated divisions, one trusted destination — quality products delivered to your doorstep across Bangladesh.',
+  promoItem1Title: 'Free Delivery',
+  promoItem1Sub: 'On orders above {amount}',
+  promoItem2Title: 'Exclusive Deals',
+  promoItem2Sub: 'Member-only offers',
+  promoItem4Title: 'Quality Promise',
+  promoItem4Sub: 'Checked before dispatch',
+  promoCta: 'Shop Now',
+
+  footerBrand:
+    "AKS Mart is Bangladesh's multi-division marketplace — SHUDDHO food, AKS CRAFT handicrafts, AKS HOME living, AKS BEAUTY personal care and AKS PRINT custom print — all under one roof at aksmartbd.com.",
+  footerDivisionsHeading: 'Divisions',
+  footerCareHeading: 'Customer Care',
+  footerTrack: 'Track Your Order',
+  footerGuides: 'Product & Fit Guides',
+  footerClub: 'AKS Mart Club Rewards',
+  footerContactHeading: 'Contact & Order',
+  footerContactPhoneLabel: 'WhatsApp / Call',
+  footerNewsletterTitle: 'Subscribe to the AKS Mart Gazette',
+  footerNewsletterNote: 'Receive seasonal offers, division launches and private sale alerts.',
+  footerNewsletterCta: 'Join',
+  footerCopyright: '© {year} {store} (Bangladesh). All rights reserved. {site}',
 };
 
-/** Store-setting key for every content field (namespaced `content.*`). */
-export const SITE_CONTENT_KEYS: Record<keyof SiteContent, string> = {
+/**
+ * The bundled Bangla copy. The storefront shows these on the বাংলা toggle; the
+ * admin editor shows them as placeholders and can override every one of them.
+ */
+const DEFAULT_SITE_CONTENT_BN: BanglaOf<SiteContentBase> = {
+  featuredEyebrowBn: 'আপনার জন্য বাছাই করা',
+  featuredTitleBn: 'নির্বাচিত পণ্য',
+  featuredSubtitleBn:
+    'AKS Mart-এর সব বিভাগ থেকে বাছাই করা নিত্যপ্রয়োজনীয় পণ্য — নিশ্চিন্তে ভরসা করার মান।',
+  featuredActionBn: 'সব নির্বাচিত পণ্য দেখুন',
+
+  newArrivalsEyebrowBn: 'নতুন এসেছে',
+  newArrivalsTitleBn: 'নতুন পণ্য',
+  newArrivalsSubtitleBn: 'একেবারে নতুন সংযোজন — AKS Mart পরিবারে সাম্প্রতিক যোগ হওয়া পণ্য।',
+  newArrivalsActionBn: 'সব নতুন পণ্য দেখুন',
+
+  bestSellersEyebrowBn: 'সর্বাধিক পছন্দ',
+  bestSellersTitleBn: 'বেস্ট সেলার',
+  bestSellersSubtitleBn: 'AKS Mart ক্রেতাদের সবচেয়ে পছন্দের পণ্য।',
+  bestSellersActionBn: 'সব বেস্ট সেলার দেখুন',
+
+  divisionsEyebrowBn: 'এক মার্ট। অনেক পছন্দ।',
+  divisionsTitleBn: 'অনেক জগৎ, এক মার্ট',
+  divisionsSubtitleBn:
+    'পাঁচটি কিউরেটেড ডিভিশন, একটি বিশ্বস্ত গন্তব্য — বাংলাদেশ জুড়ে আপনার দোরগোড়ায় মানসম্পন্ন পণ্য পৌঁছে যাবে।',
+  divisionsActionBn: 'সব পণ্য দেখুন',
+
+  offersEyebrowBn: 'আরও সাশ্রয়',
+  offersTitleBn: 'চলতি অফার',
+  offersSubtitleBn: 'এখনই ব্যবহারযোগ্য কুপন — কোডটি কপি করে আপনার শপিং ব্যাগে যোগ করুন।',
+
+  showcaseEyebrowBn: 'আপনার জন্য বাছাই করা',
+  showcaseTitleBn: 'ক্রেতাদের প্রিয়',
+  showcaseSubtitleBn: 'আসল পণ্য, আসল রিভিউ — যেগুলো ক্রেতারা বারবার কিনতে ফিরে আসেন।',
+
+  trust1TitleBn: '১০০% অরিজিনাল',
+  trust1SubBn: 'AKS Mart সার্টিফায়েড',
+  trust2TitleBn: 'দ্রুত ডেলিভারি',
+  trust2SubBn: 'ঢাকায় ২৪–৪৮ ঘণ্টা',
+  trust3TitleBn: 'সহজ রিটার্ন',
+  trust3SubBn: '৩০ দিনের নীতি',
+
+  headerSaleChipBn: 'উৎসব সেল ৪০% পর্যন্ত ছাড়',
+  headerSaleChipShortBn: 'উৎসব সেল',
+
+  headerAllDepartmentsBn: 'সব বিভাগ',
+  headerDivisionsBn: 'বিভাগসমূহ',
+  headerOtherDivisionsBn: 'অন্যান্য বিভাগ',
+  headerCategoriesSuffixBn: 'ক্যাটাগরি',
+  headerShopPrefixBn: 'কিনুন',
+  headerTrendingLabelBn: 'জনপ্রিয় সার্চ',
+  headerMobileShopByBn: 'AKS Mart বিভাগ অনুযায়ী কিনুন',
+  headerQuickTrackBn: 'অর্ডার ট্র্যাক করুন',
+  headerQuickClubBn: 'AKS Mart ক্লাব',
+  headerOutfitMatcherBn: 'আউটফিট ম্যাচার',
+  headerSearchPlaceholderBn: 'পণ্য খুঁজুন (চাল, মধু, কাঁথা, বেডশিট…)',
+  headerSearchPlaceholderMobileBn: 'পণ্য খুঁজুন...',
+
+  promoTaglineBn: 'কেন আমাদের থেকে কিনবেন',
+  promoTitleBn: 'এক মার্ট। অনেক পছন্দ।',
+  promoSubtitleBn:
+    'পাঁচটি কিউরেটেড ডিভিশন, একটি বিশ্বস্ত গন্তব্য — বাংলাদেশ জুড়ে আপনার দোরগোড়ায় মানসম্পন্ন পণ্য পৌঁছে যাবে।',
+  promoItem1TitleBn: 'ফ্রি ডেলিভারি',
+  promoItem1SubBn: '{amount} এর উপরে অর্ডারে',
+  promoItem2TitleBn: 'এক্সক্লুসিভ ডিল',
+  promoItem2SubBn: 'শুধুমাত্র সদস্যদের অফার',
+  promoItem4TitleBn: 'কোয়ালিটি প্রমিস',
+  promoItem4SubBn: 'ডিসপ্যাচের আগে যাচাই',
+  promoCtaBn: 'এখনই কিনুন',
+
+  footerBrandBn:
+    'AKS Mart বাংলাদেশের বহুমুখী মার্কেটপ্লেস — SHUDDHO খাদ্যপণ্য, AKS CRAFT হস্তশিল্প, AKS HOME গৃহসজ্জা, AKS BEAUTY ব্যক্তিগত যত্ন এবং AKS PRINT কাস্টম প্রিন্ট — সবই এক ছাদের নিচে, aksmartbd.com-এ।',
+  footerDivisionsHeadingBn: 'বিভাগসমূহ',
+  footerCareHeadingBn: 'কাস্টমার কেয়ার',
+  footerTrackBn: 'আপনার অর্ডার ট্র্যাক করুন',
+  footerGuidesBn: 'পণ্য ও সাইজ গাইড',
+  footerClubBn: 'AKS Mart ক্লাব রিওয়ার্ড',
+  footerContactHeadingBn: 'যোগাযোগ ও অর্ডার',
+  footerContactPhoneLabelBn: 'হোয়াটসঅ্যাপ / কল',
+  footerNewsletterTitleBn: 'AKS Mart Gazette-এ সাবস্ক্রাইব করুন',
+  footerNewsletterNoteBn: 'মৌসুমি অফার, নতুন বিভাগের খবর ও প্রাইভেট সেলের তথ্য পেতে সাবস্ক্রাইব করুন।',
+  footerNewsletterCtaBn: 'যোগ দিন',
+  footerCopyrightBn: '© {year} {store} (বাংলাদেশ)। সর্বস্বত্ব সংরক্ষিত। {site}',
+};
+
+/** English + Bangla merged — what the storefront renders with. */
+export const DEFAULT_SITE_CONTENT: SiteContent = {
+  ...DEFAULT_SITE_CONTENT_BASE,
+  ...DEFAULT_SITE_CONTENT_BN,
+};
+
+/** Store-setting key for every English field (namespaced `content.*`). */
+const SITE_CONTENT_BASE_KEYS: Record<keyof SiteContentBase, string> = {
   featuredEyebrow: 'content.featured.eyebrow',
   featuredTitle: 'content.featured.title',
   featuredSubtitle: 'content.featured.subtitle',
@@ -170,10 +324,53 @@ export const SITE_CONTENT_KEYS: Record<keyof SiteContent, string> = {
   headerOutfitMatcher: 'content.header.outfitMatcher',
   headerSearchPlaceholder: 'content.header.searchPlaceholder',
   headerSearchPlaceholderMobile: 'content.header.searchPlaceholderMobile',
+
+  promoTagline: 'content.promoBar.tagline',
+  promoTitle: 'content.promoBar.title',
+  promoSubtitle: 'content.promoBar.subtitle',
+  promoItem1Title: 'content.promoBar.item1Title',
+  promoItem1Sub: 'content.promoBar.item1Sub',
+  promoItem2Title: 'content.promoBar.item2Title',
+  promoItem2Sub: 'content.promoBar.item2Sub',
+  promoItem4Title: 'content.promoBar.item4Title',
+  promoItem4Sub: 'content.promoBar.item4Sub',
+  promoCta: 'content.promoBar.cta',
+
+  footerBrand: 'content.footer.brand',
+  footerDivisionsHeading: 'content.footer.divisionsHeading',
+  footerCareHeading: 'content.footer.careHeading',
+  footerTrack: 'content.footer.track',
+  footerGuides: 'content.footer.guides',
+  footerClub: 'content.footer.club',
+  footerContactHeading: 'content.footer.contactHeading',
+  footerContactPhoneLabel: 'content.footer.contactPhoneLabel',
+  footerNewsletterTitle: 'content.footer.newsletterTitle',
+  footerNewsletterNote: 'content.footer.newsletterNote',
+  footerNewsletterCta: 'content.footer.newsletterCta',
+  footerCopyright: 'content.footer.copyright',
 };
+
+/**
+ * Store-setting key for every content field — the English key plus its Bangla
+ * counterpart (`…title` → `…title.bn`), derived so the two can never drift.
+ */
+export const SITE_CONTENT_KEYS: Record<keyof SiteContent, string> = (() => {
+  const keys = {} as Record<keyof SiteContent, string>;
+  for (const [field, key] of Object.entries(SITE_CONTENT_BASE_KEYS) as [keyof SiteContentBase, string][]) {
+    keys[field] = key;
+    keys[`${field}Bn` as keyof SiteContent] = `${key}.bn`;
+  }
+  return keys;
+})();
 
 /** Trending search keywords (header search panel) — comma-separated in settings. */
 export const TRENDING_SEARCHES_KEY = 'content.header.trendingSearches';
+
+/** Every content setting key (both languages, plus the trending list). */
+export const CONTENT_SETTING_KEYS: string[] = [
+  ...Object.values(SITE_CONTENT_KEYS),
+  TRENDING_SEARCHES_KEY,
+];
 
 export const DEFAULT_TRENDING_SEARCHES: string[] = [
   'Miniket Rice',
