@@ -5,6 +5,7 @@ import { PERM } from '../lib/permissions.ts';
 import { logAudit } from '../lib/audit.ts';
 import { parseJsonSafe } from '../utils/json.ts';
 import { applyStockDelta } from '../lib/stock.ts';
+import { loadCheckoutConfig } from '../lib/checkout.ts';
 
 const router = Router();
 
@@ -199,18 +200,29 @@ router.post(
       }
     }
 
-    const deliveryMethod = String(body.deliveryMethod || 'standard');
-    const isFreeShippingCoupon = freeDeliveryCoupon;
-    const requestedFee = Number(body.shippingFee);
-    // Respect a legitimate 0 shipping fee (free delivery) from the storefront instead
-    // of silently charging the 120 default. Fall back to 120 only when no fee was sent.
-    const shippingFee =
-      isFreeShippingCoupon || deliveryMethod === 'pickup'
-        ? 0
-        : Number.isFinite(requestedFee)
-          ? Math.max(0, requestedFee)
-          : 120;
+    const deliveryMethod = String(body.deliveryMethod || '');
+    // The API owns the delivery charge: the configured fee for the chosen zone is
+    // used and any shippingFee sent by the client is ignored, so a tampered or
+    // stale request cannot ship an order for free.
+    const checkoutConfig = await loadCheckoutConfig();
+    const zone = checkoutConfig.zones.find((z) => z.id === deliveryMethod);
+    if (deliveryMethod !== 'pickup' && !zone) {
+      return res.status(400).json({ error: 'Please choose a valid delivery area' });
+    }
+    const shippingFee = freeDeliveryCoupon || deliveryMethod === 'pickup' ? 0 : (zone?.fee ?? 0);
     const total = Math.max(0, subtotal - discount) + shippingFee;
+
+    // Payment method must be one the merchant has enabled (and configured).
+    const paymentMethod = checkoutConfig.paymentMethods.find(
+      (m) => m.id === String(body.paymentMethod || 'cod')
+    );
+    if (!paymentMethod) {
+      return res.status(400).json({ error: 'That payment method is not available' });
+    }
+    const paymentReference = String(body.paymentReference || '').trim();
+    if (paymentMethod.manual && !paymentReference) {
+      return res.status(400).json({ error: `${paymentMethod.label} needs the transaction ID` });
+    }
 
     const randomSuffix = Math.floor(100000 + Math.random() * 900000);
     const orderNumber = `ORD-${Date.now()}`;
@@ -228,12 +240,15 @@ router.post(
         customerAddress: JSON.stringify(customerAddress),
         deliveryMethod,
         pickupStore: deliveryMethod === 'pickup' ? String(body.pickupStore || '') : null,
-        paymentMethod: String(body.paymentMethod || 'cod'),
-        // Payment ledger defaults — storefront orders are "cash on delivery" today,
-        // so the full total remains unpaid until the order is fulfilled.
+        paymentMethod: paymentMethod.id,
+        // Storefront orders start unpaid. A customer-declared transfer keeps the
+        // order unpaid until an admin verifies it — we never claim money arrived.
         paymentStatus: 'unpaid',
         paidAmount: 0,
         dueAmount: total,
+        // The customer's declared transaction ID for a manual transfer. The order
+        // stays unpaid until an admin checks it against the account.
+        paymentReference: paymentMethod.manual ? paymentReference : null,
         subtotal,
         discount,
         shippingFee,

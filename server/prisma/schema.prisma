@@ -194,6 +194,8 @@ model Order {
   deliveryMethod    String          @default("standard") // standard | express | pickup
   pickupStore       String?
   paymentMethod     String          @default("cod") // bkash | nagad | card | cod | cash | rocket | bank
+  /// Customer-declared transaction ID for manual transfers (bKash/Nagad/bank).
+  paymentReference  String?
   paymentStatus     String          @default("unpaid") // unpaid | partial | paid | failed | refunded | due
   paidAmount        Float           @default(0)
   dueAmount         Float           @default(0)

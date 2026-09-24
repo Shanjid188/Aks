@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
 import { asyncHandler, requirePermission, currentAdmin } from '../lib/auth.ts';
 import { PERM } from '../lib/permissions.ts';
+import { CHECKOUT_KEYS, loadCheckoutConfig } from '../lib/checkout.ts';
 import { logAudit } from '../lib/audit.ts';
 
 const router = Router();
@@ -69,9 +70,17 @@ router.get(
       'lowStockThreshold',
       ...CONTENT_KEYS,
       ...SEO_KEYS,
+      ...CHECKOUT_KEYS,
     ].filter((k) => Object.prototype.hasOwnProperty.call(all, k));
     const picked: Record<string, unknown> = {};
     for (const k of safe) picked[k] = all[k];
+    // Delivery zones and payment methods are resolved server-side: `paymentMethods`
+    // is stored as the ids the merchant enabled, so the public payload replaces it
+    // with the usable options (label + pay-to instructions), dropping manual
+    // methods whose details are still empty. The storefront only renders this.
+    const checkout = await loadCheckoutConfig();
+    picked.shippingZones = checkout.zones;
+    picked.paymentMethods = checkout.paymentMethods;
     res.json({ settings: picked });
   })
 );
@@ -101,6 +110,7 @@ router.put(
       'orderPrefix', 'posPrefix', 'timezone', 'language',
       ...CONTENT_KEYS,
       ...SEO_KEYS,
+      ...CHECKOUT_KEYS,
     ];
     let count = 0;
     for (const key of allowed) {
