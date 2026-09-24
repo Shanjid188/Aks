@@ -11,6 +11,7 @@ export const adaptProduct = (p: ApiProduct): Product =>
     isBestSeller: p.isBestSeller || undefined,
     isTrending: p.isTrending || undefined,
     isClearance: p.isClearance || undefined,
+    isFeatured: p.isFeatured || undefined,
     featuredOrder: p.featuredOrder ?? undefined,
     fit: (p.fit ?? undefined) as Product['fit'],
     pattern: (p.pattern ?? undefined) as Product['pattern'],

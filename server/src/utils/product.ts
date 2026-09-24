@@ -36,6 +36,7 @@ const BOOL_FIELDS = [
   'isBestSeller',
   'isTrending',
   'isClearance',
+  'isFeatured',
   'isActive',
   'trackStock',
 ] as const;

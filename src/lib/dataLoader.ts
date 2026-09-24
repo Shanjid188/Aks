@@ -14,6 +14,8 @@ import {
   trendingSearchesFromSettings,
 } from '../data/siteContent';
 import type { SiteContent } from '../data/siteContent';
+import { DEFAULT_COMMERCE } from '../data/commerce';
+import type { CommerceSettings } from '../data/commerce';
 import { Category, Coupon, Product, Review } from '../types';
 
 const USE_API = import.meta.env.VITE_USE_API !== 'false';
@@ -71,6 +73,37 @@ export const dataLoader = {
       }
       return reviews.length > 0 ? reviews : INITIAL_REVIEWS;
     } catch {
+      return INITIAL_REVIEWS;
+    }
+  },
+
+  /** Commerce numbers (free-shipping threshold + standard delivery charge)
+   *  that Admin → Settings controls, falling back to the bundled defaults. */
+  async loadCommerce(): Promise<CommerceSettings> {
+    if (!USE_API) return DEFAULT_COMMERCE;
+    try {
+      const { settings } = await API.fetchPublicSettings();
+      const num = (value: unknown, fallback: number) =>
+        typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
+      return {
+        freeShippingThreshold: num(settings.freeShippingThreshold, DEFAULT_COMMERCE.freeShippingThreshold),
+        defaultShippingCharge: num(settings.defaultShippingCharge, DEFAULT_COMMERCE.defaultShippingCharge),
+      };
+    } catch (e) {
+      console.warn('[dataLoader] API commerce settings failed, falling back to bundled defaults:', e);
+      return DEFAULT_COMMERCE;
+    }
+  },
+
+  /** Approved reviews for a single product (storefront product page). An empty
+   *  list is a real answer here — it means nobody has reviewed it yet. */
+  async loadProductReviews(slug: string): Promise<Review[]> {
+    if (!USE_API) return INITIAL_REVIEWS;
+    try {
+      const { reviews: apiReviews } = await API.fetchProductReviews(slug);
+      return apiReviews.map((r) => ({ ...r, date: r.date.split('T')[0] }) as Review);
+    } catch (e) {
+      console.warn('[dataLoader] API product reviews failed, falling back to bundled reviews:', e);
       return INITIAL_REVIEWS;
     }
   },

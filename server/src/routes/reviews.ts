@@ -25,6 +25,56 @@ router.get(
   })
 );
 
+/**
+ * Public: submit a review for a product (looked up by slug).
+ *
+ * Reviews land as `isApproved: false`, so nothing reaches the storefront until
+ * an admin approves it in Admin → Reviews. The customer is told exactly that.
+ */
+router.post(
+  '/products/:slug/reviews',
+  asyncHandler(async (req, res) => {
+    const product = await prisma.product.findUnique({ where: { slug: req.params.slug } });
+    if (!product) return res.status(404).json({ error: 'Product not found' });
+
+    const body = (req.body || {}) as Record<string, unknown>;
+    const author = String(body.author || '').trim();
+    const comment = String(body.comment || '').trim();
+    const rating = Math.round(Number(body.rating));
+
+    if (!author || !comment) {
+      return res.status(400).json({ error: 'Name and review text are required' });
+    }
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+    }
+    if (comment.length > 2000) {
+      return res.status(400).json({ error: 'Review text is too long (2000 characters max)' });
+    }
+
+    const review = await prisma.review.create({
+      data: {
+        productId: product.id,
+        author: author.slice(0, 60),
+        city: String(body.city || '').trim().slice(0, 60) || null,
+        rating,
+        title: String(body.title || '').trim().slice(0, 120) || 'Customer review',
+        comment: comment.slice(0, 2000),
+        date: new Date().toISOString().slice(0, 10),
+        // A storefront submission is not a verified purchase — an admin can
+        // mark it verified after checking the order history.
+        verified: false,
+        helpfulCount: 0,
+        fitFeedback: body.fitFeedback ? String(body.fitFeedback).slice(0, 40) : null,
+        isApproved: false,
+      },
+      select: { id: true, isApproved: true },
+    });
+
+    res.status(201).json({ review, pending: true });
+  })
+);
+
 /* =========================== ADMIN REVIEW MODERATION =========================== */
 
 router.get(

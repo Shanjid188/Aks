@@ -10,9 +10,11 @@ export const FeaturedProducts: React.FC = () => {
   const { products, setFilters } = useStore();
   const { content } = useSiteContent();
 
+  // A product shows here when an admin ticks “Featured on homepage” *or* gives
+  // it a featured order (both controls live in Products → Edit product).
   const featuredProducts = products
-    .filter((p) => p.featuredOrder && p.featuredOrder > 0)
-    .sort((a, b) => (a.featuredOrder || 99) - (b.featuredOrder || 99))
+    .filter((p) => p.isFeatured || (p.featuredOrder ?? 0) > 0)
+    .sort((a, b) => (a.featuredOrder ?? 99) - (b.featuredOrder ?? 99))
     .slice(0, 8);
 
   if (featuredProducts.length === 0) return null;

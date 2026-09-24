@@ -1,6 +1,8 @@
 import React from 'react';
 import { Bi } from './Bi';
 import { useLanguage } from '../context/LanguageContext';
+import { useStore } from '../context/StoreContext';
+import { formatPrice } from '../utils/format';
 import { Sparkles, Gift, Truck, CreditCard, ArrowRight } from 'lucide-react';
 
 /**
@@ -9,6 +11,10 @@ import { Sparkles, Gift, Truck, CreditCard, ArrowRight } from 'lucide-react';
  */
 export const PromoBar: React.FC = () => {
   const { language } = useLanguage();
+  // The delivery promise must match what checkout actually charges, so it is
+  // rendered from the live Admin → Settings threshold instead of a fixed number.
+  const { freeShippingThreshold, currency } = useStore();
+  const thresholdLabel = formatPrice(freeShippingThreshold, currency);
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-[#FDF6EC]/70 via-white to-white border-t border-b border-amber-200/50">
@@ -60,7 +66,7 @@ export const PromoBar: React.FC = () => {
               <Bi en="Free Delivery" bn="ফ্রি ডেলিভারি" />
             </h3>
             <p className="text-[11px] text-neutral-500 leading-snug">
-              <Bi en="On orders above ৳1500" bn="৳1500 এর উপরে অর্ডারে" />
+              <Bi en={`On orders above ${thresholdLabel}`} bn={`${thresholdLabel} এর উপরে অর্ডারে`} />
             </p>
           </div>
 

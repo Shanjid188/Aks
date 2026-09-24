@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../context/StoreContext';
+import { dataLoader } from '../lib/dataLoader';
 import { formatPrice } from '../utils/format';
-import { ProductColor, ProductSize, Product } from '../types';
+import { ProductColor, ProductSize, Product, Review } from '../types';
 import { ProductCard } from './ProductCard';
 import {
   Star,
@@ -64,6 +65,21 @@ export const ProductDetailPage: React.FC = () => {
   const [newReviewComment, setNewReviewComment] = useState('');
   const [newReviewFit, setNewReviewFit] = useState<'runs_small' | 'true_to_size' | 'runs_large'>('true_to_size');
 
+  // Approved reviews for this product are fetched from the API; the context
+  // list is only a warm-up/offline fallback (it covers a few seeded products).
+  const [apiReviews, setApiReviews] = useState<Review[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setApiReviews(null);
+    dataLoader.loadProductReviews(product.slug).then((list) => {
+      if (!cancelled) setApiReviews(list);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [product.slug]);
+
   const isFav = isInWishlist(product.id);
 
   // Gallery
@@ -73,8 +89,7 @@ export const ProductDetailPage: React.FC = () => {
   ];
 
   // Reviews for this product
-  const productReviews = reviews.filter((r) => r.productId === product.id);
-
+  const productReviews = apiReviews ?? reviews.filter((r) => r.productId === product.id);
   // Related products
   const relatedProducts = products
     .filter((p) => p.id !== product.id && (p.category === product.category || p.brand === product.brand))
@@ -112,7 +127,7 @@ export const ProductDetailPage: React.FC = () => {
     });
   };
 
-  const handleReviewSubmit = (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newReviewAuthor.trim() || !newReviewComment.trim()) {
       addToast({
@@ -122,16 +137,19 @@ export const ProductDetailPage: React.FC = () => {
       });
       return;
     }
-    addReview({
+    // Stored in the database as *pending* — it shows on the storefront once an
+    // admin approves it, so keep the form open if the submission fails.
+    const result = await addReview({
+      slug: product.slug,
       productId: product.id,
       author: newReviewAuthor.trim(),
       city: newReviewCity.trim() || 'Dhaka',
       rating: newReviewRating,
-      title: newReviewTitle.trim() || 'Verified AKS Mart Purchase',
+      title: newReviewTitle.trim() || 'Customer review',
       comment: newReviewComment.trim(),
-      verified: true,
       fitFeedback: newReviewFit,
     });
+    if (!result.success) return;
     setShowReviewForm(false);
     setNewReviewAuthor('');
     setNewReviewTitle('');
@@ -276,7 +294,7 @@ export const ProductDetailPage: React.FC = () => {
                   </div>
                   <span className="text-sm font-bold text-neutral-900">{product.rating}</span>
                   <span className="text-xs text-neutral-400">
-                    ({product.reviewsCount} verified customer ratings)
+                    ({product.reviewsCount} customer ratings)
                   </span>
                 </div>
 

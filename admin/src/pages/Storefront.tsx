@@ -339,7 +339,7 @@ function FeaturedManager() {
     <div className="bg-white rounded-2xl border border-neutral-200 p-6">
       <h2 className="text-lg font-semibold mb-4">Featured Products</h2>
       <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
-        <p className="text-sm text-amber-800">💡 Go to <strong>Products</strong> → Edit product → set a <strong>Featured order</strong> (1 = shown first) to place it in this section. The section title/eyebrow/copy live in the <strong>Homepage</strong> tab.</p>
+        <p className="text-sm text-amber-800">💡 Go to <strong>Products</strong> → Edit product → turn on <strong>Featured on homepage</strong> (and optionally set a <strong>Featured order</strong>, 1 = first). Section headings/copy live in the <strong>Homepage</strong> tab.</p>
       </div>
     </div>
   );

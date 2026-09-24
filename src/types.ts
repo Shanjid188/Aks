@@ -78,6 +78,8 @@ export interface Product {
   isBestSeller?: boolean;
   isTrending?: boolean;
   isClearance?: boolean;
+  /** Admin flag — include this product in the homepage Featured section. */
+  isFeatured?: boolean;
   featuredOrder?: number;
   description: string;
   features: string[];

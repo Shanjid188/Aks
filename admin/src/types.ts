@@ -34,6 +34,7 @@ export interface Product {
   isBestSeller: boolean;
   isTrending: boolean;
   isClearance: boolean;
+  isFeatured: boolean;
   featuredOrder: number | null;
   description: string;
   features: string[];

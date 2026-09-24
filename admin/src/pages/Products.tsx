@@ -56,6 +56,7 @@ interface FormState {
   isBestSeller: boolean;
   isTrending: boolean;
   isClearance: boolean;
+  isFeatured: boolean;
   isActive: boolean;
 }
 
@@ -64,7 +65,7 @@ const emptyForm: FormState = {
   price: '', originalPrice: '', discountPercent: '', rating: '4.5', reviewsCount: '0', featuredOrder: '',
   description: '', features: '', materials: '', colors: '', sizes: '', images: '', tags: '',
   fit: 'Regular Fit', pattern: 'Solid', sleeve: 'Full Sleeve', occasion: '', cushionTech: '',
-  isNewArrival: false, isBestSeller: false, isTrending: false, isClearance: false, isActive: true,
+  isNewArrival: false, isBestSeller: false, isTrending: false, isClearance: false, isFeatured: false, isActive: true,
 };
 
 function fromProduct(p: Product): FormState {
@@ -83,7 +84,7 @@ function fromProduct(p: Product): FormState {
     fit: p.fit || 'Regular Fit', pattern: p.pattern || 'Solid', sleeve: p.sleeve || 'Full Sleeve',
     occasion: p.occasion, cushionTech: p.cushionTech || '',
     isNewArrival: p.isNewArrival, isBestSeller: p.isBestSeller, isTrending: p.isTrending,
-    isClearance: p.isClearance, isActive: p.isActive,
+    isClearance: p.isClearance, isFeatured: p.isFeatured, isActive: p.isActive,
   };
 }
 
@@ -204,6 +205,7 @@ function toPayload(f: FormState): Record<string, unknown> {
     isBestSeller: f.isBestSeller,
     isTrending: f.isTrending,
     isClearance: f.isClearance,
+    isFeatured: f.isFeatured,
     isActive: f.isActive,
   };
 }
@@ -673,6 +675,7 @@ function ProductPreview({ form }: { form: FormState }) {
           {form.isBestSeller && <Badge color="bg-amber-50 text-amber-700">Best seller</Badge>}
           {form.isTrending && <Badge color="bg-sky-50 text-sky-700">Trending</Badge>}
           {form.isClearance && <Badge color="bg-red-50 text-red-700">Clearance</Badge>}
+          {form.isFeatured && <Badge color="bg-violet-50 text-violet-700">Featured</Badge>}
         </div>
         {sizes.length > 0 && (
           <p className="text-[10px] text-neutral-400">{inStockCount} of {sizes.length} sizes in stock</p>
@@ -1009,7 +1012,7 @@ export function ProductsPage() {
               {/* 5 ─ Marketing & Status */}
               <FormSection icon={<Sparkles className="w-3.5 h-3.5" />} title="Marketing & Status" hint="Badges, visibility & sorting">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <Field label="Featured order" hint="Lower shows first">
+                  <Field label="Featured order" hint="1 = first in the homepage row (a product is featured when the toggle below is on, or when it has an order)">
                     <TextInput type="number" value={form.featuredOrder} onChange={(e) => set('featuredOrder', e.target.value)} placeholder="Auto" />
                   </Field>
                   <Field label="Rating">
@@ -1025,6 +1028,7 @@ export function ProductsPage() {
                   <Toggle checked={form.isBestSeller} onChange={(v) => set('isBestSeller', v)} label="Best seller" />
                   <Toggle checked={form.isTrending} onChange={(v) => set('isTrending', v)} label="Trending" />
                   <Toggle checked={form.isClearance} onChange={(v) => set('isClearance', v)} label="Clearance" />
+                  <Toggle checked={form.isFeatured} onChange={(v) => set('isFeatured', v)} label="Featured on homepage" />
                 </div>
               </FormSection>
             </div>

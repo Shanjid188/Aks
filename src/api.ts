@@ -32,6 +32,7 @@ export interface ApiProduct {
   isBestSeller: boolean;
   isTrending: boolean;
   isClearance: boolean;
+  isFeatured: boolean;
   isActive: boolean;
   featuredOrder: number | null;
   description: string;
@@ -143,6 +144,23 @@ export const fetchHeroSlides = () => api<{ slides: ApiHeroSlide[] }>('/hero-slid
 
 export const fetchProductReviews = (slug: string) =>
   api<{ reviews: ApiReview[] }>(`/products/${slug}/reviews`);
+
+/** Public: submit a review. It is stored unapproved until an admin moderates it. */
+export const submitReview = (
+  slug: string,
+  payload: {
+    author: string;
+    city: string;
+    rating: number;
+    title: string;
+    comment: string;
+    fitFeedback?: string;
+  }
+) =>
+  api<{ review: { id: string; isApproved: boolean }; pending: boolean }>(
+    `/products/${slug}/reviews`,
+    { method: 'POST', body: payload }
+  );
 
 export interface ApiAnnouncement {
   id: string;

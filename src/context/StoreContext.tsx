@@ -5,6 +5,8 @@ import { FALLBACK_CATEGORIES } from '../data/aksMart';
 import { VALID_COUPONS } from '../data/promos';
 import { isFreeDeliveryCoupon } from '../utils/coupons';
 import { dataLoader, USE_API } from '../lib/dataLoader';
+import { DEFAULT_COMMERCE } from '../data/commerce';
+import type { CommerceSettings } from '../data/commerce';
 import * as API from '../api';
 import { adaptApiOrder } from '../lib/apiAdapter';
 
@@ -86,7 +88,9 @@ interface StoreContextType {
   fetchOrderById: (id: string) => Promise<Order | null>;
   /** Fetch an order from the backend by its AKS-BD tracking code. */
   fetchOrderByTracking: (code: string) => Promise<Order | null>;
-  addReview: (review: Omit<Review, 'id' | 'date' | 'helpfulCount'>) => void;
+  addReview: (
+    review: Omit<Review, 'id' | 'date' | 'helpfulCount' | 'verified'> & { slug: string }
+  ) => Promise<{ success: boolean; message: string }>;
   // Toast
   toasts: ToastMessage[];
   addToast: (toast: Omit<ToastMessage, 'id'>) => void;
@@ -109,12 +113,15 @@ const initialFilters: FilterState = {
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-const FREE_SHIPPING_THRESHOLD = 2500; // à§³2,500
-const STANDARD_SHIPPING_FEE = 120; // à§³120 standard delivery in BD
+// Free-shipping threshold + standard delivery charge come from Admin -> Settings (see src/data/commerce.ts).
+
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [categories, setCategories] = useState<Category[]>(FALLBACK_CATEGORIES);
+  // Free-shipping threshold + standard delivery charge straight from
+  // Admin → Settings (bundled defaults until the API answers).
+  const [commerce, setCommerce] = useState<CommerceSettings>(DEFAULT_COMMERCE);
   const [reviews, setReviews] = useState<Review[]>(() => {
     const saved = localStorage.getItem('aks_reviews');
     return saved ? JSON.parse(saved) : INITIAL_REVIEWS;
@@ -123,11 +130,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Load products, categories and reviews from API (falls back to local data on any error)
   useEffect(() => {
     let cancelled = false;
-    Promise.all([dataLoader.loadProducts(), dataLoader.loadReviews(), dataLoader.loadCategories()]).then(([prods, revs, cats]) => {
+    Promise.all([
+      dataLoader.loadProducts(),
+      dataLoader.loadReviews(),
+      dataLoader.loadCategories(),
+      dataLoader.loadCommerce(),
+    ]).then(([prods, revs, cats, cash]) => {
       if (cancelled) return;
       setProducts(prods);
       setReviews(revs);
       setCategories(cats);
+      setCommerce(cash);
     });
     return () => { cancelled = true; };
   }, []);
@@ -252,9 +265,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }
 
-  const isFreeShippingByAmount = cartSubtotal >= FREE_SHIPPING_THRESHOLD;
+  const isFreeShippingByAmount = cartSubtotal >= commerce.freeShippingThreshold;
   const isFreeShippingByCoupon = isFreeDeliveryCoupon(appliedCoupon);
-  const shippingFee = cart.length === 0 ? 0 : isFreeShippingByAmount || isFreeShippingByCoupon ? 0 : STANDARD_SHIPPING_FEE;
+  const shippingFee = cart.length === 0 ? 0 : isFreeShippingByAmount || isFreeShippingByCoupon ? 0 : commerce.defaultShippingCharge;
   const cartTotal = Math.max(0, cartSubtotal - cartDiscount + shippingFee);
 
   // Reset filters
@@ -595,19 +608,52 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
     // Reviews
-  const addReview = (reviewData: Omit<Review, 'id' | 'date' | 'helpfulCount'>) => {
+  const addReview = async (
+    reviewData: Omit<Review, 'id' | 'date' | 'helpfulCount' | 'verified'> & { slug: string }
+  ): Promise<{ success: boolean; message: string }> => {
+    const { slug, ...review } = reviewData;
+
+    if (USE_API) {
+      try {
+        // The API stores it as *pending*; it becomes visible once an admin
+        // approves it in Admin → Reviews. Say exactly that — never claim it is
+        // already published.
+        await API.submitReview(slug, {
+          author: review.author,
+          city: review.city,
+          rating: review.rating,
+          title: review.title,
+          comment: review.comment,
+          fitFeedback: review.fitFeedback,
+        });
+        addToast({
+          type: 'success',
+          title: 'Review received',
+          message: 'Thanks! Your review is awaiting moderation and will appear once it is approved.',
+        });
+        return { success: true, message: 'Awaiting moderation' };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Could not submit your review';
+        addToast({ type: 'error', title: 'Review not submitted', message });
+        return { success: false, message };
+      }
+    }
+
+    // Offline/dev fallback (VITE_USE_API=false) — stays on this device only.
     const newReview: Review = {
-      ...reviewData,
+      ...review,
       id: `rev-${Date.now()}`,
       date: new Date().toISOString().split('T')[0],
+      verified: false,
       helpfulCount: 0,
     };
     setReviews((prev) => [newReview, ...prev]);
     addToast({
-      type: 'success',
-        title: 'Review Submitted',
-        message: 'Thank you for sharing your authentic review with the AKS community!',
+      type: 'warning',
+      title: 'Saved on this device only',
+      message: 'The API is switched off in dev mode, so this review is not stored on the server.',
     });
+    return { success: true, message: 'Saved locally (dev mode)' };
   };
 
   const getOrderById = (id: string): Order | undefined => {
@@ -664,7 +710,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         cartDiscount,
         shippingFee,
         cartTotal,
-        freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
+        freeShippingThreshold: commerce.freeShippingThreshold,
         addToCart,
         removeFromCart,
         updateCartQuantity,
