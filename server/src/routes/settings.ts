@@ -26,18 +26,10 @@ router.get(
   asyncHandler(async (_req, res) => {
     const all = await getSettingsMap();
     const safe = [
-      'storeName',
-      'storeLogo',
-      'phone',
-      'email',
-      'website',
-      'address',
-      'facebook',
-      'whatsapp',
-      'currency',
-      'currencySymbol',
-      'freeShippingThreshold',
-      'defaultShippingCharge',
+      'storeName', 'storeTagline', 'storeLogo', 'favicon', 'phone', 'email',
+      'website', 'address', 'addressBn', 'mottoEn', 'mottoBn', 'facebook', 'whatsapp',
+      'instagram', 'youtube', 'tiktok', 'currency', 'currencySymbol',
+      'defaultShippingCharge', 'freeShippingThreshold', 'taxPercent',
       'announcement',
       'announcementBn',
       'announcementBg',
@@ -68,7 +60,8 @@ router.put(
     const body = (req.body as Record<string, unknown> | undefined) ?? {};
     const allowed = [
       'storeName', 'storeTagline', 'storeLogo', 'favicon', 'phone', 'email', 'website',
-      'address', 'facebook', 'whatsapp', 'currency', 'currencySymbol',
+      'address', 'addressBn', 'mottoEn', 'mottoBn', 'facebook', 'whatsapp',
+      'instagram', 'youtube', 'tiktok', 'currency', 'currencySymbol',
       'defaultShippingCharge', 'freeShippingThreshold', 'taxPercent',
       'invoiceFooter', 'returnPolicy', 'packagingNote', 'thankYouMessage',
       'invoicePaperSize', 'thermalWidth', 'lowStockThreshold',

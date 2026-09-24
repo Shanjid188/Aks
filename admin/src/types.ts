@@ -313,7 +313,7 @@ export interface ActivityLogRow {
 
 export interface StoreSettings {
   storeName?: string; storeTagline?: string; storeLogo?: string; favicon?: string; phone?: string; email?: string;
-  website?: string; address?: string; facebook?: string; whatsapp?: string; currency?: string; currencySymbol?: string;
+  website?: string; address?: string; addressBn?: string; mottoEn?: string; mottoBn?: string; facebook?: string; whatsapp?: string; instagram?: string; youtube?: string; tiktok?: string; currency?: string; currencySymbol?: string;
   defaultShippingCharge?: number; freeShippingThreshold?: number; taxPercent?: number; invoiceFooter?: string;
   returnPolicy?: string; packagingNote?: string; thankYouMessage?: string; invoicePaperSize?: string; thermalWidth?: string;
   lowStockThreshold?: number; orderPrefix?: string; posPrefix?: string; timezone?: string; language?: string;

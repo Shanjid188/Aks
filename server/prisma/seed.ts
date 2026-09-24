@@ -2,11 +2,47 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { INITIAL_PRODUCTS, INITIAL_REVIEWS } from '../../src/data/products.ts';
-import { DIVISIONS } from '../../src/data/aksMart.ts';
+import { AKS_MART, DIVISIONS } from '../../src/data/aksMart.ts';
 import { seedCategories } from './seed-categories.ts';
 import { ALL_PERMISSIONS, PERM } from '../src/lib/permissions.ts';
 
 const prisma = new PrismaClient();
+
+/**
+ * Storefront identity/content baseline — the storefront reads these through
+ * GET /api/settings/public with `DEFAULT_STORE_INFO` (bundled AKS_MART) as
+ * the per-field fallback, and the admin edits them in Settings. Seeded once
+ * so a fresh install shows the right branding without any admin action.
+ */
+const DEFAULT_STORE_SETTINGS: Record<string, string> = {
+  storeName: AKS_MART.name,
+  storeTagline: AKS_MART.tagline,
+  storeLogo: '/images/AKS.logo.jpg',
+  favicon: '/AKS.logo.jpg',
+  phone: AKS_MART.phone,
+  email: AKS_MART.email,
+  website: AKS_MART.site,
+  address: AKS_MART.address,
+  addressBn: AKS_MART.addressBn,
+  mottoEn: AKS_MART.mottoEn,
+  mottoBn: AKS_MART.mottoBn,
+  currency: 'BDT',
+  currencySymbol: '৳',
+};
+
+/** Seed store settings idempotently; admin edits are never overwritten. */
+export async function seedStoreSettings(): Promise<number> {
+  for (const [key, value] of Object.entries(DEFAULT_STORE_SETTINGS)) {
+    await prisma.storeSetting.upsert({
+      where: { key },
+      update: {},
+      create: { key, value: JSON.stringify(value) },
+    });
+  }
+  return prisma.storeSetting.count({
+    where: { key: { in: Object.keys(DEFAULT_STORE_SETTINGS) } },
+  });
+}
 
 const COUPONS = [
   { code: 'AKS15', discountType: 'percent', value: 15, minSpend: 2500, description: '15% Off on orders above ৳2,500' },
@@ -252,7 +288,9 @@ async function main() {
 
   // ---------- Hero slides (storefront carousel) ----------
   // Images are served from /public/images so they work in dev and production.
-    const HERO_SLIDES_SEED = DIVISIONS.map((d, i) => ({
+  const settingsCount = await seedStoreSettings();
+  console.log(`✅ Store settings present (${settingsCount})`);
+  const HERO_SLIDES_SEED = DIVISIONS.map((d, i) => ({
     badge: d.badge.toUpperCase(),
     title: d.title,
     subtitle: d.description,

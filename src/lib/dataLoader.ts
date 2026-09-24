@@ -125,14 +125,17 @@ export const dataLoader = {
       const { settings } = await API.fetchPublicSettings();
       return {
         name: settings.storeName ?? fallback.name,
+        tagline: settings.storeTagline ?? fallback.tagline,
+        logo: settings.storeLogo ?? fallback.logo,
+        favicon: settings.favicon ?? fallback.favicon,
         phone: settings.phone ?? fallback.phone,
-        // phoneRaw is a bare tel:/wa.me number; derive from the API phone if present
         phoneRaw: settings.phone ? settings.phone.replace(/[^+\d]/g, '') : fallback.phoneRaw,
+        email: settings.email ?? fallback.email,
         address: settings.address ?? fallback.address,
+        addressBn: settings.addressBn ?? fallback.addressBn,
         site: settings.website ?? fallback.site,
-        mottoEn: fallback.mottoEn,
-        mottoBn: fallback.mottoBn,
-        addressBn: fallback.addressBn,
+        mottoEn: settings.mottoEn ?? fallback.mottoEn,
+        mottoBn: settings.mottoBn ?? fallback.mottoBn,
       };
     } catch (e) {
       console.warn('[dataLoader] API store settings failed, falling back to bundled store info:', e);
@@ -144,25 +147,33 @@ export const dataLoader = {
 /** Store info surfaced on the storefront (footer / contact block). */
 export interface StoreInfo {
   name: string;
+  tagline: string;
+  logo: string;
+  favicon: string;
   phone: string;
   phoneRaw: string;
+  email: string;
   address: string;
+  addressBn: string;
   site: string;
   mottoEn: string;
   mottoBn: string;
-  addressBn: string;
 }
 
 /** Bundled defaults used when the API is unavailable. */
 export const DEFAULT_STORE_INFO: StoreInfo = {
   name: AKS_MART.name,
+  tagline: AKS_MART.tagline ?? '',
+  logo: AKS_MART.site ? `${AKS_MART.site}/AKS.logo.jpg` : '',
+  favicon: '',
   phone: AKS_MART.phone,
   phoneRaw: AKS_MART.phoneRaw,
+  email: AKS_MART.email ?? '',
   address: AKS_MART.address,
+  addressBn: AKS_MART.addressBn,
   site: AKS_MART.site,
   mottoEn: AKS_MART.mottoEn,
   mottoBn: AKS_MART.mottoBn,
-  addressBn: AKS_MART.addressBn,
 };
 
 export { USE_API };

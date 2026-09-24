@@ -206,17 +206,26 @@ export const fetchCategories = () => api<{ categories: ApiCategory[] }>('/catego
 
 export interface ApiPublicSettings {
   storeName?: string;
+  storeTagline?: string;
   storeLogo?: string;
+  favicon?: string;
   phone?: string;
   email?: string;
   website?: string;
   address?: string;
+  addressBn?: string;
+  mottoEn?: string;
+  mottoBn?: string;
   facebook?: string;
   whatsapp?: string;
+  instagram?: string;
+  youtube?: string;
+  tiktok?: string;
   currency?: string;
   currencySymbol?: string;
-  freeShippingThreshold?: number;
   defaultShippingCharge?: number;
+  freeShippingThreshold?: number;
+  taxPercent?: number;
   announcement?: string;
   announcementBn?: string;
   announcementBg?: string;

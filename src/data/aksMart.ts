@@ -19,6 +19,7 @@ export const AKS_MART = {
   addressBn: 'পল্টন টাওয়ার, ৮৭ পুরানা পল্টন লাইন, ঢাকা',
   mottoEn: 'Uncompromising in Quality, Committed to Humanity.',
   mottoBn: 'গুণগত মানে আপসহীন, মানবিকতায় অঙ্গীকারবদ্ধ।',
+  email: 'info@aksgarments.com.bd',
 };
 
 export interface AksDivision {

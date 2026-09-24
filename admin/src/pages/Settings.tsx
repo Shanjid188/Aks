@@ -69,6 +69,34 @@ export function SettingsPage() {
             </div>
           </section>
           <section className="bg-white rounded-2xl border border-neutral-200 p-5">
+            <h3 className="text-sm font-black text-neutral-900 flex items-center gap-2 mb-4"><SettingsIcon className="w-4 h-4 text-[#D8232A]" /> Storefront Display</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Store tagline"><TextInput value={settings.storeTagline || ''} onChange={(e) => set('storeTagline', e.target.value)} placeholder="One Mart. Many Choices." /></Field>
+              <Field label="Site / logo host" hint="Used for logo/favicon URLs (/images/...)"><TextInput value={settings.website || ''} onChange={(e) => set('website', e.target.value)} placeholder="aksmartbd.com" /></Field>
+              <Field label="Logo image path" hint="e.g. /images/AKS.logo.jpg"><TextInput value={settings.storeLogo || ''} onChange={(e) => set('storeLogo', e.target.value)} placeholder="" /></Field>
+              <Field label="Favicon path" hint="e.g. /AKS.logo.jpg or /favicon.ico"><TextInput value={settings.favicon || ''} onChange={(e) => set('favicon', e.target.value)} placeholder="" /></Field>
+            </div>
+          </section>
+          <section className="bg-white rounded-2xl border border-neutral-200 p-5">
+            <h3 className="text-sm font-black text-neutral-900 flex items-center gap-2 mb-4"><SettingsIcon className="w-4 h-4 text-[#D8232A]" /> Motto / Bangla Brand Statement</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Motto (English)"><TextInput value={settings.mottoEn || ''} onChange={(e) => set('mottoEn', e.target.value)} placeholder="Uncompromising in Quality, Committed to Humanity." /></Field>
+              <Field label="Motto (Bangla)"><TextInput value={settings.mottoBn || ''} onChange={(e) => set('mottoBn', e.target.value)} placeholder="গুণগত মানে আপসহীন, মানবিকতায় অঙ্গীকারবদ্ধ।" /></Field>
+              <Field label="Address (English)"><TextInput value={settings.address || ''} onChange={(e) => set('address', e.target.value)} placeholder="" /></Field>
+              <Field label="Address (Bangla)"><TextInput value={settings.addressBn || ''} onChange={(e) => set('addressBn', e.target.value)} placeholder="Paltan Tower, 87 Purana Paltan Line, Dhaka" /></Field>
+            </div>
+          </section>
+          <section className="bg-white rounded-2xl border border-neutral-200 p-5">
+            <h3 className="text-sm font-black text-neutral-900 mb-4">Social Links (storefront footer / contact block)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Facebook"><TextInput value={settings.facebook || ''} onChange={(e) => set('facebook', e.target.value)} placeholder="facebook.com/aksmartbd" /></Field>
+              <Field label="WhatsApp"><TextInput value={settings.whatsapp || ''} onChange={(e) => set('whatsapp', e.target.value)} placeholder="+8801XXXXXXXXX" /></Field>
+              <Field label="Instagram"><TextInput value={settings.instagram || ''} onChange={(e) => set('instagram', e.target.value)} placeholder="instagram.com/aksmartbd" /></Field>
+              <Field label="YouTube"><TextInput value={settings.youtube || ''} onChange={(e) => set('youtube', e.target.value)} placeholder="youtube.com/@aksmartbd" /></Field>
+              <Field label="TikTok"><TextInput value={settings.tiktok || ''} onChange={(e) => set('tiktok', e.target.value)} placeholder="tiktok.com/@aksmartbd" /></Field>
+            </div>
+          </section>
+          <section className="bg-white rounded-2xl border border-neutral-200 p-5">
             <h3 className="text-sm font-black text-neutral-900 mb-4">Invoice &amp; Printing</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Field label="Invoice paper size"><TextInput value={settings.invoicePaperSize || ''} onChange={(e) => set('invoicePaperSize', e.target.value)} placeholder="A4" /></Field>
