@@ -489,11 +489,50 @@ model ContentPage {
   seoDescription String   @default("")
   isPublished    Boolean  @default(true)
   showInFooter   Boolean  @default(true)
+  /// Render the contact form under the page body (Admin → Content Pages).
+  contactForm    Boolean  @default(false)
   sortOrder      Int      @default(0)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   @@index([isPublished])
+}
+
+/// Newsletter sign-ups from the storefront footer (and anything an admin adds).
+/// Nothing is emailed yet: this is the audience list the merchant owns.
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  /// footer | checkout | manual — where the address came from.
+  source    String   @default("footer")
+  /// False when the shopper unsubscribed; re-subscribing flips it back on.
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+/// Storefront contact-form submissions — the admin inbox reads these. Kept next
+/// to Store (the physical shop) because both describe how to reach the business.
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @default("")
+  phone     String
+  subject   String   @default("")
+  message   String
+  /// new | read | replied | closed — an admin moves it along, nothing else.
+  status    String   @default("new")
+  /// Internal note the customer never sees.
+  adminNote String   @default("")
+  /// Which storefront page the form was on.
+  pageSlug  String   @default("contact")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Store {

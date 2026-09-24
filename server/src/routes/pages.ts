@@ -14,6 +14,7 @@ const PUBLIC_FIELDS = {
   body: true,
   bodyBn: true,
   showInFooter: true,
+  contactForm: true,
   sortOrder: true,
 } as const;
 
@@ -86,6 +87,7 @@ router.post(
           seoDescription: String(body.seoDescription || ''),
           isPublished: Boolean(body.isPublished ?? true),
           showInFooter: Boolean(body.showInFooter ?? true),
+          contactForm: Boolean(body.contactForm ?? false),
           sortOrder: Number(body.sortOrder) || 0,
         },
       });
@@ -126,6 +128,7 @@ router.patch(
     if (body.seoDescription !== undefined) data.seoDescription = String(body.seoDescription);
     if (body.isPublished !== undefined) data.isPublished = Boolean(body.isPublished);
     if (body.showInFooter !== undefined) data.showInFooter = Boolean(body.showInFooter);
+    if (body.contactForm !== undefined) data.contactForm = Boolean(body.contactForm);
     if (body.sortOrder !== undefined) data.sortOrder = Number(body.sortOrder) || 0;
 
     try {

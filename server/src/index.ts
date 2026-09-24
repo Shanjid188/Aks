@@ -28,6 +28,8 @@ import reportsRouter from './routes/reports.ts';
 import activityRouter from './routes/activity.ts';
 import storefrontRouter from './routes/storefront.ts';
 import pagesRouter from './routes/pages.ts';
+import newsletterRouter from './routes/newsletter.ts';
+import contactRouter from './routes/contact.ts';
 import seoRouter from './routes/seo.ts';
 
 const app = express();
@@ -97,6 +99,8 @@ app.use('/api', reportsRouter);
 app.use('/api', activityRouter);
 app.use('/api', storefrontRouter);
 app.use('/api', pagesRouter);
+app.use('/api', newsletterRouter);
+app.use('/api', contactRouter);
 
 /* Crawler files (robots.txt / sitemap.xml) live at the site root, not under
    /api — registered before the SPA fallback so they are never swallowed. */

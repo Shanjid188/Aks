@@ -179,6 +179,18 @@ export const PERMISSION_CATALOG: PermissionModule[] = [
     ],
   },
   {
+    // Newsletter sign-ups and contact-form messages coming from the storefront.
+    module: "marketing",
+    label: "Marketing & Inbox",
+    icon: "megaphone",
+    permissions: [
+      { key: "marketing.subscribers_view", label: "View Subscribers" },
+      { key: "marketing.subscribers_manage", label: "Manage Subscribers" },
+      { key: "marketing.messages_view", label: "View Contact Messages" },
+      { key: "marketing.messages_manage", label: "Handle Contact Messages" },
+    ],
+  },
+  {
     module: "invoices",
     label: "Invoices",
     icon: "file-text",
@@ -371,6 +383,10 @@ export const PERM = {
   SETTINGS_VIEW: "settings.view",
   SETTINGS_EDIT: "settings.edit",
   SETTINGS_MANAGE: "settings.manage",
+  MARKETING_SUBSCRIBERS_VIEW: "marketing.subscribers_view",
+  MARKETING_SUBSCRIBERS_MANAGE: "marketing.subscribers_manage",
+  MARKETING_MESSAGES_VIEW: "marketing.messages_view",
+  MARKETING_MESSAGES_MANAGE: "marketing.messages_manage",
   ACTIVITY_LOGS_VIEW: "activity_logs.view",
   ACTIVITY_LOGS_EXPORT: "activity_logs.export",
 } as const;

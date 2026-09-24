@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma.ts';
 import { asyncHandler, requirePermission, currentAdmin } from '../lib/auth.ts';
 import { PERM } from '../lib/permissions.ts';
 import { logAudit } from '../lib/audit.ts';
+import { clientKey, createThrottle } from '../lib/throttle.ts';
 
 const router = Router();
 
@@ -11,28 +12,10 @@ function reviewToApi(r: { date: Date | string; [k: string]: unknown }) {
 }
 
 /**
- * Tiny in-memory throttle for the public review form. This API runs as a single
- * process, so a Map is enough: it resets on restart and is not shared across
- * instances (swap in a shared store if the API is ever scaled out).
+ * Throttle for the public review form — a shopper may submit at most 5 reviews
+ * an hour, which is plenty for a real customer and useless for a spammer.
  */
-const REVIEW_WINDOW_MS = 60 * 60 * 1000;
-const REVIEW_MAX_PER_WINDOW = 5;
-const recentReviewPosts = new Map<string, number[]>();
-
-function isRateLimited(key: string): boolean {
-  const now = Date.now();
-  const hits = (recentReviewPosts.get(key) ?? []).filter((t) => now - t < REVIEW_WINDOW_MS);
-  hits.push(now);
-  recentReviewPosts.set(key, hits);
-
-  // Never let the map grow without bound.
-  if (recentReviewPosts.size > 1000) {
-    for (const [k, v] of recentReviewPosts) {
-      if (v.every((t) => now - t >= REVIEW_WINDOW_MS)) recentReviewPosts.delete(k);
-    }
-  }
-  return hits.length > REVIEW_MAX_PER_WINDOW;
-}
+const reviewThrottle = createThrottle({ windowMs: 60 * 60 * 1000, max: 5 });
 
 /** Public: approved reviews for a product (looked up by slug). */
 router.get(
@@ -76,9 +59,7 @@ router.post(
       return res.status(400).json({ error: 'Review text is too long (2000 characters max)' });
     }
 
-    const clientIp =
-      (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.ip || 'unknown';
-    if (isRateLimited(clientIp)) {
+    if (reviewThrottle.isLimited(clientKey(req))) {
       return res
         .status(429)
         .json({ error: 'Too many reviews from this connection. Please try again later.' });
