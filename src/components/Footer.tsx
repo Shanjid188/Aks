@@ -78,19 +78,30 @@ export const Footer: React.FC = () => {
       const result = await subscribeNewsletter(newsletterEmail.trim(), 'footer');
       addToast({
         type: 'success',
-        title: result.alreadySubscribed ? 'You are already on the list' : 'Thanks for subscribing!',
+        title: result.alreadySubscribed
+          ? t('You are already on the list', 'আপনি ইতিমধ্যেই তালিকায় আছেন')
+          : t('Thanks for subscribing!', 'সাবস্ক্রাইব করার জন্য ধন্যবাদ!'),
         message: result.reactivated
-          ? 'Welcome back — we have switched your subscription on again.'
+          ? t(
+              'Welcome back — we have switched your subscription on again.',
+              'স্বাগতম — আপনার সাবস্ক্রিপশন আবার চালু করা হয়েছে।'
+            )
           : result.alreadySubscribed
-            ? 'This email address is already registered with us.'
-            : "We'll keep you updated with new products and offers.",
+            ? t(
+                'This email address is already registered with us.',
+                'এই ইমেইল ঠিকানাটি আগেই আমাদের কাছে নিবন্ধিত।'
+              )
+            : t(
+                "We'll keep you updated with new products and offers.",
+                'নতুন পণ্য ও অফারের খবর আমরা আপনাকে জানাতে থাকব।'
+              ),
       });
       setNewsletterEmail('');
     } catch (err) {
       addToast({
         type: 'error',
-        title: 'Subscription failed',
-        message: apiErrorMessage(err, 'Please try again in a moment.'),
+        title: t('Subscription failed', 'সাবস্ক্রিপশন সম্পন্ন হয়নি'),
+        message: apiErrorMessage(err, t('Please try again in a moment.', 'একটু পরে আবার চেষ্টা করুন।')),
       });
     } finally {
       setNewsletterState('idle');

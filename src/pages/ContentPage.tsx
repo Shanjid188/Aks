@@ -3,6 +3,7 @@ import { dataLoader } from '../lib/dataLoader';
 import { matchRoute, navigate, useRouter } from '../lib/router';
 import { applySeo, claimSeo } from '../lib/seo';
 import { useLanguage } from '../context/LanguageContext';
+import { useLocalized } from '../components/Localized';
 import { useSiteContent } from '../context/SiteContentContext';
 import { ArrowLeft } from 'lucide-react';
 import { ContactForm } from '../components/ContactForm';
@@ -57,6 +58,7 @@ function renderBody(body: string): React.ReactNode[] {
 export const ContentPage: React.FC = () => {
   const { path } = useRouter();
   const { language } = useLanguage();
+  const t = useLocalized();
   const { storeName } = useSiteContent();
   const slug = matchRoute('/:slug', path)?.slug ?? '';
 
@@ -101,15 +103,20 @@ export const ContentPage: React.FC = () => {
     return (
       <div className="bg-neutral-50/60 min-h-[60vh] py-16">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-neutral-900">Page not found</h1>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-neutral-900">
+            {t('Page not found', 'পেজটি খুঁজে পাওয়া যায়নি')}
+          </h1>
           <p className="mt-3 text-sm text-neutral-600">
-            The page “{slug}” does not exist or is not published.
+            {t(
+              `The page “${slug}” does not exist or is not published.`,
+              `“${slug}” নামের পেজটি নেই অথবা প্রকাশ করা হয়নি।`
+            )}
           </p>
           <button
             onClick={() => navigate('/')}
             className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#D8232A] text-white text-sm font-bold hover:bg-[#B91C1C] transition-colors cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to home
+            <ArrowLeft className="w-4 h-4" /> {t('Back to home', 'হোমে ফিরে যান')}
           </button>
         </div>
       </div>
@@ -123,7 +130,7 @@ export const ContentPage: React.FC = () => {
           onClick={() => navigate('/')}
           className="inline-flex items-center gap-2 text-xs font-bold text-neutral-500 hover:text-[#D8232A] transition-colors cursor-pointer"
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> Home
+          <ArrowLeft className="w-3.5 h-3.5" /> {t('Home', 'হোম')}
         </button>
 
         <article className="mt-4 bg-white rounded-2xl border border-neutral-200 p-6 sm:p-10">
