@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
+import { useSiteContent } from '../context/SiteContentContext';
 import { formatPrice } from '../utils/format';
 import { CategoryType } from '../types';
 import Logo from './Logo';
@@ -39,6 +40,7 @@ const ANNOUNCEMENT_ICONS = [
 
 
 export const Header: React.FC = () => {
+  const { content, trendingSearches } = useSiteContent();
   const {
     cart,
     wishlist,
@@ -388,16 +390,7 @@ export const Header: React.FC = () => {
                           Trending Searches
                         </span>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {[
-                            'Miniket Rice',
-                            'Mustard Oil',
-                            'Nakshi Kantha',
-                            'Jute Bag',
-                            'Bedsheet',
-                            'Face Wash',
-                            'Business Cards',
-                            'Custom Mug',
-                          ].map((kw) => (
+                          {trendingSearches.map((kw) => (
                             <button
                               key={kw}
                               onClick={() => {
@@ -689,7 +682,7 @@ export const Header: React.FC = () => {
                 className="px-3.5 py-1.5 rounded-full bg-red-50 text-[#D8232A] hover:bg-[#D8232A] hover:text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                Festive Sale Up to 40%
+                {content.headerSaleChip}
               </button>
             </li>
           </ul>
@@ -728,7 +721,7 @@ export const Header: React.FC = () => {
                 }}
                 className="text-left font-bold text-sm py-2 px-3 rounded-lg bg-red-50 text-[#D8232A]"
               >
-                Festive Sale
+                {content.headerSaleChipShort}
               </button>
             </div>
 

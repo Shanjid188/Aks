@@ -1,7 +1,7 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Announcement, Promotion } from '../types';
-import { Button, EmptyState, Field, Modal, Spinner, TextInput } from '../components/ui';
+import { Button, EmptyState, Field, Modal, Spinner, TextArea, TextInput } from '../components/ui';
 import { Plus, RefreshCw, Megaphone, Tag, Trash2, Pencil } from 'lucide-react';
 
 /* Announcements manager — real DB-backed CRUD. */
@@ -153,41 +153,224 @@ function PromoManager() {
   );
 }
 
+/* Homepage copy manager — edits the `content.*` store settings that the
+ * storefront home page reads (defaults live in src/data/siteContent.ts). */
+interface ContentField { key: string; label: string; long?: boolean }
+interface ContentGroup { title: string; hint?: string; fields: ContentField[] }
+
+const CONTENT_GROUPS: ContentGroup[] = [
+  {
+    title: 'Featured Products',
+    fields: [
+      { key: 'content.featured.eyebrow', label: 'Eyebrow' },
+      { key: 'content.featured.title', label: 'Title' },
+      { key: 'content.featured.subtitle', label: 'Subtitle', long: true },
+      { key: 'content.featured.action', label: '“View all” link label' },
+    ],
+  },
+  {
+    title: 'New Arrivals',
+    fields: [
+      { key: 'content.newArrivals.eyebrow', label: 'Eyebrow' },
+      { key: 'content.newArrivals.title', label: 'Title' },
+      { key: 'content.newArrivals.subtitle', label: 'Subtitle', long: true },
+      { key: 'content.newArrivals.action', label: '“View all” link label' },
+    ],
+  },
+  {
+    title: 'Best Sellers',
+    fields: [
+      { key: 'content.bestSellers.eyebrow', label: 'Eyebrow' },
+      { key: 'content.bestSellers.title', label: 'Title' },
+      { key: 'content.bestSellers.subtitle', label: 'Subtitle', long: true },
+      { key: 'content.bestSellers.action', label: '“View all” link label' },
+    ],
+  },
+  {
+    title: 'Division grid',
+    fields: [
+      { key: 'content.divisions.eyebrow', label: 'Eyebrow' },
+      { key: 'content.divisions.title', label: 'Title' },
+      { key: 'content.divisions.subtitle', label: 'Subtitle', long: true },
+      { key: 'content.divisions.action', label: 'Link label' },
+    ],
+  },
+  {
+    title: 'Active Offers section',
+    hint: 'The offer cards themselves come from Coupons.',
+    fields: [
+      { key: 'content.offers.eyebrow', label: 'Eyebrow' },
+      { key: 'content.offers.title', label: 'Title' },
+      { key: 'content.offers.subtitle', label: 'Subtitle', long: true },
+    ],
+  },
+  {
+    title: 'Circle showcase',
+    fields: [
+      { key: 'content.showcase.eyebrow', label: 'Eyebrow' },
+      { key: 'content.showcase.title', label: 'Title' },
+      { key: 'content.showcase.subtitle', label: 'Subtitle', long: true },
+    ],
+  },
+  {
+    title: 'Trust strip (below the showcase)',
+    fields: [
+      { key: 'content.trust.item1Title', label: 'Item 1 title' },
+      { key: 'content.trust.item1Sub', label: 'Item 1 note' },
+      { key: 'content.trust.item2Title', label: 'Item 2 title' },
+      { key: 'content.trust.item2Sub', label: 'Item 2 note' },
+      { key: 'content.trust.item3Title', label: 'Item 3 title' },
+      { key: 'content.trust.item3Sub', label: 'Item 3 note' },
+    ],
+  },
+  {
+    title: 'Header',
+    hint: 'Trending searches are comma-separated keywords.',
+    fields: [
+      { key: 'content.header.saleChip', label: 'Sale chip (navbar)' },
+      { key: 'content.header.saleChipShort', label: 'Sale chip (mobile menu)' },
+      { key: 'content.header.trendingSearches', label: 'Trending searches (comma separated)', long: true },
+    ],
+  },
+];
+
+function HomepageContentManager() {
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    api
+      .get<{ settings: Record<string, unknown> }>('/admin/settings')
+      .then((res) => {
+        const next: Record<string, string> = {};
+        for (const group of CONTENT_GROUPS) {
+          for (const field of group.fields) {
+            const value = res.settings[field.key];
+            next[field.key] = typeof value === 'string' ? value : '';
+          }
+        }
+        setValues(next);
+      })
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const save = async () => {
+    setSaving(true);
+    setError(null);
+    setStatus(null);
+    try {
+      const payload: Record<string, string> = {};
+      for (const group of CONTENT_GROUPS) {
+        for (const field of group.fields) payload[field.key] = values[field.key] ?? '';
+      }
+      const res = await api.put<{ updated: number }>('/admin/settings', payload);
+      setStatus(`Saved ${res.updated} fields — refresh the storefront to see them.`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-black text-neutral-900">Homepage content</h2>
+          <p className="text-xs text-neutral-400">
+            Section headings and copy for the storefront home page. Leave a field empty to keep the built-in default.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" onClick={load} className="gap-1">
+            <RefreshCw className="w-3.5 h-3.5" /> Reload
+          </Button>
+          <Button onClick={() => void save()} disabled={saving}>
+            {saving ? 'Saving…' : 'Save changes'}
+          </Button>
+        </div>
+      </div>
+
+      {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+      {status && <p className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{status}</p>}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {CONTENT_GROUPS.map((group) => (
+          <div key={group.title} className="bg-white rounded-2xl border border-neutral-200 p-5 space-y-3">
+            <div>
+              <h3 className="text-sm font-bold text-neutral-900">{group.title}</h3>
+              {group.hint && <p className="text-[11px] text-neutral-400 mt-0.5">{group.hint}</p>}
+            </div>
+            {group.fields.map((field) => (
+              <Field key={field.key} label={field.label}>
+                {field.long ? (
+                  <TextArea
+                    value={values[field.key] ?? ''}
+                    onChange={(e) => setValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                  />
+                ) : (
+                  <TextInput
+                    value={values[field.key] ?? ''}
+                    onChange={(e) => setValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                  />
+                )}
+              </Field>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function FeaturedManager() {
   return (
     <div className="bg-white rounded-2xl border border-neutral-200 p-6">
       <h2 className="text-lg font-semibold mb-4">Featured Products</h2>
       <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
-        <p className="text-sm text-amber-800">💡 Go to <strong>Products</strong> → Edit product → Enable <strong>Featured</strong> to show it on the homepage. The storefront section title and subtitle can be configured from Settings later.</p>
+        <p className="text-sm text-amber-800">💡 Go to <strong>Products</strong> → Edit product → set a <strong>Featured order</strong> (1 = shown first) to place it in this section. The section title/eyebrow/copy live in the <strong>Homepage</strong> tab.</p>
       </div>
     </div>
   );
 }
 
 export default function StorefrontPage() {
-  const [activeTab, setActiveTab] = useState('slider');
+  const [activeTab, setActiveTab] = useState('announcements');
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-neutral-900">Storefront Management</h1>
-        <p className="text-sm text-neutral-500 mt-1">Hero slider, promotions and announcement bar — stored in the database.</p>
+        <p className="text-sm text-neutral-500 mt-1">Hero slider, promotions, announcement bar and homepage copy — stored in the database.</p>
       </div>
       <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl w-fit overflow-x-auto max-w-full">
         {[
-          { id: 'hidden', label: 'Hero Slider' },
-          { id: 'slider', label: 'Announcement Bar' },
+          { id: 'hero', label: 'Hero Slider' },
+          { id: 'announcements', label: 'Announcement Bar' },
           { id: 'featured', label: 'Featured Products' },
           { id: 'promo', label: 'Promotions' },
+          { id: 'content', label: 'Homepage' },
         ].map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}>
             {tab.label}
           </button>
         ))}
       </div>
-      {activeTab === 'hidden' && <HeroSlidesManagerStub />}
-      {activeTab === 'slider' && <AnnouncementManager />}
+      {activeTab === 'hero' && <HeroSlidesManagerStub />}
+      {activeTab === 'announcements' && <AnnouncementManager />}
       {activeTab === 'featured' && <FeaturedManager />}
       {activeTab === 'promo' && <PromoManager />}
+      {activeTab === 'content' && <HomepageContentManager />}
     </div>
   );
 }

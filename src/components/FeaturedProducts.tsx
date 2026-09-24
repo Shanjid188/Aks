@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
+import { useSiteContent } from '../context/SiteContentContext';
 import { HomeProductCard } from './HomeProductCard';
 import { SectionHeader } from './SectionHeader';
 import { ArrowRight } from 'lucide-react';
@@ -7,6 +8,7 @@ import { navigate } from '../lib/router';
 
 export const FeaturedProducts: React.FC = () => {
   const { products, setFilters } = useStore();
+  const { content } = useSiteContent();
 
   const featuredProducts = products
     .filter((p) => p.featuredOrder && p.featuredOrder > 0)
@@ -32,15 +34,15 @@ export const FeaturedProducts: React.FC = () => {
     <section className="py-14 sm:py-20 bg-neutral-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader
-          eyebrow="Curated For You"
-          title="Featured Products"
-          subtitle="Handpicked essentials across all AKS Mart divisions — quality you can trust."
+          eyebrow={content.featuredEyebrow}
+          title={content.featuredTitle}
+          subtitle={content.featuredSubtitle}
           action={
             <button
               onClick={handleViewAll}
               className="flex items-center gap-1.5 text-sm font-bold text-neutral-900 hover:text-[#D8232A] transition-colors group"
             >
-              <span>View All Featured</span>
+              <span>{content.featuredAction}</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           }

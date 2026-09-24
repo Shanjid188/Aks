@@ -6,6 +6,25 @@ import { logAudit } from '../lib/audit.ts';
 
 const router = Router();
 
+/**
+ * Admin-editable storefront copy (Admin → Storefront → Homepage). Keys are
+ * namespaced `content.*`; the storefront maps each one onto its bundled default
+ * copy (see src/data/siteContent.ts), so an unset key simply keeps the default.
+ */
+const CONTENT_KEYS = [
+  'content.featured.eyebrow', 'content.featured.title', 'content.featured.subtitle', 'content.featured.action',
+  'content.newArrivals.eyebrow', 'content.newArrivals.title', 'content.newArrivals.subtitle', 'content.newArrivals.action',
+  'content.bestSellers.eyebrow', 'content.bestSellers.title', 'content.bestSellers.subtitle', 'content.bestSellers.action',
+  'content.divisions.eyebrow', 'content.divisions.title', 'content.divisions.subtitle', 'content.divisions.action',
+  'content.offers.eyebrow', 'content.offers.title', 'content.offers.subtitle',
+  'content.showcase.eyebrow', 'content.showcase.title', 'content.showcase.subtitle',
+  'content.trust.item1Title', 'content.trust.item1Sub',
+  'content.trust.item2Title', 'content.trust.item2Sub',
+  'content.trust.item3Title', 'content.trust.item3Sub',
+  'content.header.saleChip', 'content.header.saleChipShort',
+  'content.header.trendingSearches',
+];
+
 /** Read all store settings as a flat object (public values only for storefront). */
 async function getSettingsMap(): Promise<Record<string, unknown>> {
   const rows = await prisma.storeSetting.findMany();
@@ -36,6 +55,7 @@ router.get(
       'announcementText',
       'announcementLink',
       'lowStockThreshold',
+      ...CONTENT_KEYS,
     ].filter((k) => Object.prototype.hasOwnProperty.call(all, k));
     const picked: Record<string, unknown> = {};
     for (const k of safe) picked[k] = all[k];
@@ -66,6 +86,7 @@ router.put(
       'invoiceFooter', 'returnPolicy', 'packagingNote', 'thankYouMessage',
       'invoicePaperSize', 'thermalWidth', 'lowStockThreshold',
       'orderPrefix', 'posPrefix', 'timezone', 'language',
+      ...CONTENT_KEYS,
     ];
     let count = 0;
     for (const key of allowed) {

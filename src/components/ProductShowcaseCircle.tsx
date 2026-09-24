@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
+import { useSiteContent } from '../context/SiteContentContext';
 import { navigate } from '../lib/router';
 import { formatPrice } from '../utils/format';
 import { Star, ArrowRight, ShieldCheck, Truck, RotateCcw } from 'lucide-react';
@@ -79,11 +80,11 @@ const Callout: React.FC<{ product: Product; reverse?: boolean }> = ({ product, r
   </button>
 );
 
-/** Trust strip content — same promises shown on the product detail page. */
-const TRUST: { icon: LucideIcon; tint: string; title: string; sub: string }[] = [
-  { icon: ShieldCheck, tint: 'bg-emerald-50 text-emerald-600', title: '100% Authentic', sub: 'AKS Mart Certified' },
-  { icon: Truck, tint: 'bg-sky-50 text-sky-600', title: 'Express Delivery', sub: '24–48h in Dhaka' },
-  { icon: RotateCcw, tint: 'bg-rose-50 text-rose-600', title: 'Easy Returns', sub: '30-Day Policy' },
+/** Trust strip icons + tints — the copy itself is admin-editable (Storefront → Homepage). */
+const TRUST_ICONS: { icon: LucideIcon; tint: string }[] = [
+  { icon: ShieldCheck, tint: 'bg-emerald-50 text-emerald-600' },
+  { icon: Truck, tint: 'bg-sky-50 text-sky-600' },
+  { icon: RotateCcw, tint: 'bg-rose-50 text-rose-600' },
 ];
 
 /**
@@ -94,6 +95,14 @@ const TRUST: { icon: LucideIcon; tint: string; title: string; sub: string }[] = 
  */
 export const ProductShowcaseCircle: React.FC = () => {
   const { products } = useStore();
+  const { content } = useSiteContent();
+
+  /** Trust-strip copy is admin-editable; the icons and tints stay in code. */
+  const trustItems = TRUST_ICONS.map((item, i) => ({
+    ...item,
+    title: [content.trust1Title, content.trust2Title, content.trust3Title][i] ?? '',
+    sub: [content.trust1Sub, content.trust2Sub, content.trust3Sub][i] ?? '',
+  }));
 
   const usable = products.filter((p) => imgOf(p) !== '');
   if (usable.length < 2) return null;
@@ -126,15 +135,15 @@ export const ProductShowcaseCircle: React.FC = () => {
           <div className="flex items-center justify-center gap-2.5">
             <Dots />
             <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#D8232A]">
-              Handpicked for you
+              {content.showcaseEyebrow}
             </span>
             <Dots />
           </div>
           <h2 className="mt-3 text-2xl font-black tracking-tight text-neutral-900 sm:text-4xl">
-            Loved by our customers
+            {content.showcaseTitle}
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-neutral-500 sm:text-base">
-            Real products, real reviews — the favourites our shoppers keep coming back for.
+            {content.showcaseSubtitle}
           </p>
         </div>
 
@@ -228,7 +237,7 @@ export const ProductShowcaseCircle: React.FC = () => {
 
         {/* trust strip */}
         <div className="mx-auto mt-14 grid max-w-3xl gap-3 sm:grid-cols-3">
-          {TRUST.map(({ icon: Icon, tint, title, sub }) => (
+          {trustItems.map(({ icon: Icon, tint, title, sub }) => (
             <div
               key={title}
               className="flex items-center gap-3 rounded-2xl border border-neutral-200/80 bg-white/80 px-4 py-3 backdrop-blur"

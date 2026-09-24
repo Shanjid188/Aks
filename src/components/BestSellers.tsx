@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
+import { useSiteContent } from '../context/SiteContentContext';
 import { HomeProductCard } from './HomeProductCard';
 import { SectionHeader } from './SectionHeader';
 import { ArrowRight } from 'lucide-react';
@@ -7,6 +8,7 @@ import { navigate } from '../lib/router';
 
 export const BestSellers: React.FC = () => {
   const { products, setFilters } = useStore();
+  const { content } = useSiteContent();
 
   const bestSellers = products
     .filter((p) => p.isBestSeller)
@@ -32,16 +34,16 @@ export const BestSellers: React.FC = () => {
     <section className="py-14 sm:py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader
-          eyebrow="Top Picks"
+          eyebrow={content.bestSellersEyebrow}
           accentDotClass="bg-amber-500"
-          title="Best Sellers"
-          subtitle="Most-loved products chosen by the AKS Mart community."
+          title={content.bestSellersTitle}
+          subtitle={content.bestSellersSubtitle}
           action={
             <button
               onClick={handleViewAll}
               className="flex items-center gap-1.5 text-sm font-bold text-neutral-900 hover:text-[#D8232A] transition-colors group"
             >
-              <span>View All Best Sellers</span>
+              <span>{content.bestSellersAction}</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           }

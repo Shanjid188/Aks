@@ -1,5 +1,6 @@
 import React from 'react';
 import { StoreProvider } from './context/StoreContext';
+import { SiteContentProvider } from './context/SiteContentContext';
 import { RouterProvider, useRouter, matchRoute } from './lib/router';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
@@ -63,7 +64,9 @@ export default function App() {
   return (
     <RouterProvider>
       <StoreProvider>
-        <MainAppContent />
+        <SiteContentProvider>
+          <MainAppContent />
+        </SiteContentProvider>
       </StoreProvider>
     </RouterProvider>
   );

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
+import { useSiteContent } from '../context/SiteContentContext';
 import { HomeProductCard } from './HomeProductCard';
 import { SectionHeader } from './SectionHeader';
 import { ArrowRight } from 'lucide-react';
@@ -7,6 +8,7 @@ import { navigate } from '../lib/router';
 
 export const NewArrivals: React.FC = () => {
   const { products, setFilters } = useStore();
+  const { content } = useSiteContent();
 
   const newArrivals = products
     .filter((p) => p.isNewArrival)
@@ -32,16 +34,16 @@ export const NewArrivals: React.FC = () => {
     <section className="py-14 sm:py-20 bg-neutral-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader
-          eyebrow="Just Landed"
+          eyebrow={content.newArrivalsEyebrow}
           accentDotClass="bg-emerald-600"
-          title="New Arrivals"
-          subtitle="Fresh picks and latest additions to the AKS Mart family."
+          title={content.newArrivalsTitle}
+          subtitle={content.newArrivalsSubtitle}
           action={
             <button
               onClick={handleViewAll}
               className="flex items-center gap-1.5 text-sm font-bold text-neutral-900 hover:text-[#D8232A] transition-colors group"
             >
-              <span>View All New</span>
+              <span>{content.newArrivalsAction}</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           }

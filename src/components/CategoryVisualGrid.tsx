@@ -3,6 +3,7 @@ import { Link } from '../lib/router';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 import { useStore } from '../context/StoreContext';
+import { useSiteContent } from '../context/SiteContentContext';
 
 /**
  * Homepage division showcase — premium bento grid.
@@ -11,6 +12,7 @@ import { useStore } from '../context/StoreContext';
  */
 export const CategoryVisualGrid: React.FC = () => {
   const { products, categories } = useStore();
+  const { content } = useSiteContent();
 
   return (
     <section className="py-14 sm:py-20 bg-white">
@@ -19,17 +21,17 @@ export const CategoryVisualGrid: React.FC = () => {
           eyebrow={
             <>
               <Sparkles className="w-3.5 h-3.5" />
-              One Mart. Many Choices.
+              {content.divisionsEyebrow}
             </>
           }
-          title="Many Worlds, One Mart"
-          subtitle="Pure food, handiwork, home comfort, beauty care and custom print — five curated divisions, one trusted destination."
+          title={content.divisionsTitle}
+          subtitle={content.divisionsSubtitle}
           action={
             <Link
               to="/products"
               className="flex items-center gap-1.5 text-sm font-bold text-neutral-900 hover:text-[#D8232A] transition-colors group shrink-0"
             >
-              Browse all products
+              {content.divisionsAction}
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           }

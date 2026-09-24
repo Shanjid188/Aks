@@ -7,6 +7,13 @@ import { HERO_SLIDES, DEFAULT_ANNOUNCEMENTS, VALID_COUPONS } from '../data/promo
 import type { HeroSlide, Announcement } from '../data/promos';
 import { AKS_MART } from '../data/aksMart';
 import { FALLBACK_CATEGORIES } from '../data/aksMart';
+import {
+  DEFAULT_SITE_CONTENT,
+  DEFAULT_TRENDING_SEARCHES,
+  siteContentFromSettings,
+  trendingSearchesFromSettings,
+} from '../data/siteContent';
+import type { SiteContent } from '../data/siteContent';
 import { Category, Coupon, Product, Review } from '../types';
 
 const USE_API = import.meta.env.VITE_USE_API !== 'false';
@@ -116,6 +123,27 @@ export const dataLoader = {
     }
   },
 
+  /** Homepage/header copy from store settings (Admin → Storefront → Homepage).
+   *  Every field falls back to the bundled copy, so nothing ever renders empty. */
+  async loadSiteContent(): Promise<SiteContentBundle> {
+    const fallback: SiteContentBundle = {
+      content: DEFAULT_SITE_CONTENT,
+      trendingSearches: DEFAULT_TRENDING_SEARCHES,
+    };
+    if (!USE_API) return fallback;
+    try {
+      const { settings } = await API.fetchPublicSettings();
+      const raw = settings as unknown as Record<string, unknown>;
+      return {
+        content: siteContentFromSettings(raw),
+        trendingSearches: trendingSearchesFromSettings(raw),
+      };
+    } catch (e) {
+      console.warn('[dataLoader] API site content failed, falling back to bundled copy:', e);
+      return fallback;
+    }
+  },
+
   /** Active coupons for the storefront "Active Offers" section (Admin → Coupons),
    *  falling back to the bundled coupon list when the API is unavailable. */
   async loadCoupons(): Promise<Coupon[]> {
@@ -165,6 +193,12 @@ export const dataLoader = {
     }
   },
 };
+
+/** Homepage / header copy + trending keywords surfaced on the storefront. */
+export interface SiteContentBundle {
+  content: SiteContent;
+  trendingSearches: string[];
+}
 
 /** Store info surfaced on the storefront (footer / contact block). */
 export interface StoreInfo {

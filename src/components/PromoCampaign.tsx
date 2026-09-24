@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { dataLoader } from '../lib/dataLoader';
+import { useSiteContent } from '../context/SiteContentContext';
 import { Coupon } from '../types';
 import { useStore } from '../context/StoreContext';
 import { ArrowRight, Tag, Truck, Gift, Copy, Check } from 'lucide-react';
@@ -26,6 +27,7 @@ const couponIcon = (c: Coupon) => {
 
 export const PromoCampaign: React.FC = () => {
   const { addToast } = useStore();
+  const { content } = useSiteContent();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   // DB-driven offers (Admin → Coupons). dataLoader falls back to the bundled
   // coupon list when the API is unreachable, so the section never goes blank.
@@ -91,9 +93,9 @@ export const PromoCampaign: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <SectionHeader
-          eyebrow="Save More"
-          title="Active Offers"
-          subtitle="Real coupons you can use right now — copy a code and apply it in your shopping bag."
+          eyebrow={content.offersEyebrow}
+          title={content.offersTitle}
+          subtitle={content.offersSubtitle}
           centered
         />
 
