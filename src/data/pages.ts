@@ -49,7 +49,25 @@ Every product we list is checked before it is dispatched, and every order is del
 ## Questions?
 
 Our team is happy to help — see the Contact Us page for phone, email and our Dhaka office address.`,
-    bodyBn: '',
+    bodyBn: `AKS Mart বাংলাদেশের বহুমুখী মার্কেটপ্লেস — SHUDDHO খাদ্যপণ্য, AKS CRAFT হস্তশিল্প, AKS HOME গৃহসজ্জা, AKS BEAUTY ব্যক্তিগত যত্ন এবং AKS PRINT কাস্টম প্রিন্ট — সবই এক ছাদের নিচে।
+
+## আমাদের অঙ্গীকার
+
+“গুণগত মানে আপসহীন, মানবিকতায় অঙ্গীকারবদ্ধ।”
+
+আমাদের প্রতিটি পণ্য পাঠানোর আগে যাচাই করা হয়, আর প্রতিটি অর্ডার বাংলাদেশ জুড়ে আপনার দোরগোড়ায় পৌঁছে দেওয়া হয়।
+
+## আমরা কী বিক্রি করি
+
+- SHUDDHO — চাল, তেল, ডাল, মসলা, মধু, ঘি ও দৈনন্দিন খাদ্যপ্রয়োজনীয় পণ্য
+- AKS CRAFT — হাতে তৈরি ব্যাগ, পাটজাত পণ্য, নকশি কাঁথা ও ঘরসজ্জা
+- AKS HOME — বেডিং, পর্দা, কুশন ও রান্নাঘরের প্রয়োজনীয় পণ্য
+- AKS BEAUTY — ফেস কেয়ার, হেয়ার কেয়ার, সাবান ও ব্যক্তিগত যত্ন
+- AKS PRINT — বিজনেস কার্ড, প্যাকেজিং, কাস্টম পোশাক ও ড্রিংকওয়্যার
+
+## প্রশ্ন আছে?
+
+আমাদের টিম সাহায্য করতে প্রস্তুত — ফোন, ইমেইল ও ঢাকার অফিসের ঠিকানার জন্য যোগাযোগ পেজটি দেখুন।`,
     seoTitle: 'About AKS Mart — five divisions, one trusted destination',
     seoDescription:
       'AKS Mart is a multi-division marketplace in Bangladesh: SHUDDHO food, AKS CRAFT, AKS HOME, AKS BEAUTY and AKS PRINT — quality checked and delivered nationwide.',
@@ -78,7 +96,23 @@ Orders inside Dhaka are usually delivered within 24–48 hours. Other districts 
 ## Payment
 
 Cash on Delivery (COD) is available at checkout: you pay when the order arrives.`,
-    bodyBn: '',
+    bodyBn: `## আমাদের সাথে যোগাযোগ
+
+- ফোন / হোয়াটসঅ্যাপ: +8801728-843503
+- ইমেইল: info@aksgarments.com.bd
+- অফিস: পল্টন টাওয়ার, ৮৭ পুরানা পল্টন লাইন, ঢাকা
+
+## অর্ডার সংক্রান্ত সহায়তা
+
+অর্ডার নম্বরটি হাতের কাছে রাখুন — এটি অর্ডার নিশ্চিতকরণ পেজে এবং “অর্ডার ট্র্যাক করুন”-এ পাবেন।
+
+## ডেলিভারি
+
+ঢাকার ভিতরে অর্ডার সাধারণত ২৪–৪৮ ঘণ্টার মধ্যে পৌঁছে যায়। ঢাকার বাইরে কুরিয়ার পার্টনারের উপর নির্ভর করে এবং কিছুটা বেশি সময় লাগতে পারে।
+
+## পেমেন্ট
+
+চেকআউটে ক্যাশ অন ডেলিভারি (COD) সুবিধা আছে: পণ্য পৌঁছানোর সময় টাকা পরিশোধ করবেন।`,
     seoTitle: 'Contact AKS Mart — phone, email and office address',
     seoDescription:
       'Reach AKS Mart by phone or WhatsApp at +8801728-843503, by email at info@aksgarments.com.bd, or visit Paltan Tower, 87 Purana Paltan Line, Dhaka.',
@@ -113,7 +147,29 @@ Once the returned item reaches us and passes inspection, we process the refund o
 ## Damaged or wrong item?
 
 Tell us within 3 days of delivery with a photo of the item and the packaging, and we will replace it or refund you.`,
-    bodyBn: '',
+    bodyBn: `## ৩০ দিনের মধ্যে রিটার্ন
+
+ডেলিভারির ৩০ দিনের মধ্যে উপযুক্ত পণ্য সহজে ফেরত দেওয়া যায় — আমাদের পণ্য পেজে দেওয়া একই ৩০ দিনের প্রতিশ্রুতি।
+
+## কীভাবে রিটার্ন শুরু করবেন
+
+- +8801728-843503 নম্বরে কল বা মেসেজ করুন, অথবা info@aksgarments.com.bd-এ ইমেইল করুন
+- আপনার অর্ডার নম্বর ও ফেরত দেওয়ার কারণ জানান
+- পণ্যটি ফেরতযোগ্য কি না তা আমাদের টিম নিশ্চিত করে এবং যেখানে সম্ভব পিকআপের ব্যবস্থা করে
+
+## শর্তাবলি
+
+- পণ্যটি অব্যবহৃত এবং যে অবস্থায় পেয়েছেন সেই অবস্থাতেই থাকতে হবে; সম্ভব হলে ট্যাগ ও মূল প্যাকেজিংসহ
+- খাদ্যপণ্য, পচনশীল পণ্য এবং ব্যক্তিগতকৃত প্রিন্ট পণ্য ডেলিভারির পর ফেরত নেওয়া হয় না, তবে পণ্য ক্ষতিগ্রস্ত বা ভুল হলে ব্যতিক্রম
+- পণ্যটি পরিষ্কার ও সম্পূর্ণ রাখুন — অংশবিশেষ না থাকলে ফেরতের পরিমাণ কমতে পারে
+
+## রিফান্ড
+
+ফেরত দেওয়া পণ্য আমাদের কাছে পৌঁছে পরীক্ষা-নিরীক্ষার পর আমরা রিফান্ড বা বদল সম্পন্ন করি। ক্যাশ অন ডেলিভারি অর্ডারের ক্ষেত্রে সম্মত পদ্ধতিতে রিফান্ডের ব্যবস্থা করা হয় এবং তা আপনাকে সরাসরি জানিয়ে দেওয়া হয়।
+
+## পণ্য ক্ষতিগ্রস্ত বা ভুল এসেছে?
+
+ডেলিভারির ৩ দিনের মধ্যে পণ্য ও প্যাকেজিংয়ের ছবিসহ আমাদের জানান — আমরা বদলে দেব অথবা রিফান্ড করব।`,
     seoTitle: 'Return & Refund Policy — 30-day returns at AKS Mart',
     seoDescription:
       'AKS Mart accepts returns within 30 days of delivery. Learn how to start a return, the condition requirements and how refunds and exchanges are processed.',
@@ -151,7 +207,32 @@ Your shopping bag, wishlist and language choice are stored in your own browser (
 ## Removing your data
 
 Write to info@aksgarments.com.bd with your order number and we will delete the personal details we no longer need to keep for accounting purposes.`,
-    bodyBn: '',
+    bodyBn: `## আমরা কী তথ্য নিই
+
+অর্ডার করার সময় ডেলিভারির জন্য যেটুকু তথ্য দরকার, ঠিক সেটুকুই নেওয়া হয়:
+
+- নাম, ফোন নম্বর ও ইমেইল ঠিকানা
+- ডেলিভারি ঠিকানা এবং প্রয়োজনে ডেলিভারি সংক্রান্ত নির্দেশনা
+- আপনি কী অর্ডার করেছেন এবং পরিশোধযোগ্য টাকার পরিমাণ
+
+## কেন ব্যবহার করি
+
+- অর্ডার নিশ্চিত ও ডেলিভারি করতে
+- অর্ডার সংক্রান্ত যোগাযোগের জন্য (যেমন ডেলিভারির কল বা স্টকের আপডেট)
+- অর্ডারের রেকর্ড রাখতে, যাতে পরে রিটার্ন ও রিফান্ড সামলানো যায়
+
+## আমরা যা করি না
+
+- আপনার ব্যক্তিগত তথ্য বিক্রি বা ভাড়া দেওয়া হয় না
+- অর্ডার সম্পন্ন করার জন্য প্রয়োজনীয় ডেলিভারি ও পেমেন্ট পার্টনার ছাড়া অন্য কারও সাথে আপনার তথ্য শেয়ার করা হয় না
+
+## আপনার ডিভাইসে সংরক্ষিত তথ্য
+
+আপনার শপিং ব্যাগ, পছন্দের তালিকা ও ভাষার পছন্দ আপনার নিজের ব্রাউজারে (লোকাল স্টোরেজে) রাখা হয়, যাতে আবার এলে সেগুলো আগের মতোই থাকে। ব্রাউজারের ডেটা মুছে ফেললে সেগুলোও মুছে যাবে।
+
+## আপনার তথ্য মুছে ফেলা
+
+আপনার অর্ডার নম্বরসহ info@aksgarments.com.bd-এ লিখুন — হিসাবরক্ষণের জন্য যা রাখা জরুরি নয়, এমন ব্যক্তিগত তথ্য আমরা মুছে দেব।`,
     seoTitle: 'Privacy Policy — how AKS Mart handles your data',
     seoDescription:
       'How AKS Mart collects, uses and protects customer information for orders, delivery and support — and how to ask us to remove your data.',
@@ -191,7 +272,34 @@ Returns and refunds follow our Return & Refund Policy.
 ## Contact
 
 Questions about these terms: info@aksgarments.com.bd or +8801728-843503.`,
-    bodyBn: '',
+    bodyBn: `## অর্ডার
+
+- অর্ডার করা মানে কেনার অনুরোধ; আমাদের টিম গ্রহণ করলে তা নিশ্চিত হয়
+- অর্ডার স্টক থাকার উপর নির্ভর করে। কোনো পণ্য না থাকলে আমরা যোগাযোগ করে অর্ডার সমন্বয় বা বাতিল করি
+- দাম বাংলাদেশি টাকায় (BDT) দেখানো হয় এবং তা শুধু পণ্যের মূল্য; ডেলিভারি চার্জ নিশ্চিত করার আগেই চেকআউটে দেখা যায়
+
+## ডেলিভারি
+
+- ঢাকার ভিতরে অর্ডার সাধারণত ২৪–৪৮ ঘণ্টার মধ্যে পৌঁছে যায়
+- ঢাকার বাইরে ডেলিভারি কুরিয়ার পার্টনারের উপর নির্ভর করে এবং কিছুটা বেশি সময় লাগতে পারে
+- ফোনটি সচল রাখুন — ডেলিভারির আগে কুরিয়ার কল করতে পারে
+
+## পেমেন্ট
+
+চেকআউটে বর্তমানে ক্যাশ অন ডেলিভারি পেমেন্টের সুবিধা রয়েছে।
+
+## পণ্য
+
+- পণ্যের ছবি শুধু নমুনার জন্য; হাতে তৈরি ও প্রাকৃতিক পণ্যের রং, দানা বা ফিনিশে সামান্য পার্থক্য থাকতে পারে
+- রঙের প্রকাশ আপনার স্ক্রিনের উপরও নির্ভর করে
+
+## রিটার্ন
+
+রিটার্ন ও রিফান্ড আমাদের “রিটার্ন ও রিফান্ড নীতি” অনুযায়ী হয়।
+
+## যোগাযোগ
+
+এই শর্তাবলি নিয়ে প্রশ্ন থাকলে: info@aksgarments.com.bd অথবা +8801728-843503।`,
     seoTitle: 'Terms & Conditions — AKS Mart',
     seoDescription:
       'Ordering, delivery, payment, product and returns terms for shopping at AKS Mart Bangladesh.',
