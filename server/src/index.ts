@@ -27,6 +27,8 @@ import expensesRouter from './routes/expenses.ts';
 import reportsRouter from './routes/reports.ts';
 import activityRouter from './routes/activity.ts';
 import storefrontRouter from './routes/storefront.ts';
+import pagesRouter from './routes/pages.ts';
+import seoRouter from './routes/seo.ts';
 
 const app = express();
 
@@ -94,6 +96,11 @@ app.use('/api', expensesRouter);
 app.use('/api', reportsRouter);
 app.use('/api', activityRouter);
 app.use('/api', storefrontRouter);
+app.use('/api', pagesRouter);
+
+/* Crawler files (robots.txt / sitemap.xml) live at the site root, not under
+   /api — registered before the SPA fallback so they are never swallowed. */
+app.use('/', seoRouter);
 
 /* ── SPA fallbacks (registered AFTER all /api routes) ───────────────────────
    Deep links get the right SPA instead of the JSON 404 below. /api/* paths are

@@ -13,9 +13,11 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
  *   /checkout            Checkout page
  *   /order-success/:id   Order confirmation
  *   /track-order         Track an order
+ *   /:slug               Content page (About, Contact, policies…) from the DB
  *
  * Deep links work in production because the API server falls back to
- * index.html for any non-/api path.
+ * index.html for any non-/api path. robots.txt and sitemap.xml are served by
+ * the API itself (server/src/routes/seo.ts), not by this router.
  */
 
 export interface RouteState {

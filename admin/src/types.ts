@@ -315,11 +315,28 @@ export interface ActivityLogRow {
   action: string; entity: string; entityId: string | null; details: string; createdAt: string;
 }
 
+export interface ContentPage {
+  id: string;
+  slug: string;
+  title: string;
+  titleBn: string;
+  body: string;
+  bodyBn: string;
+  seoTitle: string;
+  seoDescription: string;
+  isPublished: boolean;
+  showInFooter: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface StoreSettings {
   storeName?: string; storeTagline?: string; storeLogo?: string; favicon?: string; phone?: string; email?: string;
   website?: string; address?: string; addressBn?: string; mottoEn?: string; mottoBn?: string; facebook?: string; whatsapp?: string; instagram?: string; youtube?: string; tiktok?: string; currency?: string; currencySymbol?: string;
   defaultShippingCharge?: number; freeShippingThreshold?: number; taxPercent?: number; invoiceFooter?: string;
   returnPolicy?: string; packagingNote?: string; thankYouMessage?: string; invoicePaperSize?: string; thermalWidth?: string;
+  seoTitle?: string; seoDescription?: string; ogImage?: string;
   lowStockThreshold?: number; orderPrefix?: string; posPrefix?: string; timezone?: string; language?: string;
 }
 

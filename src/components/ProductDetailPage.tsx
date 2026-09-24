@@ -22,7 +22,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bi } from './Bi';
-import { navigate } from '../lib/router';
+import { navigate, useRouter } from '../lib/router';
+import { applySeo, claimSeo } from '../lib/seo';
+import { useSiteContent } from '../context/SiteContentContext';
 
 export const ProductDetailPage: React.FC = () => {
   const {
@@ -39,6 +41,9 @@ export const ProductDetailPage: React.FC = () => {
     setIsSizeGuideOpen,
     addToast,
   } = useStore();
+
+  const { path } = useRouter();
+  const { storeName } = useSiteContent();
 
   if (!product) return null;
 
@@ -79,6 +84,18 @@ export const ProductDetailPage: React.FC = () => {
       cancelled = true;
     };
   }, [product.slug]);
+
+  // This route owns its meta tags — see src/lib/seo.ts.
+  useEffect(() => {
+    claimSeo(path);
+    const description = (product.description || '').replace(/\s+/g, ' ').trim();
+    applySeo({
+      title: `${product.name} — ${storeName}`,
+      description: description.length > 300 ? `${description.slice(0, 297)}…` : description,
+      image: product.images[0],
+      type: 'product',
+    });
+  }, [product, path, storeName]);
 
   const isFav = isInWishlist(product.id);
 

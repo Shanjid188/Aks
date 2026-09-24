@@ -7,6 +7,13 @@ import { logAudit } from '../lib/audit.ts';
 const router = Router();
 
 /**
+ * Site-wide SEO defaults (Admin → Settings → SEO) — read by the storefront's
+ * runtime <head> manager (src/lib/seo.ts).
+ */
+const SEO_KEYS = ['seoTitle', 'seoDescription', 'ogImage'];
+
+
+/**
  * Admin-editable storefront copy (Admin → Storefront → Homepage). Keys are
  * namespaced `content.*`; the storefront maps each one onto its bundled default
  * copy (see src/data/siteContent.ts), so an unset key simply keeps the default.
@@ -56,6 +63,7 @@ router.get(
       'announcementLink',
       'lowStockThreshold',
       ...CONTENT_KEYS,
+      ...SEO_KEYS,
     ].filter((k) => Object.prototype.hasOwnProperty.call(all, k));
     const picked: Record<string, unknown> = {};
     for (const k of safe) picked[k] = all[k];
@@ -87,6 +95,7 @@ router.put(
       'invoicePaperSize', 'thermalWidth', 'lowStockThreshold',
       'orderPrefix', 'posPrefix', 'timezone', 'language',
       ...CONTENT_KEYS,
+      ...SEO_KEYS,
     ];
     let count = 0;
     for (const key of allowed) {

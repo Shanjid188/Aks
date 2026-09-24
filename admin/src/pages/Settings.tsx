@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
-import { Button, Field, Spinner, TextInput } from '../components/ui';
+import { Button, Field, Spinner, TextArea, TextInput } from '../components/ui';
 import { Save, RefreshCw, Settings as SettingsIcon } from 'lucide-react';
 import type { StoreSettings } from '../types';
 
@@ -96,6 +96,37 @@ export function SettingsPage() {
               <Field label="TikTok"><TextInput value={settings.tiktok || ''} onChange={(e) => set('tiktok', e.target.value)} placeholder="tiktok.com/@aksmartbd" /></Field>
             </div>
           </section>
+          <section className="bg-white rounded-2xl border border-neutral-200 p-5">
+            <h3 className="text-sm font-black text-neutral-900 mb-4">Search &amp; Social Preview (SEO)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Default page title" hint="Browser tab and search-result title">
+                <TextInput
+                  value={settings.seoTitle || ''}
+                  onChange={(e) => set('seoTitle', e.target.value)}
+                  placeholder="AKS Mart — Food, Craft, Home, Beauty & Print in Bangladesh"
+                />
+              </Field>
+              <Field label="Share image (og:image)" hint="A /path or a full https:// URL">
+                <TextInput
+                  value={settings.ogImage || ''}
+                  onChange={(e) => set('ogImage', e.target.value)}
+                  placeholder="/AKS.logo.jpg"
+                />
+              </Field>
+            </div>
+            <div className="mt-4">
+              <Field label="Default meta description" hint="Used when a page has no description of its own">
+                <TextArea
+                  value={settings.seoDescription || ''}
+                  onChange={(e) => set('seoDescription', e.target.value)}
+                />
+              </Field>
+            </div>
+            <p className="mt-3 text-[11px] text-neutral-400">
+              Product pages, content pages, robots.txt and sitemap.xml are generated automatically.
+            </p>
+          </section>
+
           <section className="bg-white rounded-2xl border border-neutral-200 p-5">
             <h3 className="text-sm font-black text-neutral-900 mb-4">Invoice &amp; Printing</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

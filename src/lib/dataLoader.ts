@@ -9,16 +9,35 @@ import { AKS_MART } from '../data/aksMart';
 import { FALLBACK_CATEGORIES } from '../data/aksMart';
 import {
   DEFAULT_SITE_CONTENT,
+  DEFAULT_SITE_SEO,
+  DEFAULT_STORE_NAME,
   DEFAULT_TRENDING_SEARCHES,
+  STORE_NAME_KEY,
   siteContentFromSettings,
+  siteSeoFromSettings,
   trendingSearchesFromSettings,
 } from '../data/siteContent';
-import type { SiteContent } from '../data/siteContent';
+import type { SiteContent, SiteSeo } from '../data/siteContent';
 import { DEFAULT_COMMERCE } from '../data/commerce';
 import type { CommerceSettings } from '../data/commerce';
+import { DEFAULT_PAGES } from '../data/pages';
+import type { ContentPageData } from '../data/pages';
 import { Category, Coupon, Product, Review } from '../types';
 
 const USE_API = import.meta.env.VITE_USE_API !== 'false';
+
+/** Normalise an API content page into the storefront shape (nulls → ''). */
+const mapContentPage = (p: API.ApiContentPage): ContentPageData => ({
+  slug: p.slug,
+  title: p.title,
+  titleBn: p.titleBn ?? '',
+  body: p.body,
+  bodyBn: p.bodyBn ?? '',
+  seoTitle: p.seoTitle ?? '',
+  seoDescription: p.seoDescription ?? '',
+  showInFooter: p.showInFooter,
+  sortOrder: p.sortOrder,
+});
 
 export const dataLoader = {
   /** Load products from API, falling back to bundled data on any failure */
@@ -74,6 +93,34 @@ export const dataLoader = {
       return reviews.length > 0 ? reviews : INITIAL_REVIEWS;
     } catch {
       return INITIAL_REVIEWS;
+    }
+  },
+
+  /** Published content pages (About, Contact, policies) for the footer and the
+   *  /:slug routes — API first, bundled draft as the offline fallback. */
+  async loadPages(): Promise<ContentPageData[]> {
+    if (!USE_API) return DEFAULT_PAGES;
+    try {
+      const { pages } = await API.fetchPages();
+      if (pages.length === 0) return DEFAULT_PAGES;
+      return pages.map(mapContentPage);
+    } catch (e) {
+      console.warn('[dataLoader] API pages failed, falling back to bundled pages:', e);
+      return DEFAULT_PAGES;
+    }
+  },
+
+  /** A single published page by slug (storefront /:slug). Returns null when the
+   *  page does not exist, so the caller can show a proper "not found" state. */
+  async loadPage(slug: string): Promise<ContentPageData | null> {
+    const bundled = DEFAULT_PAGES.find((p) => p.slug === slug) ?? null;
+    if (!USE_API) return bundled;
+    try {
+      const { page } = await API.fetchPage(slug);
+      return mapContentPage(page);
+    } catch (e) {
+      console.warn('[dataLoader] API page failed, falling back to bundled page:', e);
+      return bundled;
     }
   },
 
@@ -162,6 +209,8 @@ export const dataLoader = {
     const fallback: SiteContentBundle = {
       content: DEFAULT_SITE_CONTENT,
       trendingSearches: DEFAULT_TRENDING_SEARCHES,
+      seo: DEFAULT_SITE_SEO,
+      storeName: DEFAULT_STORE_NAME,
     };
     if (!USE_API) return fallback;
     try {
@@ -170,6 +219,11 @@ export const dataLoader = {
       return {
         content: siteContentFromSettings(raw),
         trendingSearches: trendingSearchesFromSettings(raw),
+        seo: siteSeoFromSettings(raw),
+        storeName:
+          typeof raw[STORE_NAME_KEY] === 'string' && String(raw[STORE_NAME_KEY]).trim() !== ''
+            ? String(raw[STORE_NAME_KEY])
+            : DEFAULT_STORE_NAME,
       };
     } catch (e) {
       console.warn('[dataLoader] API site content failed, falling back to bundled copy:', e);
@@ -227,10 +281,13 @@ export const dataLoader = {
   },
 };
 
-/** Homepage / header copy + trending keywords surfaced on the storefront. */
+/** Homepage / header copy + trending keywords + SEO defaults for the storefront. */
 export interface SiteContentBundle {
   content: SiteContent;
   trendingSearches: string[];
+  seo: SiteSeo;
+  /** Store name from settings — used to build page titles. */
+  storeName: string;
 }
 
 /** Store info surfaced on the storefront (footer / contact block). */

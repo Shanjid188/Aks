@@ -28,6 +28,7 @@ import { ReturnsPage } from './pages/Returns';
 import { SettingsPage } from './pages/Settings';
 import { SuppliersPage } from './pages/Suppliers';
 import StorefrontPage from './pages/Storefront';
+import { PagesPage } from './pages/Pages';
 import {
   Activity, BarChart3, Boxes, Calculator, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
   Clock, FileText, Image, LayoutDashboard, LogOut, Menu, Package,
@@ -42,6 +43,7 @@ type PageKey =
   | 'orders'
   | 'products'
   | 'categories'
+  | 'pages'
   | 'inventory'
   | 'invoices'
   | 'packaging'
@@ -84,6 +86,7 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
   { key: 'activity', label: 'Activity Logs', icon: <Activity className="w-[18px] h-[18px]" />, permission: PERM.ACTIVITY_LOGS_VIEW, desc: 'Audit trail' },
   { key: 'slides', label: 'Hero Slides', icon: <Image className="w-[18px] h-[18px]" />, permission: PERM.SLIDES_VIEW, desc: 'Homepage banners' },
   { key: 'storefront', label: 'Storefront', icon: <Sparkles className="w-[18px] h-[18px]" />, permission: PERM.STOREFRONT_VIEW, desc: 'Promos & announcements' },
+  { key: 'pages', label: 'Content Pages', icon: <FileText className="w-[18px] h-[18px]" />, permission: PERM.STOREFRONT_VIEW, desc: 'About & policy pages' },
   { key: 'admins', label: 'Admin Users', icon: <UserCog className="w-[18px] h-[18px]" />, permission: PERM.ADMINS_VIEW, desc: 'Team accounts' },
   { key: 'roles', label: 'Roles & Permissions', icon: <ShieldCheck className="w-[18px] h-[18px]" />, permission: PERM.ROLES_VIEW, desc: 'Access control' },
   { key: 'settings', label: 'Settings', icon: <Settings className="w-[18px] h-[18px]" />, permission: PERM.SETTINGS_VIEW, desc: 'Store configuration' },
@@ -105,7 +108,7 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
 const NAV_GROUPS: { key: string; label: string; icon: ReactNode; keys: PageKey[] }[] = [
   { key: 'operation', label: 'Operation', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders_pending', 'orders_confirmed', 'packaging', 'orders_shipped', 'orders_delivered', 'orders_cancelled', 'orders_returned', 'invoices', 'returns', 'customers'] },
   { key: 'catalog', label: 'Catalog', icon: <Boxes className="w-4 h-4" />, keys: ['products', 'inventory', 'purchases', 'suppliers'] },
-  { key: 'marketing', label: 'Marketing', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'storefront'] },
+  { key: 'marketing', label: 'Marketing', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'storefront', 'pages'] },
   { key: 'finance', label: 'Finance', icon: <BarChart3 className="w-4 h-4" />, keys: ['expenses', 'reports'] },
   { key: 'administration', label: 'Administration', icon: <ShieldCheck className="w-4 h-4" />, keys: ['admins', 'roles', 'activity', 'settings'] },
 ];
@@ -371,6 +374,8 @@ export default function App() {
         return <HeroSlidesPage />;
       case 'storefront':
         return <StorefrontPage />;
+      case 'pages':
+        return <PagesPage />;
       case 'reviews':
         return <ReviewsPage />;
       case 'admins':

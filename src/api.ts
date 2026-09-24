@@ -222,6 +222,24 @@ export interface ApiCategory {
 
 export const fetchCategories = () => api<{ categories: ApiCategory[] }>('/categories');
 
+/* ── Content pages (About / Contact / policies — Admin → Content Pages) ───── */
+
+export interface ApiContentPage {
+  slug: string;
+  title: string;
+  titleBn: string;
+  body: string;
+  bodyBn: string;
+  seoTitle: string;
+  seoDescription: string;
+  showInFooter: boolean;
+  sortOrder: number;
+}
+
+export const fetchPages = () => api<{ pages: ApiContentPage[] }>('/pages');
+
+export const fetchPage = (slug: string) => api<{ page: ApiContentPage }>(`/pages/${slug}`);
+
 export interface ApiPublicSettings {
   storeName?: string;
   storeTagline?: string;

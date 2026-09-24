@@ -473,6 +473,27 @@ model Coupon {
   updatedAt    DateTime @updatedAt
 }
 
+/// Storefront content page (About, Contact, policies…) — Admin → Content Pages.
+/// `body` is plain text: "## " starts a heading, "- " a bullet, blank lines split
+/// paragraphs. Kept dependency-free on purpose (no markdown library in the app).
+model ContentPage {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  title          String
+  titleBn        String   @default("")
+  body           String
+  bodyBn         String   @default("")
+  seoTitle       String   @default("")
+  seoDescription String   @default("")
+  isPublished    Boolean  @default(true)
+  showInFooter   Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([isPublished])
+}
+
 model Store {
   id           String   @id @default(cuid())
   name         String   @unique

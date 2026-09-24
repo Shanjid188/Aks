@@ -14,6 +14,7 @@ import { Bi } from './Bi';
 import { navigate } from '../lib/router';
 import { dataLoader, DEFAULT_STORE_INFO } from '../lib/dataLoader';
 import type { StoreInfo } from '../lib/dataLoader';
+import type { ContentPageData } from '../data/pages';
 import type { CategoryType } from '../types';
 
 export const Footer: React.FC = () => {
@@ -33,6 +34,19 @@ export const Footer: React.FC = () => {
     let cancelled = false;
     dataLoader.loadStoreInfo().then((info) => {
       if (!cancelled) setStoreInfo(info);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Content pages (About, Contact, policies) — Admin → Content Pages.
+  const [footerPages, setFooterPages] = useState<ContentPageData[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    dataLoader.loadPages().then((list) => {
+      if (!cancelled) setFooterPages(list.filter((p) => p.showInFooter));
     });
     return () => {
       cancelled = true;
@@ -152,22 +166,16 @@ export const Footer: React.FC = () => {
                   <Bi en="AKS Mart Club Rewards" bn="AKS Mart ক্লাব রিওয়ার্ড" />
                 </button>
               </li>
-              <li>
-                <a
-                  href="#support"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    addToast({
-                      type: 'info',
-                      title: 'Customer Support',
-                      message: `Call or WhatsApp us at ${storeInfo.phone}.`,
-                    });
-                  }}
-                  className="hover:text-white transition-colors"
-                >
-                  <Bi en="Returns & Easy Exchange" bn="রিটার্ন ও এক্সচেঞ্জ" />
-                </a>
-              </li>
+              {footerPages.map((p) => (
+                <li key={p.slug}>
+                  <button
+                    onClick={() => navigate('/' + p.slug)}
+                    className="hover:text-white transition-colors cursor-pointer text-left"
+                  >
+                    <Bi en={p.title} bn={p.titleBn || p.title} />
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
 

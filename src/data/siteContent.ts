@@ -167,3 +167,43 @@ export const trendingSearchesFromSettings = (raw: Record<string, unknown>): stri
     .filter(Boolean);
   return list.length > 0 ? list : DEFAULT_TRENDING_SEARCHES;
 };
+
+/* ── Site-wide SEO defaults (Admin → Settings → SEO) ───────────────────────── */
+
+/** Store name (Admin → Settings → Store identity) — used in page titles. */
+export const STORE_NAME_KEY = 'storeName';
+export const DEFAULT_STORE_NAME = 'AKS Mart';
+
+export interface SiteSeo {
+  /** Browser/search title. Individual pages append their own name to it. */
+  title: string;
+  description: string;
+  /** Absolute URL or /path used for og:image. */
+  image: string;
+  favicon: string;
+}
+
+export const DEFAULT_SITE_SEO: SiteSeo = {
+  title: 'AKS Mart — Food, Craft, Home, Beauty & Print in Bangladesh',
+  description:
+    "AKS Mart is Bangladesh's multi-division marketplace — SHUDDHO food, AKS CRAFT handicrafts, AKS HOME living, AKS BEAUTY personal care and AKS PRINT custom printing, delivered nationwide.",
+  image: '/AKS.logo.jpg',
+  favicon: '/AKS.logo.jpg',
+};
+
+export const SEO_SETTING_KEYS: Record<keyof SiteSeo, string> = {
+  title: 'seoTitle',
+  description: 'seoDescription',
+  image: 'ogImage',
+  favicon: 'favicon',
+};
+
+/** Merge SEO settings over the bundled defaults (empty values are ignored). */
+export const siteSeoFromSettings = (raw: Record<string, unknown>): SiteSeo => {
+  const out: SiteSeo = { ...DEFAULT_SITE_SEO };
+  for (const field of Object.keys(SEO_SETTING_KEYS) as (keyof SiteSeo)[]) {
+    const value = raw[SEO_SETTING_KEYS[field]];
+    if (typeof value === 'string' && value.trim() !== '') out[field] = value;
+  }
+  return out;
+};
