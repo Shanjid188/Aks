@@ -29,6 +29,10 @@ const CONTENT_KEYS = [
   'content.trust.item2Title', 'content.trust.item2Sub',
   'content.trust.item3Title', 'content.trust.item3Sub',
   'content.header.saleChip', 'content.header.saleChipShort',
+  'content.header.allDepartments', 'content.header.divisions', 'content.header.otherDivisions',
+  'content.header.categoriesSuffix', 'content.header.shopPrefix', 'content.header.trendingLabel',
+  'content.header.mobileShopBy', 'content.header.quickTrack', 'content.header.quickClub',
+  'content.header.outfitMatcher',
   'content.header.trendingSearches',
 ];
 

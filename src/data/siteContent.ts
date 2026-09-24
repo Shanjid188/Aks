@@ -48,6 +48,17 @@ export interface SiteContent {
   /* Header */
   headerSaleChip: string;
   headerSaleChipShort: string;
+  /* Header navigation labels */
+  headerAllDepartments: string;
+  headerDivisions: string;
+  headerOtherDivisions: string;
+  headerCategoriesSuffix: string;
+  headerShopPrefix: string;
+  headerTrendingLabel: string;
+  headerMobileShopBy: string;
+  headerQuickTrack: string;
+  headerQuickClub: string;
+  headerOutfitMatcher: string;
 }
 
 /** The bundled defaults — exactly the copy that used to live in the components. */
@@ -90,6 +101,17 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
 
   headerSaleChip: 'Festive Sale Up to 40%',
   headerSaleChipShort: 'Festive Sale',
+
+  headerAllDepartments: 'All Departments',
+  headerDivisions: 'Divisions',
+  headerOtherDivisions: 'Other Divisions',
+  headerCategoriesSuffix: 'Categories',
+  headerShopPrefix: 'Shop',
+  headerTrendingLabel: 'Trending Searches',
+  headerMobileShopBy: 'Shop by AKS Mart Division',
+  headerQuickTrack: 'Track Order',
+  headerQuickClub: 'AKS Mart Club',
+  headerOutfitMatcher: 'Outfit Matcher',
 };
 
 /** Store-setting key for every content field (namespaced `content.*`). */
@@ -131,6 +153,17 @@ export const SITE_CONTENT_KEYS: Record<keyof SiteContent, string> = {
 
   headerSaleChip: 'content.header.saleChip',
   headerSaleChipShort: 'content.header.saleChipShort',
+
+  headerAllDepartments: 'content.header.allDepartments',
+  headerDivisions: 'content.header.divisions',
+  headerOtherDivisions: 'content.header.otherDivisions',
+  headerCategoriesSuffix: 'content.header.categoriesSuffix',
+  headerShopPrefix: 'content.header.shopPrefix',
+  headerTrendingLabel: 'content.header.trendingLabel',
+  headerMobileShopBy: 'content.header.mobileShopBy',
+  headerQuickTrack: 'content.header.quickTrack',
+  headerQuickClub: 'content.header.quickClub',
+  headerOutfitMatcher: 'content.header.outfitMatcher',
 };
 
 /** Trending search keywords (header search panel) — comma-separated in settings. */

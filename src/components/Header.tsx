@@ -207,7 +207,7 @@ export const Header: React.FC = () => {
               className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
             >
               <Clock className="w-3 h-3 text-amber-400" />
-              <span>Track Order</span>
+              <span>{content.headerQuickTrack}</span>
             </Link>
 
             <span className="w-px h-2.5 bg-neutral-700" />
@@ -217,7 +217,7 @@ export const Header: React.FC = () => {
               className="flex items-center gap-1 hover:text-white transition-colors text-amber-400 font-semibold cursor-pointer"
             >
               <Award className="w-3 h-3" />
-              <span>AKS Mart Club</span>
+              <span>{content.headerQuickClub}</span>
             </button>
 
             <span className="w-px h-3 bg-neutral-700" />
@@ -387,7 +387,7 @@ export const Header: React.FC = () => {
                     <div>
                       <div className="mb-3">
                         <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
-                          Trending Searches
+                          {content.headerTrendingLabel}
                         </span>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {trendingSearches.map((kw) => (
@@ -436,7 +436,7 @@ export const Header: React.FC = () => {
               className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-full bg-gradient-to-r from-amber-50 to-rose-50 border border-amber-200/80 text-amber-900 text-xs font-bold hover:shadow-sm transition-all hover:scale-102 cursor-pointer"
             >
               <Sparkle className="w-3.5 h-3.5 text-amber-600 fill-amber-500 animate-pulse" />
-              <span>Outfit Matcher</span>
+              <span>{content.headerOutfitMatcher}</span>
             </button>
 
             {/* Compare */}
@@ -525,7 +525,7 @@ export const Header: React.FC = () => {
                   filters.category === 'all' && filters.subcategory === 'All' ? 'text-[#D8232A] border-b-2 border-[#D8232A]' : ''
                 }`}
               >
-                All Departments
+                {content.headerAllDepartments}
               </button>
             </li>
 
@@ -557,7 +557,7 @@ export const Header: React.FC = () => {
                   >
                     <div>
                       <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
-                        {cat.name} Categories
+                        {cat.name} {content.headerCategoriesSuffix}
                       </h4>
                       <ul className="space-y-2 text-sm text-neutral-700 font-medium">
                         {subcategoriesFor(cat.slug)
@@ -577,7 +577,7 @@ export const Header: React.FC = () => {
 
                     <div>
                       <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
-                        Other Divisions
+                        {content.headerOtherDivisions}
                       </h4>
                       <ul className="space-y-2 text-sm text-neutral-700 font-medium">
                         {categories
@@ -608,7 +608,7 @@ export const Header: React.FC = () => {
                         onClick={() => handleSelectCategory(cat.slug, 'All')}
                         className="text-xs font-bold text-[#D8232A] flex items-center gap-1 mt-3"
                       >
-                        Shop {cat.name} <ArrowRight className="w-3 h-3" />
+                        {content.headerShopPrefix} {cat.name} <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
                   </motion.div>
@@ -626,7 +626,7 @@ export const Header: React.FC = () => {
               <button
                 className="px-3.5 py-3 hover:text-[#D8232A] transition-colors flex items-center gap-1 cursor-pointer"
               >
-                Divisions <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                {content.headerDivisions} <ChevronDown className="w-3.5 h-3.5 opacity-60" />
               </button>
 
               <AnimatePresence>
@@ -703,7 +703,7 @@ export const Header: React.FC = () => {
                 onClick={() => handleSelectCategory('all', 'All')}
                 className="text-left font-bold text-sm py-2 px-3 rounded-lg bg-neutral-100 text-neutral-900"
               >
-                All Departments
+                {content.headerAllDepartments}
               </button>
               {categories.map((cat) => (
                 <button
@@ -727,7 +727,7 @@ export const Header: React.FC = () => {
 
             <div className="border-t border-neutral-100 pt-3">
               <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">
-                Shop by AKS Mart Division
+                {content.headerMobileShopBy}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {categories.map((cat) => (
