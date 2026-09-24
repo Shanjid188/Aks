@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
 import type { Prisma } from '@prisma/client';
 import { productFromApi, productToApi } from '../utils/product.ts';
+import { withLiveRatings } from '../lib/ratings.ts';
 import { asyncHandler, requirePermission, currentAdmin } from '../lib/auth.ts';
 import { PERM } from '../lib/permissions.ts';
 import { logAudit } from '../lib/audit.ts';
@@ -58,7 +59,12 @@ router.get(
                 : [{ featuredOrder: 'asc' as const }, { rating: 'desc' as const }];
 
     const products = await prisma.product.findMany({ where, orderBy });
-    res.json({ products: products.map(productToApi), count: products.length });
+    // Live aggregates: approved reviews override the stored rating/review count.
+    const apiProducts = await withLiveRatings(products);
+    if (sort === 'rating') {
+      apiProducts.sort((a, b) => Number(b.rating ?? 0) - Number(a.rating ?? 0));
+    }
+    res.json({ products: apiProducts, count: products.length });
   })
 );
 
@@ -73,7 +79,8 @@ router.get(
     if (!product || !product.isActive) {
       return res.status(404).json({ error: 'Product not found' });
     }
-    res.json(productToApi(product));
+    const [apiProduct] = await withLiveRatings([product]);
+    res.json(apiProduct);
   })
 );
 

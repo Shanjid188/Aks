@@ -37,6 +37,9 @@ export function ReviewsPage() {
       <div>
         <h2 className="text-lg font-black text-neutral-900">Customer Reviews</h2>
         <p className="text-xs text-neutral-400">{reviews.length} reviews across all products</p>
+        <p className="text-[11px] text-neutral-400 mt-0.5">
+          A product's star rating and review count on the storefront come from its approved reviews.
+        </p>
       </div>
 
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}

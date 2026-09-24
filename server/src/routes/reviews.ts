@@ -10,6 +10,30 @@ function reviewToApi(r: { date: Date | string; [k: string]: unknown }) {
   return r;
 }
 
+/**
+ * Tiny in-memory throttle for the public review form. This API runs as a single
+ * process, so a Map is enough: it resets on restart and is not shared across
+ * instances (swap in a shared store if the API is ever scaled out).
+ */
+const REVIEW_WINDOW_MS = 60 * 60 * 1000;
+const REVIEW_MAX_PER_WINDOW = 5;
+const recentReviewPosts = new Map<string, number[]>();
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  const hits = (recentReviewPosts.get(key) ?? []).filter((t) => now - t < REVIEW_WINDOW_MS);
+  hits.push(now);
+  recentReviewPosts.set(key, hits);
+
+  // Never let the map grow without bound.
+  if (recentReviewPosts.size > 1000) {
+    for (const [k, v] of recentReviewPosts) {
+      if (v.every((t) => now - t >= REVIEW_WINDOW_MS)) recentReviewPosts.delete(k);
+    }
+  }
+  return hits.length > REVIEW_MAX_PER_WINDOW;
+}
+
 /** Public: approved reviews for a product (looked up by slug). */
 router.get(
   '/products/:slug/reviews',
@@ -50,6 +74,28 @@ router.post(
     }
     if (comment.length > 2000) {
       return res.status(400).json({ error: 'Review text is too long (2000 characters max)' });
+    }
+
+    const clientIp =
+      (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.ip || 'unknown';
+    if (isRateLimited(clientIp)) {
+      return res
+        .status(429)
+        .json({ error: 'Too many reviews from this connection. Please try again later.' });
+    }
+
+    // Same person + same text for the same product within a day → duplicate.
+    const duplicate = await prisma.review.findFirst({
+      where: {
+        productId: product.id,
+        author,
+        comment,
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+      select: { id: true },
+    });
+    if (duplicate) {
+      return res.status(409).json({ error: 'You have already submitted this review for this product.' });
     }
 
     const review = await prisma.review.create({

@@ -1015,10 +1015,10 @@ export function ProductsPage() {
                   <Field label="Featured order" hint="1 = first in the homepage row (a product is featured when the toggle below is on, or when it has an order)">
                     <TextInput type="number" value={form.featuredOrder} onChange={(e) => set('featuredOrder', e.target.value)} placeholder="Auto" />
                   </Field>
-                  <Field label="Rating">
+                  <Field label="Rating" hint="Used until the product has approved reviews — then the review average is shown">
                     <TextInput type="number" step="0.1" min={0} max={5} value={form.rating} onChange={(e) => set('rating', e.target.value)} />
                   </Field>
-                  <Field label="Reviews count">
+                  <Field label="Reviews count" hint="Same rule: approved reviews take over once there are any">
                     <TextInput type="number" min={0} value={form.reviewsCount} onChange={(e) => set('reviewsCount', e.target.value)} />
                   </Field>
                 </div>
