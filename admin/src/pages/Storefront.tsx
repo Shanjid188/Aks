@@ -339,6 +339,39 @@ const SHOP_UI_GROUPS: ContentGroup[] = [
       { key: 'content.listing.noMatchBody', label: 'No results: explanation', long: true },
     ],
   },
+  {
+    title: 'Product page',
+    hint: 'The product detail page. {sku}, {count} and {size} are filled in automatically. The three trust badges use the trust strip copy from the Homepage tab.',
+    fields: [
+      { key: 'content.pdp.backToProducts', label: 'Back link' },
+      { key: 'content.pdp.skuPrefix', label: 'SKU badge ({sku})' },
+      { key: 'content.pdp.newArrivalBadge', label: '“New Arrival” badge' },
+      { key: 'content.pdp.lowStock', label: 'Low-stock warning ({count}, {size})', long: true },
+      { key: 'content.pdp.quantity', label: 'Quantity label' },
+      { key: 'content.pdp.addToBag', label: 'Add-to-bag button' },
+      { key: 'content.pdp.buyNow', label: 'Buy-now button' },
+      { key: 'content.pdp.wishlistTitle', label: 'Wishlist button tooltip' },
+      { key: 'content.pdp.pairsBadge', label: '“Pairs well with” badge' },
+      { key: 'content.pdp.pairsTitle', label: '“Pairs well with” heading' },
+    ],
+  },
+  {
+    title: 'Product page: reviews & info tabs',
+    fields: [
+      { key: 'content.pdp.writeReview', label: '“Write a review” button' },
+      { key: 'content.pdp.ratingBasedOn', label: 'Rating summary ({count})' },
+      { key: 'content.pdp.writtenReviewOne', label: 'Word after the count (just 1)' },
+      { key: 'content.pdp.writtenReviewMany', label: 'Word after the count (many)' },
+      { key: 'content.pdp.ratingBreakdown', label: 'Star breakdown heading' },
+      { key: 'content.pdp.noReviews', label: 'No reviews yet', long: true },
+      { key: 'content.pdp.careHeading', label: 'Tab: care heading' },
+      { key: 'content.pdp.careDefault', label: 'Tab: care text', long: true },
+      { key: 'content.pdp.deliveryHeading', label: 'Tab: delivery heading' },
+      { key: 'content.pdp.deliveryBody', label: 'Tab: delivery text', long: true },
+      { key: 'content.pdp.returnsHeading', label: 'Tab: returns heading' },
+      { key: 'content.pdp.returnsBody', label: 'Tab: returns text', long: true },
+    ],
+  },
 ];
 
 
