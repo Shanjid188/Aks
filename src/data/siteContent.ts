@@ -98,6 +98,33 @@ interface SiteContentBase {
   listingClearAll: string;
   listingNoMatchTitle: string;
   listingNoMatchBody: string;
+  /* Product page (product detail) */
+  pdpBackToProducts: string;
+  /** `{sku}` is the product code. */
+  pdpSkuPrefix: string;
+  pdpNewArrivalBadge: string;
+  pdpQuantity: string;
+  pdpAddToBag: string;
+  pdpBuyNow: string;
+  pdpWishlistTitle: string;
+  /** `{count}` pieces left in `{size}`. */
+  pdpLowStock: string;
+  pdpPairsBadge: string;
+  pdpPairsTitle: string;
+  pdpWriteReview: string;
+  /** `{count}` customer ratings behind the score. */
+  pdpRatingBasedOn: string;
+  /** The word after the count: "1 written review" / "3 written reviews". */
+  pdpWrittenReviewOne: string;
+  pdpWrittenReviewMany: string;
+  pdpRatingBreakdown: string;
+  pdpNoReviews: string;
+  pdpCareHeading: string;
+  pdpCareDefault: string;
+  pdpDeliveryHeading: string;
+  pdpDeliveryBody: string;
+  pdpReturnsHeading: string;
+  pdpReturnsBody: string;
   /* “Why Shop With Us” strip (above the footer) */
   promoTagline: string;
   promoTitle: string;
@@ -221,6 +248,32 @@ const DEFAULT_SITE_CONTENT_BASE: SiteContentBase = {
   listingNoMatchBody:
     'Try clearing some filter criteria, broadening your price range, or exploring another AKS Mart division.',
 
+  pdpBackToProducts: 'Back to Products',
+  pdpSkuPrefix: 'SKU {sku}',
+  pdpNewArrivalBadge: 'New Arrival',
+  pdpQuantity: 'Quantity:',
+  pdpAddToBag: 'Add to Shopping Bag',
+  pdpBuyNow: 'Buy Now (Cash on Delivery)',
+  pdpWishlistTitle: 'Save to Wishlist',
+  pdpLowStock: '⚡ Only {count} pieces left in size {size}!',
+  pdpPairsBadge: 'PAIRS WELL WITH',
+  pdpPairsTitle: 'Complete your order',
+  pdpWriteReview: 'Write a Review',
+  pdpRatingBasedOn: 'Based on {count} customer ratings',
+  pdpWrittenReviewOne: 'review',
+  pdpWrittenReviewMany: 'reviews',
+  pdpRatingBreakdown: 'Rating breakdown',
+  pdpNoReviews: 'No customer reviews yet for this product. Be the first to share your thoughts!',
+  pdpCareHeading: 'Care & Storage',
+  pdpCareDefault:
+    'Keep dry goods airtight and store in a cool, dry place away from direct sunlight. Wipe crafted & jute items with a dry cloth only.',
+  pdpDeliveryHeading: 'Delivery Information',
+  pdpDeliveryBody:
+    'Express delivery within 24-48 hours inside Dhaka, 2-4 days nationwide. Cash on Delivery available all over Bangladesh.',
+  pdpReturnsHeading: 'Easy Returns',
+  pdpReturnsBody:
+    'Free returns within 30 days of delivery. If anything is not right, we cover the return shipping — shop happy.',
+
   promoTagline: 'Why Shop With Us',
   promoTitle: 'One Mart. Many Choices.',
   promoSubtitle:
@@ -338,6 +391,32 @@ const DEFAULT_SITE_CONTENT_BN: BanglaOf<SiteContentBase> = {
   listingNoMatchBodyBn:
     'কিছু ফিল্টার মুছে দেখুন, দামের সীমা বাড়িয়ে দেখুন, অথবা AKS Mart-এর অন্য বিভাগ ঘুরে দেখুন।',
 
+  pdpBackToProductsBn: 'পণ্যের তালিকায় ফিরুন',
+  pdpSkuPrefixBn: 'এসকেইউ {sku}',
+  pdpNewArrivalBadgeBn: 'নতুন',
+  pdpQuantityBn: 'পরিমাণ:',
+  pdpAddToBagBn: 'ব্যাগে যোগ করুন',
+  pdpBuyNowBn: 'এখনই কিনুন (ক্যাশ অন ডেলিভারি)',
+  pdpWishlistTitleBn: 'পছন্দের তালিকায় রাখুন',
+  pdpLowStockBn: '⚡ সাইজ {size}-এ মাত্র {count} পিস বাকি!',
+  pdpPairsBadgeBn: 'সাথে ভালো মানায়',
+  pdpPairsTitleBn: 'অর্ডার সম্পূর্ণ করুন',
+  pdpWriteReviewBn: 'রিভিউ লিখুন',
+  pdpRatingBasedOnBn: '{count} জন ক্রেতার রেটিংয়ের ভিত্তিতে',
+  pdpWrittenReviewOneBn: 'টি রিভিউ',
+  pdpWrittenReviewManyBn: 'টি রিভিউ',
+  pdpRatingBreakdownBn: 'রেটিং বিশ্লেষণ',
+  pdpNoReviewsBn: 'এই পণ্যে এখনো কোনো রিভিউ নেই। প্রথম রিভিউটি আপনিই দিন!',
+  pdpCareHeadingBn: 'যত্ন ও সংরক্ষণ',
+  pdpCareDefaultBn:
+    'শুকনো খাদ্যপণ্য বায়ুরোধী পাত্রে রেখে ঠান্ডা, শুকনো ও রোদ থেকে দূরে সংরক্ষণ করুন। হস্তশিল্প ও পাটজাত পণ্য শুকনো কাপড়ে মুছুন।',
+  pdpDeliveryHeadingBn: 'ডেলিভারি তথ্য',
+  pdpDeliveryBodyBn:
+    'ঢাকার ভিতরে ২৪-৪৮ ঘণ্টায় এক্সপ্রেস ডেলিভারি, সারা দেশে ২-৪ দিন। সারা বাংলাদেশে ক্যাশ অন ডেলিভারি সুবিধা আছে।',
+  pdpReturnsHeadingBn: 'সহজ রিটার্ন',
+  pdpReturnsBodyBn:
+    'ডেলিভারির ৩০ দিনের মধ্যে বিনামূল্যে রিটার্ন। কোনো সমস্যা থাকলে রিটার্ন খরচও আমাদের — নিশ্চিন্তে কিনুন।',
+
   promoTaglineBn: 'কেন আমাদের থেকে কিনবেন',
   promoTitleBn: 'এক মার্ট। অনেক পছন্দ।',
   promoSubtitleBn:
@@ -453,6 +532,29 @@ const SITE_CONTENT_BASE_KEYS: Record<keyof SiteContentBase, string> = {
   listingClearAll: 'content.listing.clearAll',
   listingNoMatchTitle: 'content.listing.noMatchTitle',
   listingNoMatchBody: 'content.listing.noMatchBody',
+
+  pdpBackToProducts: 'content.pdp.backToProducts',
+  pdpSkuPrefix: 'content.pdp.skuPrefix',
+  pdpNewArrivalBadge: 'content.pdp.newArrivalBadge',
+  pdpQuantity: 'content.pdp.quantity',
+  pdpAddToBag: 'content.pdp.addToBag',
+  pdpBuyNow: 'content.pdp.buyNow',
+  pdpWishlistTitle: 'content.pdp.wishlistTitle',
+  pdpLowStock: 'content.pdp.lowStock',
+  pdpPairsBadge: 'content.pdp.pairsBadge',
+  pdpPairsTitle: 'content.pdp.pairsTitle',
+  pdpWriteReview: 'content.pdp.writeReview',
+  pdpRatingBasedOn: 'content.pdp.ratingBasedOn',
+  pdpWrittenReviewOne: 'content.pdp.writtenReviewOne',
+  pdpWrittenReviewMany: 'content.pdp.writtenReviewMany',
+  pdpRatingBreakdown: 'content.pdp.ratingBreakdown',
+  pdpNoReviews: 'content.pdp.noReviews',
+  pdpCareHeading: 'content.pdp.careHeading',
+  pdpCareDefault: 'content.pdp.careDefault',
+  pdpDeliveryHeading: 'content.pdp.deliveryHeading',
+  pdpDeliveryBody: 'content.pdp.deliveryBody',
+  pdpReturnsHeading: 'content.pdp.returnsHeading',
+  pdpReturnsBody: 'content.pdp.returnsBody',
 
   promoTagline: 'content.promoBar.tagline',
   promoTitle: 'content.promoBar.title',

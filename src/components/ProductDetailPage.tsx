@@ -25,6 +25,7 @@ import { Bi } from './Bi';
 import { navigate, useRouter } from '../lib/router';
 import { applySeo, claimSeo } from '../lib/seo';
 import { useSiteContent } from '../context/SiteContentContext';
+import { useLocalized, fillTokens } from './Localized';
 
 export const ProductDetailPage: React.FC = () => {
   const {
@@ -43,7 +44,9 @@ export const ProductDetailPage: React.FC = () => {
   } = useStore();
 
   const { path } = useRouter();
-  const { storeName } = useSiteContent();
+  const { storeName, content } = useSiteContent();
+  // Product-page copy — Admin → Storefront → Shop UI (see src/data/siteContent.ts).
+  const t = useLocalized();
 
   if (!product) return null;
 
@@ -203,7 +206,7 @@ export const ProductDetailPage: React.FC = () => {
             className="self-start sm:self-auto flex items-center gap-1.5 font-bold text-neutral-700 hover:text-[#D8232A] transition-colors cursor-pointer bg-white px-3 py-1.5 rounded-full border border-neutral-200 shadow-2xs"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Products</span>
+            <span>{t(content.pdpBackToProducts, content.pdpBackToProductsBn)}</span>
           </button>
         </div>
 
@@ -258,18 +261,18 @@ export const ProductDetailPage: React.FC = () => {
               <div className="grid grid-cols-3 gap-3 pt-5 border-t border-neutral-100 text-center text-xs">
                 <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100">
                   <ShieldCheck className="w-5 h-5 text-emerald-600 mx-auto mb-1.5" />
-                  <p className="font-extrabold text-neutral-800">100% Authentic</p>
-                  <p className="text-[10px] text-neutral-500 mt-0.5">AKS Mart Certified</p>
+                  <p className="font-extrabold text-neutral-800">{t(content.trust1Title, content.trust1TitleBn)}</p>
+                  <p className="text-[10px] text-neutral-500 mt-0.5">{t(content.trust1Sub, content.trust1SubBn)}</p>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-100">
                   <Truck className="w-5 h-5 text-sky-600 mx-auto mb-1.5" />
-                  <p className="font-extrabold text-neutral-800">Express Delivery</p>
-                  <p className="text-[10px] text-neutral-500 mt-0.5">24-48h in Dhaka</p>
+                  <p className="font-extrabold text-neutral-800">{t(content.trust2Title, content.trust2TitleBn)}</p>
+                  <p className="text-[10px] text-neutral-500 mt-0.5">{t(content.trust2Sub, content.trust2SubBn)}</p>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-rose-50/70 border border-rose-100">
                   <RotateCcw className="w-5 h-5 text-rose-600 mx-auto mb-1.5" />
-                  <p className="font-extrabold text-neutral-800">Easy Returns</p>
-                  <p className="text-[10px] text-neutral-500 mt-0.5">30-Day Policy</p>
+                  <p className="font-extrabold text-neutral-800">{t(content.trust3Title, content.trust3TitleBn)}</p>
+                  <p className="text-[10px] text-neutral-500 mt-0.5">{t(content.trust3Sub, content.trust3SubBn)}</p>
                 </div>
               </div>
             </div>
@@ -282,11 +285,11 @@ export const ProductDetailPage: React.FC = () => {
                     {product.brand}
                   </span>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 bg-neutral-100 px-2.5 py-1 rounded-full">
-                    SKU {product.sku}
+                    {fillTokens(t(content.pdpSkuPrefix, content.pdpSkuPrefixBn), { sku: product.sku })}
                   </span>
                   {product.isNewArrival && (
                     <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
-                      New Arrival
+                      {t(content.pdpNewArrivalBadge, content.pdpNewArrivalBadgeBn)}
                     </span>
                   )}
                 </div>
@@ -415,14 +418,19 @@ export const ProductDetailPage: React.FC = () => {
 
                   {selectedSize.stockCount && selectedSize.stockCount < 10 && (
                     <p className="text-xs font-bold text-amber-600 mt-2 flex items-center gap-1">
-                      <span>⚡ Only {selectedSize.stockCount} pieces left in size {selectedSize.size}!</span>
+                      <span>
+                        {fillTokens(t(content.pdpLowStock, content.pdpLowStockBn), {
+                          count: String(selectedSize.stockCount),
+                          size: selectedSize.size,
+                        })}
+                      </span>
                     </p>
                   )}
                 </div>
 
                 {/* Quantity */}
                 <div className="mt-6 flex items-center gap-4">
-                  <span className="text-xs font-bold text-neutral-700">Quantity:</span>
+                  <span className="text-xs font-bold text-neutral-700">{t(content.pdpQuantity, content.pdpQuantityBn)}</span>
                   <div className="flex items-center border border-neutral-300 rounded-xl bg-white p-1">
                     <button
                       onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -451,7 +459,7 @@ export const ProductDetailPage: React.FC = () => {
                     className="flex-1 py-4 px-6 bg-[#D8232A] hover:bg-[#b51c22] text-white font-extrabold text-base rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer"
                   >
                     <ShoppingBag className="w-5 h-5" />
-                    <span><Bi en="Add to Shopping Bag" bn="ব্যাগে যোগ করুন" /></span>
+                    <span><Bi en={content.pdpAddToBag} bn={content.pdpAddToBagBn} /></span>
                   </button>
 
                   <button
@@ -461,7 +469,7 @@ export const ProductDetailPage: React.FC = () => {
                         ? 'bg-red-50 border-red-200 text-[#D8232A]'
                         : 'bg-white border-neutral-300 text-neutral-600 hover:text-[#D8232A]'
                     }`}
-                    title="Save to Wishlist"
+                    title={t(content.pdpWishlistTitle, content.pdpWishlistTitleBn)}
                   >
                     <Heart className={`w-6 h-6 ${isFav ? 'fill-[#D8232A]' : ''}`} />
                   </button>
@@ -474,7 +482,7 @@ export const ProductDetailPage: React.FC = () => {
                   }}
                   className="w-full py-3.5 bg-neutral-900 hover:bg-neutral-800 text-white font-extrabold text-sm rounded-2xl transition-all shadow-sm cursor-pointer"
                 >
-                  <span><Bi en="Buy Now (Cash on Delivery)" bn="এখনই কিনুন (ক্যাশ অন ডেলিভারি)" /></span>
+                  <span><Bi en={content.pdpBuyNow} bn={content.pdpBuyNowBn} /></span>
                 </button>
               </div>
             </div>
@@ -485,10 +493,10 @@ export const ProductDetailPage: React.FC = () => {
             <div className="mt-10 p-6 rounded-3xl bg-neutral-50 border border-neutral-200/80">
               <div className="flex items-center gap-2.5 mb-5">
                 <span className="text-[10px] font-black uppercase tracking-widest bg-[#D8232A] text-white px-2.5 py-1 rounded-full">
-                  PAIRS WELL WITH
+                  {t(content.pdpPairsBadge, content.pdpPairsBadgeBn)}
                 </span>
                 <h3 className="text-base font-black text-neutral-900 tracking-tight">
-                  Complete your order
+                  {t(content.pdpPairsTitle, content.pdpPairsTitleBn)}
                 </h3>
               </div>
 
@@ -633,9 +641,13 @@ export const ProductDetailPage: React.FC = () => {
                         </div>
                       </div>
                       <p className="text-xs text-neutral-500 mt-1">
-                        Based on {product.reviewsCount} customer ratings •{' '}
-                        {productReviews.length} written{' '}
-                        {productReviews.length === 1 ? 'review' : 'reviews'}
+                        {fillTokens(t(content.pdpRatingBasedOn, content.pdpRatingBasedOnBn), {
+                          count: String(product.reviewsCount),
+                        })}{' '}
+                        • {productReviews.length}{' '}
+                        {productReviews.length === 1
+                          ? t(content.pdpWrittenReviewOne, content.pdpWrittenReviewOneBn)
+                          : t(content.pdpWrittenReviewMany, content.pdpWrittenReviewManyBn)}
                       </p>
                     </div>
 
@@ -644,7 +656,7 @@ export const ProductDetailPage: React.FC = () => {
                       className="px-5 py-2.5 bg-neutral-900 hover:bg-[#D8232A] text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
                       <MessageSquarePlus className="w-4 h-4" />
-                      <span>Write a Review</span>
+                      <span>{t(content.pdpWriteReview, content.pdpWriteReviewBn)}</span>
                     </button>
                   </div>
 
@@ -652,7 +664,7 @@ export const ProductDetailPage: React.FC = () => {
                   {productReviews.length > 0 && (
                     <div className="bg-white p-5 rounded-2xl border border-neutral-200">
                       <h4 className="text-xs font-black uppercase tracking-wider text-neutral-400 mb-3">
-                        Rating breakdown
+                        {t(content.pdpRatingBreakdown, content.pdpRatingBreakdownBn)}
                       </h4>
                       <div className="space-y-2">
                         {[5, 4, 3, 2, 1].map((star) => {
@@ -847,7 +859,7 @@ export const ProductDetailPage: React.FC = () => {
                       ))
                     ) : (
                       <p className="text-xs text-neutral-500 text-center py-6">
-                        No customer reviews yet for this product. Be the first to share your thoughts!
+                        {t(content.pdpNoReviews, content.pdpNoReviewsBn)}
                       </p>
                     )}
                   </div>
@@ -858,26 +870,23 @@ export const ProductDetailPage: React.FC = () => {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div className="p-5 rounded-2xl bg-white border border-neutral-200">
                     <ShieldCheck className="w-5 h-5 text-emerald-600 mb-2" />
-                    <h4 className="font-bold text-xs text-neutral-900 mb-2">Care & Storage</h4>
+                    <h4 className="font-bold text-xs text-neutral-900 mb-2">{t(content.pdpCareHeading, content.pdpCareHeadingBn)}</h4>
                     <p className="text-xs text-neutral-600 leading-relaxed">
-                      {product.materials?.care ||
-                        'Keep dry goods airtight and store in a cool, dry place away from direct sunlight. Wipe crafted & jute items with a dry cloth only.'}
+                      {product.materials?.care || t(content.pdpCareDefault, content.pdpCareDefaultBn)}
                     </p>
                   </div>
                   <div className="p-5 rounded-2xl bg-white border border-neutral-200">
                     <Truck className="w-5 h-5 text-sky-600 mb-2" />
-                    <h4 className="font-bold text-xs text-neutral-900 mb-2">Delivery Information</h4>
+                    <h4 className="font-bold text-xs text-neutral-900 mb-2">{t(content.pdpDeliveryHeading, content.pdpDeliveryHeadingBn)}</h4>
                     <p className="text-xs text-neutral-600 leading-relaxed">
-                      Express delivery within 24-48 hours inside Dhaka, 2-4 days nationwide.
-                      Cash on Delivery available all over Bangladesh.
+                      {t(content.pdpDeliveryBody, content.pdpDeliveryBodyBn)}
                     </p>
                   </div>
                   <div className="p-5 rounded-2xl bg-white border border-neutral-200">
                     <RotateCcw className="w-5 h-5 text-rose-600 mb-2" />
-                    <h4 className="font-bold text-xs text-neutral-900 mb-2">Easy Returns</h4>
+                    <h4 className="font-bold text-xs text-neutral-900 mb-2">{t(content.pdpReturnsHeading, content.pdpReturnsHeadingBn)}</h4>
                     <p className="text-xs text-neutral-600 leading-relaxed">
-                      Free returns within 30 days of delivery. If anything is not right,
-                      we cover the return shipping — shop happy.
+                      {t(content.pdpReturnsBody, content.pdpReturnsBodyBn)}
                     </p>
                   </div>
                 </div>
