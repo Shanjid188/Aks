@@ -63,6 +63,41 @@ interface SiteContentBase {
   headerOutfitMatcher: string;
   headerSearchPlaceholder: string;
   headerSearchPlaceholderMobile: string;
+  /* Product listing / filters (the shop page a merchant most wants in their own voice) */
+  listingAllProducts: string;
+  /** `{name}` is the division name. */
+  listingCollectionSuffix: string;
+  /** `{query}` is what the shopper typed. */
+  listingSearchResults: string;
+  /** `{count}` is the number of matching products. */
+  listingProductsCount: string;
+  listingTagline: string;
+  listingFilters: string;
+  /** Screen-reader label for the sort dropdown. */
+  listingSortAria: string;
+  listingSortFeatured: string;
+  listingSortBestSellers: string;
+  listingSortPriceLow: string;
+  listingSortPriceHigh: string;
+  listingSortRating: string;
+  listingSortNewest: string;
+  listingActiveFilters: string;
+  /** `{size}` is the chosen size (e.g. "40 (M)"). */
+  listingSizeChip: string;
+  listingOnSaleChip: string;
+  listingRefine: string;
+  listingReset: string;
+  listingDepartment: string;
+  listingAllDivisions: string;
+  listingBrands: string;
+  listingSizesFull: string;
+  listingSizesShort: string;
+  listingDeals: string;
+  /** `{count}` is the number of products the filters found. */
+  listingApply: string;
+  listingClearAll: string;
+  listingNoMatchTitle: string;
+  listingNoMatchBody: string;
   /* “Why Shop With Us” strip (above the footer) */
   promoTagline: string;
   promoTitle: string;
@@ -155,6 +190,37 @@ const DEFAULT_SITE_CONTENT_BASE: SiteContentBase = {
   headerSearchPlaceholder: 'Search products (rice, honey, kantha, bedsheets…)',
   headerSearchPlaceholderMobile: 'Search products...',
 
+  listingAllProducts: 'All Products',
+  listingCollectionSuffix: '{name} Collection',
+  listingSearchResults: 'Search results for "{query}"',
+  listingProductsCount: '{count} products',
+  listingTagline:
+    'SHUDDHO food · AKS CRAFT handiwork · AKS HOME comfort · AKS BEAUTY care · AKS PRINT custom print — one mart, many choices.',
+  listingFilters: 'Filters',
+  listingSortAria: 'Sort products by',
+  listingSortFeatured: 'Sort by: Featured',
+  listingSortBestSellers: 'Sort by: Best Sellers',
+  listingSortPriceLow: 'Price: Low to High',
+  listingSortPriceHigh: 'Price: High to Low',
+  listingSortRating: 'Customer Rating',
+  listingSortNewest: 'New Arrivals',
+  listingActiveFilters: 'Active Filters:',
+  listingSizeChip: 'Size: {size}',
+  listingOnSaleChip: 'On Sale',
+  listingRefine: 'Refine Collection',
+  listingReset: 'Reset',
+  listingDepartment: 'Department',
+  listingAllDivisions: 'All Divisions',
+  listingBrands: 'House of Brands',
+  listingSizesFull: 'Available Sizes',
+  listingSizesShort: 'Sizes',
+  listingDeals: 'Deals & On Sale',
+  listingApply: 'Apply ({count})',
+  listingClearAll: 'Clear All Filters',
+  listingNoMatchTitle: 'No products matched your filters',
+  listingNoMatchBody:
+    'Try clearing some filter criteria, broadening your price range, or exploring another AKS Mart division.',
+
   promoTagline: 'Why Shop With Us',
   promoTitle: 'One Mart. Many Choices.',
   promoSubtitle:
@@ -240,6 +306,37 @@ const DEFAULT_SITE_CONTENT_BN: BanglaOf<SiteContentBase> = {
   headerOutfitMatcherBn: 'আউটফিট ম্যাচার',
   headerSearchPlaceholderBn: 'পণ্য খুঁজুন (চাল, মধু, কাঁথা, বেডশিট…)',
   headerSearchPlaceholderMobileBn: 'পণ্য খুঁজুন...',
+
+  listingAllProductsBn: 'সব পণ্য',
+  listingCollectionSuffixBn: '{name} কালেকশন',
+  listingSearchResultsBn: '"{query}" এর ফলাফল',
+  listingProductsCountBn: '{count} টি পণ্য',
+  listingTaglineBn:
+    'SHUDDHO খাদ্যপণ্য · AKS CRAFT হস্তশিল্প · AKS HOME গৃহসজ্জা · AKS BEAUTY যত্ন · AKS PRINT কাস্টম প্রিন্ট — এক মার্ট, অনেক পছন্দ।',
+  listingFiltersBn: 'ফিল্টার',
+  listingSortAriaBn: 'পণ্য সাজান',
+  listingSortFeaturedBn: 'সাজান: নির্বাচিত',
+  listingSortBestSellersBn: 'সাজান: বেস্ট সেলার',
+  listingSortPriceLowBn: 'দাম: কম থেকে বেশি',
+  listingSortPriceHighBn: 'দাম: বেশি থেকে কম',
+  listingSortRatingBn: 'ক্রেতার রেটিং',
+  listingSortNewestBn: 'নতুন পণ্য',
+  listingActiveFiltersBn: 'সক্রিয় ফিল্টার:',
+  listingSizeChipBn: 'সাইজ: {size}',
+  listingOnSaleChipBn: 'ছাড়ে',
+  listingRefineBn: 'ফিল্টার করুন',
+  listingResetBn: 'রিসেট',
+  listingDepartmentBn: 'বিভাগ',
+  listingAllDivisionsBn: 'সব বিভাগ',
+  listingBrandsBn: 'ব্র্যান্ড',
+  listingSizesFullBn: 'সাইজ',
+  listingSizesShortBn: 'সাইজ',
+  listingDealsBn: 'অফার ও ছাড়',
+  listingApplyBn: 'দেখুন ({count})',
+  listingClearAllBn: 'সব ফিল্টার মুছুন',
+  listingNoMatchTitleBn: 'আপনার ফিল্টারে কোনো পণ্য মেলেনি',
+  listingNoMatchBodyBn:
+    'কিছু ফিল্টার মুছে দেখুন, দামের সীমা বাড়িয়ে দেখুন, অথবা AKS Mart-এর অন্য বিভাগ ঘুরে দেখুন।',
 
   promoTaglineBn: 'কেন আমাদের থেকে কিনবেন',
   promoTitleBn: 'এক মার্ট। অনেক পছন্দ।',
@@ -327,6 +424,35 @@ const SITE_CONTENT_BASE_KEYS: Record<keyof SiteContentBase, string> = {
   headerOutfitMatcher: 'content.header.outfitMatcher',
   headerSearchPlaceholder: 'content.header.searchPlaceholder',
   headerSearchPlaceholderMobile: 'content.header.searchPlaceholderMobile',
+
+  listingAllProducts: 'content.listing.allProducts',
+  listingCollectionSuffix: 'content.listing.collectionSuffix',
+  listingSearchResults: 'content.listing.searchResults',
+  listingProductsCount: 'content.listing.productsCount',
+  listingTagline: 'content.listing.tagline',
+  listingFilters: 'content.listing.filters',
+  listingSortAria: 'content.listing.sortAria',
+  listingSortFeatured: 'content.listing.sortFeatured',
+  listingSortBestSellers: 'content.listing.sortBestSellers',
+  listingSortPriceLow: 'content.listing.sortPriceLow',
+  listingSortPriceHigh: 'content.listing.sortPriceHigh',
+  listingSortRating: 'content.listing.sortRating',
+  listingSortNewest: 'content.listing.sortNewest',
+  listingActiveFilters: 'content.listing.activeFilters',
+  listingSizeChip: 'content.listing.sizeChip',
+  listingOnSaleChip: 'content.listing.onSaleChip',
+  listingRefine: 'content.listing.refine',
+  listingReset: 'content.listing.reset',
+  listingDepartment: 'content.listing.department',
+  listingAllDivisions: 'content.listing.allDivisions',
+  listingBrands: 'content.listing.brands',
+  listingSizesFull: 'content.listing.sizesFull',
+  listingSizesShort: 'content.listing.sizesShort',
+  listingDeals: 'content.listing.deals',
+  listingApply: 'content.listing.apply',
+  listingClearAll: 'content.listing.clearAll',
+  listingNoMatchTitle: 'content.listing.noMatchTitle',
+  listingNoMatchBody: 'content.listing.noMatchBody',
 
   promoTagline: 'content.promoBar.tagline',
   promoTitle: 'content.promoBar.title',
