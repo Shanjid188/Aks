@@ -287,6 +287,61 @@ const HOMEPAGE_GROUPS: ContentGroup[] = [
   },
 ];
 
+/* Product-listing copy (Admin → Storefront → Shop UI tab). `{name}`, `{query}`,
+ * `{count}` and `{size}` are filled in by the storefront with live values. */
+const SHOP_UI_GROUPS: ContentGroup[] = [
+  {
+    title: 'Product listing header',
+    hint: 'The heading and count above the shop grid. {name}, {query} and {count} are filled in automatically.',
+    fields: [
+      { key: 'content.listing.allProducts', label: 'Heading: all products' },
+      { key: 'content.listing.collectionSuffix', label: 'Heading: division ({name})' },
+      { key: 'content.listing.searchResults', label: 'Heading: search ({query})' },
+      { key: 'content.listing.productsCount', label: 'Results count ({count})' },
+      { key: 'content.listing.tagline', label: 'Tagline under the heading', long: true },
+    ],
+  },
+  {
+    title: 'Sort & layout',
+    fields: [
+      { key: 'content.listing.filters', label: '“Filters” button (mobile)' },
+      { key: 'content.listing.sortAria', label: 'Sort dropdown label (screen readers)' },
+      { key: 'content.listing.sortFeatured', label: 'Sort: featured' },
+      { key: 'content.listing.sortBestSellers', label: 'Sort: best sellers' },
+      { key: 'content.listing.sortPriceLow', label: 'Sort: price low → high' },
+      { key: 'content.listing.sortPriceHigh', label: 'Sort: price high → low' },
+      { key: 'content.listing.sortRating', label: 'Sort: customer rating' },
+      { key: 'content.listing.sortNewest', label: 'Sort: new arrivals' },
+    ],
+  },
+  {
+    title: 'Filters panel',
+    fields: [
+      { key: 'content.listing.refine', label: 'Panel heading' },
+      { key: 'content.listing.reset', label: '“Reset” button' },
+      { key: 'content.listing.department', label: 'Section: department' },
+      { key: 'content.listing.allDivisions', label: 'Department option: all' },
+      { key: 'content.listing.brands', label: 'Section: brands' },
+      { key: 'content.listing.sizesFull', label: 'Section: sizes (sidebar)' },
+      { key: 'content.listing.sizesShort', label: 'Section: sizes (mobile)' },
+      { key: 'content.listing.deals', label: 'Checkbox: deals & on sale' },
+      { key: 'content.listing.apply', label: 'Apply button ({count})' },
+      { key: 'content.listing.clearAll', label: 'Clear-all button' },
+    ],
+  },
+  {
+    title: 'Active filters & empty state',
+    fields: [
+      { key: 'content.listing.activeFilters', label: '“Active filters” label' },
+      { key: 'content.listing.sizeChip', label: 'Size chip ({size})' },
+      { key: 'content.listing.onSaleChip', label: 'Sale chip' },
+      { key: 'content.listing.noMatchTitle', label: 'No results: heading' },
+      { key: 'content.listing.noMatchBody', label: 'No results: explanation', long: true },
+    ],
+  },
+];
+
+
 /* Footer copy (Admin ? Storefront ? Footer tab). */
 const FOOTER_GROUPS: ContentGroup[] = [
   {
@@ -477,6 +532,7 @@ export default function StorefrontPage() {
           { id: 'featured', label: 'Featured Products' },
           { id: 'promo', label: 'Promotions' },
           { id: 'content', label: 'Homepage' },
+        { id: 'shopui', label: 'Shop UI' },
         { id: 'footer', label: 'Footer' },
         ].map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}>
@@ -493,6 +549,13 @@ export default function StorefrontPage() {
           groups={HOMEPAGE_GROUPS}
           title="Homepage content"
           hint="Section headings and copy for the storefront home page — English and বাংলা. Leave a field empty to keep the built-in default (shown as a placeholder)."
+        />
+      )}
+      {activeTab === 'shopui' && (
+        <ContentManager
+          groups={SHOP_UI_GROUPS}
+          title="Shop UI copy"
+          hint="The product listing (filters, sort labels, result count, empty state) in both languages. Leave a field empty to keep the built-in default."
         />
       )}
       {activeTab === 'footer' && (
