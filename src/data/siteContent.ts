@@ -125,6 +125,57 @@ interface SiteContentBase {
   pdpDeliveryBody: string;
   pdpReturnsHeading: string;
   pdpReturnsBody: string;
+  /* Cart (drawer + cart page) */
+  cartBagTitle: string;
+  cartPageTitle: string;
+  cartEmptyTitle: string;
+  cartEmptyHint: string;
+  cartContinue: string;
+  cartFreeDeliveryUnlocked: string;
+  /** `{amount}` is what is still missing for free delivery. */
+  cartFreeDeliveryRemaining: string;
+  cartPromoPlaceholder: string;
+  cartCouponPlaceholder: string;
+  cartRemoveItem: string;
+  cartSubtotal: string;
+  cartCouponDiscount: string;
+  cartEstimatedShipping: string;
+  cartShippingFree: string;
+  cartTotalAmount: string;
+  cartProceedToCheckout: string;
+  cartOrderSummary: string;
+  cartDiscountShort: string;
+  cartDeliveryShort: string;
+  cartTotalShort: string;
+  cartDeliveryFreeWord: string;
+  /** `{amount}` is the live free-delivery threshold. */
+  cartFreeDeliveryNote: string;
+  /** `{size}` is the chosen size. */
+  cartSizeBadge: string;
+  cartDecreaseQty: string;
+  cartIncreaseQty: string;
+  cartApplyCoupon: string;
+  cartRemoveCoupon: string;
+  /** `{code}` and `{description}` of the applied coupon. */
+  cartCouponActive: string;
+  /** Item count words on the cart page: "1 item" / "3 items". */
+  cartItemOne: string;
+  cartItemMany: string;
+  /* Checkout */
+  checkoutEmptyHint: string;
+  checkoutDeliveryHeading: string;
+  checkoutAreaPaymentHeading: string;
+  checkoutFullName: string;
+  checkoutNamePlaceholder: string;
+  checkoutStreetPlaceholder: string;
+  checkoutEmailLabel: string;
+  checkoutDivision: string;
+  checkoutDistrict: string;
+  checkoutPostal: string;
+  checkoutNote: string;
+  checkoutNotePlaceholder: string;
+  checkoutPlaceOrder: string;
+  checkoutPlacingOrder: string;
   /* “Why Shop With Us” strip (above the footer) */
   promoTagline: string;
   promoTitle: string;
@@ -274,6 +325,52 @@ const DEFAULT_SITE_CONTENT_BASE: SiteContentBase = {
   pdpReturnsBody:
     'Free returns within 30 days of delivery. If anything is not right, we cover the return shipping — shop happy.',
 
+  cartBagTitle: 'Shopping Bag',
+  cartPageTitle: 'Cart',
+  cartEmptyTitle: 'Your cart is empty',
+  cartEmptyHint: "Find something you'll love.",
+  cartContinue: 'Continue Shopping',
+  cartFreeDeliveryUnlocked: 'You have unlocked FREE Delivery across Bangladesh!',
+  cartFreeDeliveryRemaining: 'Add {amount} more for Free Delivery',
+  cartPromoPlaceholder: 'Promo code (e.g. AKS15)',
+  cartCouponPlaceholder: 'Coupon code',
+  cartRemoveItem: 'Remove item',
+  cartSubtotal: 'Subtotal',
+  cartCouponDiscount: 'Coupon Discount',
+  cartEstimatedShipping: 'Estimated Shipping',
+  cartShippingFree: 'FREE',
+  cartTotalAmount: 'Total Amount',
+  cartProceedToCheckout: 'Proceed to Checkout',
+  cartOrderSummary: 'Order Summary',
+  cartDiscountShort: 'Discount',
+  cartDeliveryShort: 'Delivery',
+  cartTotalShort: 'Total',
+  cartDeliveryFreeWord: 'Free',
+  cartFreeDeliveryNote: 'Free delivery on orders over {amount}',
+  cartSizeBadge: 'Size {size}',
+  cartDecreaseQty: 'Decrease quantity',
+  cartIncreaseQty: 'Increase quantity',
+  cartApplyCoupon: 'Apply',
+  cartRemoveCoupon: 'Remove',
+  cartCouponActive: 'Coupon "{code}" Active ({description})',
+  cartItemOne: 'item',
+  cartItemMany: 'items',
+
+  checkoutEmptyHint: 'Add products to your cart before checking out.',
+  checkoutDeliveryHeading: 'Delivery Information',
+  checkoutAreaPaymentHeading: 'Delivery Area & Payment',
+  checkoutFullName: 'Full Name',
+  checkoutNamePlaceholder: 'Your full name',
+  checkoutStreetPlaceholder: 'House / Road / Landmark',
+  checkoutEmailLabel: 'Email (for order updates)',
+  checkoutDivision: 'Division',
+  checkoutDistrict: 'District',
+  checkoutPostal: 'Postal Code (optional)',
+  checkoutNote: 'Delivery Instructions (optional)',
+  checkoutNotePlaceholder: 'e.g. Call before delivery',
+  checkoutPlaceOrder: 'Place Order',
+  checkoutPlacingOrder: 'Placing Order…',
+
   promoTagline: 'Why Shop With Us',
   promoTitle: 'One Mart. Many Choices.',
   promoSubtitle:
@@ -417,6 +514,52 @@ const DEFAULT_SITE_CONTENT_BN: BanglaOf<SiteContentBase> = {
   pdpReturnsBodyBn:
     'ডেলিভারির ৩০ দিনের মধ্যে বিনামূল্যে রিটার্ন। কোনো সমস্যা থাকলে রিটার্ন খরচও আমাদের — নিশ্চিন্তে কিনুন।',
 
+  cartBagTitleBn: 'শপিং ব্যাগ',
+  cartPageTitleBn: 'কার্ট',
+  cartEmptyTitleBn: 'আপনার কার্ট খালি',
+  cartEmptyHintBn: 'আপনার পছন্দের কিছু খুঁজে নিন।',
+  cartContinueBn: 'কেনাকাটা চালিয়ে যান',
+  cartFreeDeliveryUnlockedBn: 'সারা বাংলাদেশে ফ্রি ডেলিভারি আনলক হয়েছে!',
+  cartFreeDeliveryRemainingBn: 'ফ্রি ডেলিভারির জন্য আরও {amount} যোগ করুন',
+  cartPromoPlaceholderBn: 'প্রোমো কোড (যেমন AKS15)',
+  cartCouponPlaceholderBn: 'কুপন কোড',
+  cartRemoveItemBn: 'পণ্য সরান',
+  cartSubtotalBn: 'সাবটোটাল',
+  cartCouponDiscountBn: 'কুপন ছাড়',
+  cartEstimatedShippingBn: 'আনুমানিক ডেলিভারি খরচ',
+  cartShippingFreeBn: 'ফ্রি',
+  cartTotalAmountBn: 'সর্বমোট',
+  cartProceedToCheckoutBn: 'চেকআউটে যান',
+  cartOrderSummaryBn: 'অর্ডার সারসংক্ষেপ',
+  cartDiscountShortBn: 'ছাড়',
+  cartDeliveryShortBn: 'ডেলিভারি',
+  cartTotalShortBn: 'সর্বমোট',
+  cartDeliveryFreeWordBn: 'ফ্রি',
+  cartFreeDeliveryNoteBn: '{amount} এর বেশি অর্ডারে ফ্রি ডেলিভারি',
+  cartSizeBadgeBn: 'সাইজ {size}',
+  cartDecreaseQtyBn: 'পরিমাণ কমান',
+  cartIncreaseQtyBn: 'পরিমাণ বাড়ান',
+  cartApplyCouponBn: 'প্রয়োগ করুন',
+  cartRemoveCouponBn: 'সরিয়ে ফেলুন',
+  cartCouponActiveBn: 'কুপন "{code}" সক্রিয় ({description})',
+  cartItemOneBn: 'টি পণ্য',
+  cartItemManyBn: 'টি পণ্য',
+
+  checkoutEmptyHintBn: 'চেকআউট করার আগে কার্টে পণ্য যোগ করুন।',
+  checkoutDeliveryHeadingBn: 'ডেলিভারি তথ্য',
+  checkoutAreaPaymentHeadingBn: 'ডেলিভারি এলাকা ও পেমেন্ট',
+  checkoutFullNameBn: 'পুরো নাম',
+  checkoutNamePlaceholderBn: 'আপনার পুরো নাম',
+  checkoutStreetPlaceholderBn: 'বাড়ি / রোড / ল্যান্ডমার্ক',
+  checkoutEmailLabelBn: 'ইমেইল (অর্ডার আপডেটের জন্য)',
+  checkoutDivisionBn: 'বিভাগ',
+  checkoutDistrictBn: 'জেলা',
+  checkoutPostalBn: 'পোস্ট কোড (ঐচ্ছিক)',
+  checkoutNoteBn: 'ডেলিভারি নির্দেশনা (ঐচ্ছিক)',
+  checkoutNotePlaceholderBn: 'যেমন: ডেলিভারির আগে কল করুন',
+  checkoutPlaceOrderBn: 'অর্ডার নিশ্চিত করুন',
+  checkoutPlacingOrderBn: 'অর্ডার করা হচ্ছে…',
+
   promoTaglineBn: 'কেন আমাদের থেকে কিনবেন',
   promoTitleBn: 'এক মার্ট। অনেক পছন্দ।',
   promoSubtitleBn:
@@ -555,6 +698,52 @@ const SITE_CONTENT_BASE_KEYS: Record<keyof SiteContentBase, string> = {
   pdpDeliveryBody: 'content.pdp.deliveryBody',
   pdpReturnsHeading: 'content.pdp.returnsHeading',
   pdpReturnsBody: 'content.pdp.returnsBody',
+
+  cartBagTitle: 'content.cart.bagTitle',
+  cartPageTitle: 'content.cart.pageTitle',
+  cartEmptyTitle: 'content.cart.emptyTitle',
+  cartEmptyHint: 'content.cart.emptyHint',
+  cartContinue: 'content.cart.continue',
+  cartFreeDeliveryUnlocked: 'content.cart.freeDeliveryUnlocked',
+  cartFreeDeliveryRemaining: 'content.cart.freeDeliveryRemaining',
+  cartPromoPlaceholder: 'content.cart.promoPlaceholder',
+  cartCouponPlaceholder: 'content.cart.couponPlaceholder',
+  cartRemoveItem: 'content.cart.removeItem',
+  cartSubtotal: 'content.cart.subtotal',
+  cartCouponDiscount: 'content.cart.couponDiscount',
+  cartEstimatedShipping: 'content.cart.estimatedShipping',
+  cartShippingFree: 'content.cart.shippingFree',
+  cartTotalAmount: 'content.cart.totalAmount',
+  cartProceedToCheckout: 'content.cart.proceedToCheckout',
+  cartOrderSummary: 'content.cart.orderSummary',
+  cartDiscountShort: 'content.cart.discountShort',
+  cartDeliveryShort: 'content.cart.deliveryShort',
+  cartTotalShort: 'content.cart.totalShort',
+  cartDeliveryFreeWord: 'content.cart.deliveryFreeWord',
+  cartFreeDeliveryNote: 'content.cart.freeDeliveryNote',
+  cartSizeBadge: 'content.cart.sizeBadge',
+  cartDecreaseQty: 'content.cart.decreaseQty',
+  cartIncreaseQty: 'content.cart.increaseQty',
+  cartApplyCoupon: 'content.cart.applyCoupon',
+  cartRemoveCoupon: 'content.cart.removeCoupon',
+  cartCouponActive: 'content.cart.couponActive',
+  cartItemOne: 'content.cart.itemOne',
+  cartItemMany: 'content.cart.itemMany',
+
+  checkoutEmptyHint: 'content.checkout.emptyHint',
+  checkoutDeliveryHeading: 'content.checkout.deliveryHeading',
+  checkoutAreaPaymentHeading: 'content.checkout.areaPaymentHeading',
+  checkoutFullName: 'content.checkout.fullName',
+  checkoutNamePlaceholder: 'content.checkout.namePlaceholder',
+  checkoutStreetPlaceholder: 'content.checkout.streetPlaceholder',
+  checkoutEmailLabel: 'content.checkout.emailLabel',
+  checkoutDivision: 'content.checkout.division',
+  checkoutDistrict: 'content.checkout.district',
+  checkoutPostal: 'content.checkout.postal',
+  checkoutNote: 'content.checkout.note',
+  checkoutNotePlaceholder: 'content.checkout.notePlaceholder',
+  checkoutPlaceOrder: 'content.checkout.placeOrder',
+  checkoutPlacingOrder: 'content.checkout.placingOrder',
 
   promoTagline: 'content.promoBar.tagline',
   promoTitle: 'content.promoBar.title',

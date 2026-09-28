@@ -3,9 +3,14 @@ import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
 import { Link, useRouter } from '../lib/router';
 import { ShoppingBag, Trash2, Minus, Plus, Tag, ArrowRight, Truck } from 'lucide-react';
+import { useSiteContent } from '../context/SiteContentContext';
+import { useLocalized, fillTokens } from '../components/Localized';
 
 /** Dedicated cart page at /cart. */
 export const CartPage: React.FC = () => {
+  // Cart copy — Admin → Storefront → Shop UI (see src/data/siteContent.ts).
+  const { content } = useSiteContent();
+  const t = useLocalized();
   const {
     cart,
     updateCartQuantity,
@@ -15,6 +20,7 @@ export const CartPage: React.FC = () => {
     cartDiscount,
     cartTotal,
     shippingFee,
+    freeShippingThreshold,
     currency,
     appliedCoupon,
     applyCoupon,
@@ -40,13 +46,13 @@ export const CartPage: React.FC = () => {
         <div className="w-16 h-16 bg-red-50 text-[#D8232A] rounded-full flex items-center justify-center mx-auto mb-5">
           <ShoppingBag className="w-8 h-8" />
         </div>
-        <h1 className="text-xl font-black text-neutral-900">Your cart is empty</h1>
-        <p className="text-sm text-neutral-500 mt-2">Find something you'll love.</p>
+        <h1 className="text-xl font-black text-neutral-900">{t(content.cartEmptyTitle, content.cartEmptyTitleBn)}</h1>
+        <p className="text-sm text-neutral-500 mt-2">{t(content.cartEmptyHint, content.cartEmptyHintBn)}</p>
         <Link
           to="/products"
           className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-[#D8232A] text-white text-xs font-bold rounded-full hover:bg-[#b51c22] transition-colors"
         >
-          Continue Shopping <ArrowRight className="w-4 h-4" />
+          {t(content.cartContinue, content.cartContinueBn)} <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
     );
@@ -57,9 +63,12 @@ export const CartPage: React.FC = () => {
       {/* __CART_HEAD__ */}
       <div className="flex items-end justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-xl font-black text-neutral-900">Cart</h1>
+          <h1 className="text-xl font-black text-neutral-900">{t(content.cartPageTitle, content.cartPageTitleBn)}</h1>
           <p className="text-xs text-neutral-500 mt-0.5">
-            {totalCartCount} {totalCartCount === 1 ? 'item' : 'items'}
+            {totalCartCount}{' '}
+            {totalCartCount === 1
+              ? t(content.cartItemOne, content.cartItemOneBn)
+              : t(content.cartItemMany, content.cartItemManyBn)}
           </p>
         </div>
         <button
@@ -106,7 +115,7 @@ export const CartPage: React.FC = () => {
                         {item.selectedSize?.size && (
                           <>
                             <span className="text-neutral-300">·</span>
-                            <span>Size {item.selectedSize.size}</span>
+                            <span>{fillTokens(t(content.cartSizeBadge, content.cartSizeBadgeBn), { size: item.selectedSize.size })}</span>
                           </>
                         )}
                       </div>
@@ -114,7 +123,7 @@ export const CartPage: React.FC = () => {
                     <button
                       onClick={() => removeFromCart(item.cartItemId)}
                       className="p-1.5 rounded-lg text-neutral-300 hover:text-[#D8232A] hover:bg-red-50 transition-colors cursor-pointer"
-                      aria-label={`Remove ${item.product.name} from cart`}
+                      aria-label={t(content.cartRemoveItem, content.cartRemoveItemBn)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -124,7 +133,7 @@ export const CartPage: React.FC = () => {
                       <button
                         onClick={() => updateCartQuantity(item.cartItemId, item.quantity - 1)}
                         className="p-2 text-neutral-500 hover:text-neutral-900 cursor-pointer"
-                        aria-label="Decrease quantity"
+                        aria-label={t(content.cartDecreaseQty, content.cartDecreaseQtyBn)}
                       >
                         <Minus className="w-3.5 h-3.5" />
                       </button>
@@ -132,7 +141,7 @@ export const CartPage: React.FC = () => {
                       <button
                         onClick={() => updateCartQuantity(item.cartItemId, item.quantity + 1)}
                         className="p-2 text-neutral-500 hover:text-neutral-900 cursor-pointer"
-                        aria-label="Increase quantity"
+                        aria-label={t(content.cartIncreaseQty, content.cartIncreaseQtyBn)}
                       >
                         <Plus className="w-3.5 h-3.5" />
                       </button>
@@ -150,37 +159,39 @@ export const CartPage: React.FC = () => {
             to="/products"
             className="inline-flex items-center gap-1.5 mt-4 text-xs font-bold text-neutral-500 hover:text-[#D8232A] transition-colors"
           >
-            ← Continue shopping
+            {t(content.cartContinue, content.cartContinueBn)}
           </Link>
         </div>
         {/* __CART_SUMMARY__ */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl border border-neutral-200 p-5 lg:sticky lg:top-24">
-            <h2 className="text-sm font-black text-neutral-900 mb-4">Order Summary</h2>
+            <h2 className="text-sm font-black text-neutral-900 mb-4">{t(content.cartOrderSummary, content.cartOrderSummaryBn)}</h2>
             {/* __CART_SUMMARY_ROWS__ */}
             <dl className="space-y-2.5 text-sm">
               <div className="flex justify-between text-neutral-600">
-                <dt>Subtotal</dt>
+                <dt>{t(content.cartSubtotal, content.cartSubtotalBn)}</dt>
                 <dd className="font-semibold text-neutral-900">{formatPrice(cartSubtotal, currency)}</dd>
               </div>
               {cartDiscount > 0 && (
                 <div className="flex justify-between text-emerald-600">
-                  <dt>Discount{appliedCoupon ? ` (${appliedCoupon.code})` : ''}</dt>
+                  <dt>{t(content.cartDiscountShort, content.cartDiscountShortBn)}{appliedCoupon ? ` (${appliedCoupon.code})` : ''}</dt>
                   <dd className="font-semibold">−{formatPrice(cartDiscount, currency)}</dd>
                 </div>
               )}
               <div className="flex justify-between text-neutral-600">
-                <dt>Delivery</dt>
+                <dt>{t(content.cartDeliveryShort, content.cartDeliveryShortBn)}</dt>
                 <dd className="font-semibold text-neutral-900">
                   {shippingFee === 0 ? (
-                    <span className="text-emerald-600 font-bold">Free</span>
+                    <span className="text-emerald-600 font-bold">
+                      {t(content.cartDeliveryFreeWord, content.cartDeliveryFreeWordBn)}
+                    </span>
                   ) : (
                     formatPrice(shippingFee, currency)
                   )}
                 </dd>
               </div>
               <div className="border-t border-neutral-100 pt-3 flex justify-between">
-                <dt className="font-black text-neutral-900">Total</dt>
+                <dt className="font-black text-neutral-900">{t(content.cartTotalShort, content.cartTotalShortBn)}</dt>
                 <dd className="text-base font-black text-[#D8232A]">{formatPrice(cartTotal, currency)}</dd>
               </div>
             </dl>
@@ -195,7 +206,7 @@ export const CartPage: React.FC = () => {
                   onClick={removeCoupon}
                   className="text-xs font-bold text-emerald-700 hover:text-red-600 cursor-pointer"
                 >
-                  Remove
+                  {t(content.cartRemoveCoupon, content.cartRemoveCouponBn)}
                 </button>
               </div>
             ) : (
@@ -203,15 +214,15 @@ export const CartPage: React.FC = () => {
                 <input
                   value={couponInput}
                   onChange={(e) => setCouponInput(e.target.value)}
-                  placeholder="Coupon code"
-                  aria-label="Coupon code"
+                  placeholder={t(content.cartCouponPlaceholder, content.cartCouponPlaceholderBn)}
+                  aria-label={t(content.cartCouponPlaceholder, content.cartCouponPlaceholderBn)}
                   className="flex-1 min-w-0 text-xs font-semibold rounded-lg border border-neutral-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#D8232A]/30 focus:border-[#D8232A]"
                 />
                 <button
                   type="submit"
                   className="text-xs font-black rounded-lg px-4 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white cursor-pointer"
                 >
-                  Apply
+                  {t(content.cartApplyCoupon, content.cartApplyCouponBn)}
                 </button>
               </form>
             )}
@@ -225,10 +236,13 @@ export const CartPage: React.FC = () => {
               to="/checkout"
               className="mt-5 w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#D8232A] text-white text-xs font-black rounded-full hover:bg-[#b51c22] transition-colors"
             >
-              Proceed to Checkout <ArrowRight className="w-4 h-4" />
+              {t(content.cartProceedToCheckout, content.cartProceedToCheckoutBn)} <ArrowRight className="w-4 h-4" />
             </Link>
             <p className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-neutral-400">
-              <Truck className="w-3.5 h-3.5" /> Free delivery on orders over ৳2,500
+              <Truck className="w-3.5 h-3.5" />{' '}
+              {fillTokens(t(content.cartFreeDeliveryNote, content.cartFreeDeliveryNoteBn), {
+                amount: formatPrice(freeShippingThreshold, currency),
+              })}
             </p>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { formatPrice } from '../utils/format';
 import { isFreeDeliveryCoupon } from '../utils/coupons';
 import { navigate } from '../lib/router';
 import { useSiteContent } from '../context/SiteContentContext';
+import { useLocalized, fillTokens } from '../components/Localized';
 import type { Order } from '../types';
 import {
   Banknote,
@@ -53,6 +54,9 @@ export function CheckoutPage() {
   // Delivery zones + payment methods come from Admin → Settings through the
   // shared settings context; the default config is used until that arrives.
   const { checkout: checkoutConfig } = useSiteContent();
+  const { content } = useSiteContent();
+  // Checkout copy — Admin → Storefront → Shop UI (see src/data/siteContent.ts).
+  const t = useLocalized();
   const [deliveryMethod, setDeliveryMethod] = useState(checkoutConfig.zones[0].id);
   const [paymentMethodId, setPaymentMethodId] = useState(checkoutConfig.paymentMethods[0].id);
   const [paymentReference, setPaymentReference] = useState('');
@@ -89,8 +93,8 @@ export function CheckoutPage() {
         <div className="w-16 h-16 mx-auto rounded-full bg-neutral-100 flex items-center justify-center">
           <Truck className="w-7 h-7 text-neutral-400" />
         </div>
-        <h1 className="mt-5 text-xl font-black text-neutral-900 tracking-tight">Your cart is empty</h1>
-        <p className="mt-1.5 text-sm text-neutral-500">Add products to your cart before checking out.</p>
+        <h1 className="mt-5 text-xl font-black text-neutral-900 tracking-tight">{t(content.cartEmptyTitle, content.cartEmptyTitleBn)}</h1>
+        <p className="mt-1.5 text-sm text-neutral-500">{t(content.checkoutEmptyHint, content.checkoutEmptyHintBn)}</p>
         <button
           onClick={() => navigate('/products')}
           className="mt-6 py-3 px-6 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
@@ -173,14 +177,14 @@ export function CheckoutPage() {
           {/* Delivery Information */}
           <section className="bg-white border border-neutral-200 rounded-2xl p-5 sm:p-6">
             <h2 className="text-sm font-black text-neutral-900 tracking-tight flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-[#D8232A]" /> Delivery Information
+              <MapPin className="w-4 h-4 text-[#D8232A]" /> {t(content.checkoutDeliveryHeading, content.checkoutDeliveryHeadingBn)}
             </h2>
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="co-name" className={labelClass}>Full Name</label>
+                <label htmlFor="co-name" className={labelClass}>{t(content.checkoutFullName, content.checkoutFullNameBn)}</label>
                 <div className="relative">
                   <User className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input id="co-name" type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your full name" className={inputClass} />
+                  <input id="co-name" type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t(content.checkoutNamePlaceholder, content.checkoutNamePlaceholderBn)} className={inputClass} />
                 </div>
               </div>
               <div>
@@ -200,7 +204,7 @@ export function CheckoutPage() {
                 {phoneError && <p className="mt-1.5 text-[11px] font-semibold text-red-600">{phoneError}</p>}
               </div>
               <div className="sm:col-span-2">
-                <label htmlFor="co-email" className={labelClass}>Email (for order updates)</label>
+                <label htmlFor="co-email" className={labelClass}>{t(content.checkoutEmailLabel, content.checkoutEmailLabelBn)}</label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input id="co-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" className={inputClass} />
@@ -208,10 +212,10 @@ export function CheckoutPage() {
               </div>
               <div className="sm:col-span-2">
                 <label htmlFor="co-street" className={labelClass}>Street Address ঠিকানা</label>
-                <input id="co-street" type="text" required value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder="House / Road / Landmark" className={`${inputClass} pl-3.5`} />
+                <input id="co-street" type="text" required value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} placeholder={t(content.checkoutStreetPlaceholder, content.checkoutStreetPlaceholderBn)} className={`${inputClass} pl-3.5`} />
               </div>
               <div>
-                <label htmlFor="co-division" className={labelClass}>Division</label>
+                <label htmlFor="co-division" className={labelClass}>{t(content.checkoutDivision, content.checkoutDivisionBn)}</label>
                 <select id="co-division" value={division} onChange={(e) => setDivision(e.target.value)} className="w-full py-2.5 px-3 text-sm border border-neutral-300 rounded-xl outline-none focus:border-[#D8232A] bg-white">
                   {['Dhaka', 'Chittagong', 'Sylhet', 'Rajshahi', 'Khulna', 'Barisal', 'Rangpur', 'Mymensingh'].map((d) => (
                     <option key={d} value={d}>{d}</option>
@@ -219,7 +223,7 @@ export function CheckoutPage() {
                 </select>
               </div>
               <div>
-                <label htmlFor="co-district" className={labelClass}>District</label>
+                <label htmlFor="co-district" className={labelClass}>{t(content.checkoutDistrict, content.checkoutDistrictBn)}</label>
                 <input id="co-district" type="text" required value={district} onChange={(e) => setDistrict(e.target.value)} className={`${inputClass} pl-3.5`} />
               </div>
               <div>
@@ -227,17 +231,17 @@ export function CheckoutPage() {
                 <input id="co-thana" type="text" required value={thana} onChange={(e) => setThana(e.target.value)} className={`${inputClass} pl-3.5`} />
               </div>
               <div>
-                <label htmlFor="co-postal" className={labelClass}>Postal Code (optional)</label>
+                <label htmlFor="co-postal" className={labelClass}>{t(content.checkoutPostal, content.checkoutPostalBn)}</label>
                 <input id="co-postal" type="text" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} className={`${inputClass} pl-3.5`} />
               </div>
               <div className="sm:col-span-2">
-                <label htmlFor="co-note" className={labelClass}>Delivery Instructions (optional)</label>
+                <label htmlFor="co-note" className={labelClass}>{t(content.checkoutNote, content.checkoutNoteBn)}</label>
                 <textarea
                   id="co-note"
                   value={deliveryInstructions}
                   onChange={(e) => setDeliveryInstructions(e.target.value)}
                   rows={2}
-                  placeholder="e.g. Call before delivery"
+                  placeholder={t(content.checkoutNotePlaceholder, content.checkoutNotePlaceholderBn)}
                   className="w-full px-3.5 py-2.5 text-sm border border-neutral-300 rounded-xl outline-none focus:border-[#D8232A] resize-none"
                 />
               </div>
@@ -246,7 +250,7 @@ export function CheckoutPage() {
           {/* __CHECKOUT_AREA_PAYMENT__ */}
           <section className="bg-white rounded-2xl border border-neutral-200 p-5">
             <h2 className="text-sm font-black text-neutral-900 flex items-center gap-2 mb-4">
-              <Truck className="w-4 h-4 text-[#D8232A]" /> Delivery Area & Payment
+              <Truck className="w-4 h-4 text-[#D8232A]" /> {t(content.checkoutAreaPaymentHeading, content.checkoutAreaPaymentHeadingBn)}
             </h2>
 
             {/* Delivery zones */}
@@ -337,7 +341,7 @@ export function CheckoutPage() {
         {/* __CHECKOUT_SUMMARY__ */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl border border-neutral-200 p-5 lg:sticky lg:top-20">
-            <h2 className="text-sm font-black text-neutral-900 mb-4">Order Summary</h2>
+            <h2 className="text-sm font-black text-neutral-900 mb-4">{t(content.cartOrderSummary, content.cartOrderSummaryBn)}</h2>
 
             {/* Line items */}
             <ul className="divide-y divide-neutral-100 mb-4">
@@ -365,23 +369,29 @@ export function CheckoutPage() {
             {/* Totals */}
             <dl className="space-y-2 text-xs border-t border-neutral-100 pt-3">
               <div className="flex justify-between text-neutral-600">
-                <dt>Subtotal</dt>
+                <dt>{t(content.cartSubtotal, content.cartSubtotalBn)}</dt>
                 <dd className="font-semibold text-neutral-900">{formatPrice(cartSubtotal, currency)}</dd>
               </div>
               {cartDiscount > 0 && (
                 <div className="flex justify-between text-emerald-600">
-                  <dt>Discount</dt>
+                  <dt>{t(content.cartDiscountShort, content.cartDiscountShortBn)}</dt>
                   <dd className="font-semibold">−{formatPrice(cartDiscount, currency)}</dd>
                 </div>
               )}
               <div className="flex justify-between text-neutral-600">
-                <dt>Delivery ({activeZone.label})</dt>
+                <dt>{t(content.cartDeliveryShort, content.cartDeliveryShortBn)} ({activeZone.label})</dt>
                 <dd className="font-semibold text-neutral-900">
-                  {zoneShipping === 0 ? <span className="text-emerald-600 font-bold">Free</span> : formatPrice(zoneShipping, currency)}
+                  {zoneShipping === 0 ? (
+                    <span className="text-emerald-600 font-bold">
+                      {t(content.cartDeliveryFreeWord, content.cartDeliveryFreeWordBn)}
+                    </span>
+                  ) : (
+                    formatPrice(zoneShipping, currency)
+                  )}
                 </dd>
               </div>
               <div className="border-t border-neutral-100 pt-2 flex justify-between">
-                <dt className="font-black text-neutral-900">Total</dt>
+                <dt className="font-black text-neutral-900">{t(content.cartTotalShort, content.cartTotalShortBn)}</dt>
                 <dd className="text-base font-black text-[#D8232A]">{formatPrice(orderTotal, currency)}</dd>
               </div>
             </dl>
@@ -395,11 +405,11 @@ export function CheckoutPage() {
             >
               {isPlacingOrder ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Placing Order…
+                  <Loader2 className="w-4 h-4 animate-spin" /> {t(content.checkoutPlacingOrder, content.checkoutPlacingOrderBn)}
                 </>
               ) : (
                 <>
-                  <Lock className="w-3.5 h-3.5" /> Place Order
+                  <Lock className="w-3.5 h-3.5" /> {t(content.checkoutPlaceOrder, content.checkoutPlaceOrderBn)}
                 </>
               )}
             </button>
