@@ -4,18 +4,9 @@ import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
 import type { Order } from '../types';
 import { CheckCircle2, Package, Truck, MapPin, Banknote, Loader2, SearchX } from 'lucide-react';
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Order Placed',
-  confirmed: 'Confirmed',
-  processing: 'Packing',
-  shipped: 'Shipped',
-  out_for_delivery: 'Out for Delivery',
-  delivered: 'Delivered',
-  cancelled: 'Cancelled',
-  returned: 'Returned',
-  refunded: 'Refunded',
-};
+import { useSiteContent } from '../context/SiteContentContext';
+import { useLocalized, fillTokens } from '../components/Localized';
+import { orderStatusLabel } from '../data/siteContent';
 
 /**
  * Dedicated order-confirmation page at /order-success/:id.
@@ -26,6 +17,9 @@ const STATUS_LABELS: Record<string, string> = {
 export function OrderSuccessPage() {
   const { path, query } = useRouter();
   const { getOrderById, fetchOrderById } = useStore();
+  // Page copy lives in Admin → Storefront → Orders & tracking (src/data/siteContent.ts).
+  const { content } = useSiteContent();
+  const t = useLocalized();
 
   const pathId = matchRoute('/order-success/:id', path)?.id ?? '';
   const id = pathId || query.get('id') || '';
@@ -63,7 +57,9 @@ export function OrderSuccessPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-24 text-center">
         <Loader2 className="w-8 h-8 text-[#D8232A] animate-spin mx-auto" />
-        <p className="mt-4 text-sm text-neutral-500">Loading your order…</p>
+        <p className="mt-4 text-sm text-neutral-500">
+          {t(content.orderSuccessLoading, content.orderSuccessLoadingBn)}
+        </p>
       </div>
     );
   }
@@ -75,23 +71,24 @@ export function OrderSuccessPage() {
         <div className="w-16 h-16 bg-red-50 text-[#D8232A] rounded-full flex items-center justify-center mx-auto mb-4">
           <SearchX className="w-8 h-8" />
         </div>
-        <h1 className="text-xl font-black text-neutral-900">We couldn't find this order</h1>
+        <h1 className="text-xl font-black text-neutral-900">
+          {t(content.orderSuccessNotFoundTitle, content.orderSuccessNotFoundTitleBn)}
+        </h1>
         <p className="mt-2 text-sm text-neutral-500 max-w-md mx-auto">
-          The order may have been placed in a different browser. If you have your tracking code
-          (starts with AKS-BD-), you can look it up here.
+          {t(content.orderSuccessNotFoundBody, content.orderSuccessNotFoundBodyBn)}
         </p>
         <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             to="/track-order"
             className="px-6 py-2.5 bg-[#D8232A] hover:bg-[#b51c22] text-white text-xs font-black rounded-full transition-colors"
           >
-            Track Your Order
+            {t(content.orderSuccessTrackCta, content.orderSuccessTrackCtaBn)}
           </Link>
           <Link
             to="/products"
             className="px-6 py-2.5 border border-neutral-300 hover:border-neutral-400 text-neutral-700 text-xs font-bold rounded-full transition-colors"
           >
-            Continue Shopping
+            {t(content.cartContinue, content.cartContinueBn)}
           </Link>
         </div>
       </div>
@@ -101,6 +98,15 @@ export function OrderSuccessPage() {
   /* ── Success ── */
   const addr = order.shippingAddress;
   const isCancelled = order.status === 'cancelled';
+
+  // "…keep your tracking code AKS-BD-XXXX handy…" — the code stays bold, so the
+  // sentence is split around it (same pattern as the cart's free-delivery line).
+  const nextNote = fillTokens(t(content.orderSuccessNextNote, content.orderSuccessNextNoteBn), {
+    code: order.trackingCode,
+  });
+  const [nextBefore, nextAfter] = order.trackingCode
+    ? nextNote.split(order.trackingCode)
+    : [nextNote, ''];
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
@@ -114,29 +120,39 @@ export function OrderSuccessPage() {
           {isCancelled ? <SearchX className="w-8 h-8" /> : <CheckCircle2 className="w-8 h-8" />}
         </div>
         <h1 className="text-2xl font-black text-neutral-900 tracking-tight">
-          {isCancelled ? 'This order was cancelled' : 'Your order has been placed successfully!'}
+          {isCancelled
+            ? t(content.orderSuccessCancelledTitle, content.orderSuccessCancelledTitleBn)
+            : t(content.orderSuccessTitle, content.orderSuccessTitleBn)}
         </h1>
-        <p className="mt-1.5 text-sm text-neutral-500">Thank you for shopping with AKS Mart.</p>
+        <p className="mt-1.5 text-sm text-neutral-500">
+          {t(content.orderSuccessThanks, content.orderSuccessThanksBn)}
+        </p>
       </div>
       {/* Order reference card */}
       <div className="mt-8 bg-white border border-neutral-200 rounded-2xl p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-neutral-100">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Order ID</p>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">
+              {t(content.orderIdLabel, content.orderIdLabelBn)}
+            </p>
             <p className="text-sm font-black text-neutral-900 break-all">{order.orderNumber || order.id}</p>
           </div>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Tracking Code</p>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">
+              {t(content.orderTrackingLabel, content.orderTrackingLabelBn)}
+            </p>
             <p className="text-sm font-black text-[#D8232A]">{order.trackingCode}</p>
           </div>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Status</p>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">
+              {t(content.orderStatusLabel, content.orderStatusLabelBn)}
+            </p>
             <span
               className={`inline-block text-[11px] font-black px-2.5 py-1 rounded-full ${
                 isCancelled ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
               }`}
             >
-              {STATUS_LABELS[order.status] ?? order.status}
+              {orderStatusLabel(content, t, order.status)}
             </span>
           </div>
         </div>
@@ -162,7 +178,9 @@ export function OrderSuccessPage() {
                 <p className="text-sm font-bold text-neutral-900 truncate">{item.product.name}</p>
                 <p className="text-[11px] text-neutral-500">
                   {[item.selectedColor?.name, item.selectedSize?.size].filter(Boolean).join(' · ')}
-                  {` · Qty ${item.quantity}`}
+                  {` · ${fillTokens(t(content.orderItemQty, content.orderItemQtyBn), {
+                    count: String(item.quantity),
+                  })}`}
                 </p>
               </div>
               <p className="text-sm font-black text-neutral-900">
@@ -175,23 +193,25 @@ export function OrderSuccessPage() {
         {/* Summary */}
         <div className="py-4 space-y-1.5 text-sm border-b border-neutral-100">
           <div className="flex justify-between text-neutral-600">
-            <span>Subtotal</span>
+            <span>{t(content.cartSubtotal, content.cartSubtotalBn)}</span>
             <span className="font-semibold">{formatPrice(order.subtotal, 'BDT')}</span>
           </div>
           {order.discount > 0 && (
             <div className="flex justify-between text-emerald-600">
-              <span>Discount</span>
+              <span>{t(content.cartDiscountShort, content.cartDiscountShortBn)}</span>
               <span className="font-semibold">−{formatPrice(order.discount, 'BDT')}</span>
             </div>
           )}
           <div className="flex justify-between text-neutral-600">
-            <span>Delivery Charge</span>
+            <span>{t(content.orderDeliveryCharge, content.orderDeliveryChargeBn)}</span>
             <span className="font-semibold">
-              {order.shippingFee === 0 ? 'Free' : formatPrice(order.shippingFee, 'BDT')}
+              {order.shippingFee === 0
+                ? t(content.cartDeliveryFreeWord, content.cartDeliveryFreeWordBn)
+                : formatPrice(order.shippingFee, 'BDT')}
             </span>
           </div>
           <div className="flex justify-between pt-1.5 text-base font-black text-neutral-900">
-            <span>Total</span>
+            <span>{t(content.cartTotalShort, content.cartTotalShortBn)}</span>
             <span className="text-[#D8232A]">{formatPrice(order.total, 'BDT')}</span>
           </div>
         </div>
@@ -200,7 +220,9 @@ export function OrderSuccessPage() {
           <div className="flex gap-2.5">
             <MapPin className="w-4 h-4 text-[#D8232A] shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-black text-neutral-900">Delivery Address</p>
+              <p className="text-xs font-black text-neutral-900">
+                {t(content.orderDeliveryAddress, content.orderDeliveryAddressBn)}
+              </p>
               <p className="text-xs text-neutral-600 mt-1 leading-relaxed">
                 {addr?.fullName}
                 <br />
@@ -215,9 +237,11 @@ export function OrderSuccessPage() {
           <div className="flex gap-2.5">
             <Banknote className="w-4 h-4 text-[#D8232A] shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-black text-neutral-900">Payment</p>
+              <p className="text-xs font-black text-neutral-900">
+                {t(content.orderSuccessPaymentLabel, content.orderSuccessPaymentLabelBn)}
+              </p>
               <p className="text-xs text-neutral-600 mt-1">
-                Cash on Delivery — pay when your order arrives.
+                {t(content.orderSuccessCodNote, content.orderSuccessCodNoteBn)}
               </p>
               {order.estimatedDelivery && (
                 <p className="text-[11px] text-neutral-400 mt-1.5">{order.estimatedDelivery}</p>
@@ -231,9 +255,9 @@ export function OrderSuccessPage() {
       <div className="mt-6 flex items-start gap-2.5 bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3">
         <Truck className="w-4 h-4 text-neutral-400 shrink-0 mt-0.5" />
         <p className="text-xs text-neutral-600 leading-relaxed">
-          What's next? We'll prepare your order for delivery. Keep your tracking code{' '}
-          <span className="font-bold text-neutral-900">{order.trackingCode}</span> handy to check
-          its status anytime.
+          {nextBefore}
+          <span className="font-bold text-neutral-900">{order.trackingCode}</span>
+          {nextAfter}
         </p>
       </div>
 
@@ -242,13 +266,13 @@ export function OrderSuccessPage() {
           to="/track-order"
           className="w-full sm:w-auto px-6 py-3 bg-[#D8232A] hover:bg-[#b51c22] text-white text-xs font-black rounded-full transition-colors text-center"
         >
-          Track Your Order
+          {t(content.orderSuccessTrackCta, content.orderSuccessTrackCtaBn)}
         </Link>
         <Link
           to="/products"
           className="w-full sm:w-auto px-6 py-3 border border-neutral-300 hover:border-neutral-400 text-neutral-700 text-xs font-bold rounded-full transition-colors text-center"
         >
-          Continue Shopping
+          {t(content.cartContinue, content.cartContinueBn)}
         </Link>
       </div>
     </div>

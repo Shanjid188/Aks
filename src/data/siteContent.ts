@@ -176,6 +176,47 @@ interface SiteContentBase {
   checkoutNotePlaceholder: string;
   checkoutPlaceOrder: string;
   checkoutPlacingOrder: string;
+  /* Order status vocabulary — shared by the confirmation and tracking pages */
+  orderStatusPending: string;
+  orderStatusConfirmed: string;
+  orderStatusProcessing: string;
+  orderStatusShipped: string;
+  orderStatusOutForDelivery: string;
+  orderStatusDelivered: string;
+  orderStatusCancelled: string;
+  orderStatusReturned: string;
+  orderStatusRefunded: string;
+  /* Order labels + receipt rows (confirmation + tracking pages) */
+  orderIdLabel: string;
+  orderTrackingLabel: string;
+  orderStatusLabel: string;
+  orderDeliveryAddress: string;
+  orderDeliveryCharge: string;
+  /** `{count}` is the line quantity: “Qty 3”. */
+  orderItemQty: string;
+  /* Order confirmation page (/order-success/:id) */
+  orderSuccessLoading: string;
+  orderSuccessNotFoundTitle: string;
+  orderSuccessNotFoundBody: string;
+  orderSuccessCancelledTitle: string;
+  orderSuccessTitle: string;
+  orderSuccessThanks: string;
+  orderSuccessPaymentLabel: string;
+  orderSuccessCodNote: string;
+  /** `{code}` is the order’s tracking code (kept bold on the page). */
+  orderSuccessNextNote: string;
+  orderSuccessTrackCta: string;
+  /* Order tracking page (/track-order) */
+  trackOrderTitle: string;
+  trackOrderSubtitle: string;
+  trackOrderInputPlaceholder: string;
+  trackOrderInputAria: string;
+  trackOrderSearch: string;
+  trackOrderNotFound: string;
+  trackOrderIdleHint: string;
+  trackOrderCloseAria: string;
+  trackOrderReturnedNotice: string;
+  trackOrderRefundedNotice: string;
   /* “Why Shop With Us” strip (above the footer) */
   promoTagline: string;
   promoTitle: string;
@@ -371,6 +412,50 @@ const DEFAULT_SITE_CONTENT_BASE: SiteContentBase = {
   checkoutPlaceOrder: 'Place Order',
   checkoutPlacingOrder: 'Placing Order…',
 
+  /* Order vocabulary — shared by the confirmation + tracking pages */
+  orderStatusPending: 'Order Placed',
+  orderStatusConfirmed: 'Confirmed',
+  orderStatusProcessing: 'Packing',
+  orderStatusShipped: 'Shipped',
+  orderStatusOutForDelivery: 'Out for Delivery',
+  orderStatusDelivered: 'Delivered',
+  orderStatusCancelled: 'Cancelled',
+  orderStatusReturned: 'Returned',
+  orderStatusRefunded: 'Refunded',
+
+  orderIdLabel: 'Order ID',
+  orderTrackingLabel: 'Tracking Code',
+  orderStatusLabel: 'Status',
+  orderDeliveryAddress: 'Delivery Address',
+  orderDeliveryCharge: 'Delivery Charge',
+  orderItemQty: 'Qty {count}',
+
+  orderSuccessLoading: 'Loading your order…',
+  orderSuccessNotFoundTitle: "We couldn't find this order",
+  orderSuccessNotFoundBody:
+    'The order may have been placed in a different browser. If you have your tracking code (starts with AKS-BD-), you can look it up here.',
+  orderSuccessCancelledTitle: 'This order was cancelled',
+  orderSuccessTitle: 'Your order has been placed successfully!',
+  orderSuccessThanks: 'Thank you for shopping with AKS Mart.',
+  orderSuccessPaymentLabel: 'Payment',
+  orderSuccessCodNote: 'Cash on Delivery — pay when your order arrives.',
+  orderSuccessNextNote:
+    "What's next? We'll prepare your order for delivery. Keep your tracking code {code} handy to check its status anytime.",
+  orderSuccessTrackCta: 'Track Your Order',
+
+  trackOrderTitle: 'Track Your Order',
+  trackOrderSubtitle: 'Enter your order ID or tracking code (e.g. AKS-BD-123456) to see the status.',
+  trackOrderInputPlaceholder: 'Order ID or AKS-BD-XXXXXX',
+  trackOrderInputAria: 'Order ID or tracking code',
+  trackOrderSearch: 'Search',
+  trackOrderNotFound: 'No order found with that ID or tracking code. Please check and try again.',
+  trackOrderIdleHint: 'Enter an order ID above to track it.',
+  trackOrderCloseAria: 'Close order details',
+  trackOrderReturnedNotice:
+    'This order has been returned to us. Our team will process it shortly — contact support for any questions.',
+  trackOrderRefundedNotice:
+    'This order has been refunded. The amount will be credited through your original payment method.',
+
   promoTagline: 'Why Shop With Us',
   promoTitle: 'One Mart. Many Choices.',
   promoSubtitle:
@@ -560,6 +645,51 @@ const DEFAULT_SITE_CONTENT_BN: BanglaOf<SiteContentBase> = {
   checkoutPlaceOrderBn: 'অর্ডার নিশ্চিত করুন',
   checkoutPlacingOrderBn: 'অর্ডার করা হচ্ছে…',
 
+  orderStatusPendingBn: 'অর্ডার করা হয়েছে',
+  orderStatusConfirmedBn: 'নিশ্চিত হয়েছে',
+  orderStatusProcessingBn: 'প্যাকিং চলছে',
+  orderStatusShippedBn: 'পাঠানো হয়েছে',
+  orderStatusOutForDeliveryBn: 'ডেলিভারির জন্য বের হয়েছে',
+  orderStatusDeliveredBn: 'ডেলিভারি সম্পন্ন',
+  orderStatusCancelledBn: 'বাতিল হয়েছে',
+  orderStatusReturnedBn: 'ফেরত এসেছে',
+  orderStatusRefundedBn: 'টাকা ফেরত হয়েছে',
+
+  orderIdLabelBn: 'অর্ডার আইডি',
+  orderTrackingLabelBn: 'ট্র্যাকিং কোড',
+  orderStatusLabelBn: 'স্ট্যাটাস',
+  orderDeliveryAddressBn: 'ডেলিভারি ঠিকানা',
+  orderDeliveryChargeBn: 'ডেলিভারি চার্জ',
+  orderItemQtyBn: 'পরিমাণ {count}',
+
+  orderSuccessLoadingBn: 'আপনার অর্ডার লোড হচ্ছে…',
+  orderSuccessNotFoundTitleBn: 'এই অর্ডারটি খুঁজে পাওয়া যায়নি',
+  orderSuccessNotFoundBodyBn:
+    'অর্ডারটি অন্য ব্রাউজারে দেওয়া হয়ে থাকতে পারে। আপনার ট্র্যাকিং কোড (AKS-BD- দিয়ে শুরু) থাকলে এখানেই খুঁজে দেখতে পারেন।',
+  orderSuccessCancelledTitleBn: 'এই অর্ডারটি বাতিল করা হয়েছে',
+  orderSuccessTitleBn: 'আপনার অর্ডার সফলভাবে সম্পন্ন হয়েছে!',
+  orderSuccessThanksBn: 'AKS Mart থেকে কেনাকাটার জন্য ধন্যবাদ।',
+  orderSuccessPaymentLabelBn: 'পেমেন্ট',
+  orderSuccessCodNoteBn: 'ক্যাশ অন ডেলিভারি — অর্ডার পৌঁছালে টাকা পরিশোধ করুন।',
+  orderSuccessNextNoteBn:
+    'এরপর কী? আমরা আপনার অর্ডার ডেলিভারির জন্য প্রস্তুত করব। যেকোনো সময় স্ট্যাটাস দেখতে ট্র্যাকিং কোড {code} হাতের কাছে রাখুন।',
+  orderSuccessTrackCtaBn: 'আপনার অর্ডার ট্র্যাক করুন',
+
+  trackOrderTitleBn: 'আপনার অর্ডার ট্র্যাক করুন',
+  trackOrderSubtitleBn:
+    'স্ট্যাটাস দেখতে আপনার অর্ডার আইডি বা ট্র্যাকিং কোড (যেমন AKS-BD-123456) লিখুন।',
+  trackOrderInputPlaceholderBn: 'অর্ডার আইডি বা AKS-BD-XXXXXX',
+  trackOrderInputAriaBn: 'অর্ডার আইডি বা ট্র্যাকিং কোড',
+  trackOrderSearchBn: 'খুঁজুন',
+  trackOrderNotFoundBn:
+    'এই আইডি বা ট্র্যাকিং কোডে কোনো অর্ডার পাওয়া যায়নি। আবার যাচাই করে চেষ্টা করুন।',
+  trackOrderIdleHintBn: 'ট্র্যাক করতে উপরে আপনার অর্ডার আইডি লিখুন।',
+  trackOrderCloseAriaBn: 'অর্ডারের বিস্তারিত বন্ধ করুন',
+  trackOrderReturnedNoticeBn:
+    'এই অর্ডারটি আমাদের কাছে ফেরত এসেছে। আমাদের টিম শীঘ্রই এটি প্রসেস করবে — কোনো প্রশ্ন থাকলে সাপোর্টে যোগাযোগ করুন।',
+  trackOrderRefundedNoticeBn:
+    'এই অর্ডারের টাকা ফেরত দেওয়া হয়েছে। আপনার আগের পেমেন্ট মাধ্যমেই টাকা ফেরত যাবে।',
+
   promoTaglineBn: 'কেন আমাদের থেকে কিনবেন',
   promoTitleBn: 'এক মার্ট। অনেক পছন্দ।',
   promoSubtitleBn:
@@ -745,6 +875,45 @@ const SITE_CONTENT_BASE_KEYS: Record<keyof SiteContentBase, string> = {
   checkoutPlaceOrder: 'content.checkout.placeOrder',
   checkoutPlacingOrder: 'content.checkout.placingOrder',
 
+  orderStatusPending: 'content.order.status.pending',
+  orderStatusConfirmed: 'content.order.status.confirmed',
+  orderStatusProcessing: 'content.order.status.processing',
+  orderStatusShipped: 'content.order.status.shipped',
+  orderStatusOutForDelivery: 'content.order.status.outForDelivery',
+  orderStatusDelivered: 'content.order.status.delivered',
+  orderStatusCancelled: 'content.order.status.cancelled',
+  orderStatusReturned: 'content.order.status.returned',
+  orderStatusRefunded: 'content.order.status.refunded',
+
+  orderIdLabel: 'content.order.idLabel',
+  orderTrackingLabel: 'content.order.trackingLabel',
+  orderStatusLabel: 'content.order.statusLabel',
+  orderDeliveryAddress: 'content.order.deliveryAddress',
+  orderDeliveryCharge: 'content.order.deliveryCharge',
+  orderItemQty: 'content.order.itemQty',
+
+  orderSuccessLoading: 'content.orderSuccess.loading',
+  orderSuccessNotFoundTitle: 'content.orderSuccess.notFoundTitle',
+  orderSuccessNotFoundBody: 'content.orderSuccess.notFoundBody',
+  orderSuccessCancelledTitle: 'content.orderSuccess.cancelledTitle',
+  orderSuccessTitle: 'content.orderSuccess.title',
+  orderSuccessThanks: 'content.orderSuccess.thanks',
+  orderSuccessPaymentLabel: 'content.orderSuccess.paymentLabel',
+  orderSuccessCodNote: 'content.orderSuccess.codNote',
+  orderSuccessNextNote: 'content.orderSuccess.nextNote',
+  orderSuccessTrackCta: 'content.orderSuccess.trackCta',
+
+  trackOrderTitle: 'content.trackOrder.title',
+  trackOrderSubtitle: 'content.trackOrder.subtitle',
+  trackOrderInputPlaceholder: 'content.trackOrder.inputPlaceholder',
+  trackOrderInputAria: 'content.trackOrder.inputAria',
+  trackOrderSearch: 'content.trackOrder.search',
+  trackOrderNotFound: 'content.trackOrder.notFound',
+  trackOrderIdleHint: 'content.trackOrder.idleHint',
+  trackOrderCloseAria: 'content.trackOrder.closeAria',
+  trackOrderReturnedNotice: 'content.trackOrder.returnedNotice',
+  trackOrderRefundedNotice: 'content.trackOrder.refundedNotice',
+
   promoTagline: 'content.promoBar.tagline',
   promoTitle: 'content.promoBar.title',
   promoSubtitle: 'content.promoBar.subtitle',
@@ -812,6 +981,36 @@ export const siteContentFromSettings = (raw: Record<string, unknown>): SiteConte
     if (typeof value === 'string' && value.trim() !== '') out[field] = value;
   }
   return out;
+};
+
+/* ── Order status vocabulary (Admin → Storefront → Orders & tracking) ──────── */
+
+/**
+ * Order status code → the content field that labels it. The codes come from the
+ * API and never change, so this map is the single place the order confirmation
+ * and tracking pages agree on what each status is called.
+ */
+export const ORDER_STATUS_FIELD: Record<string, SiteContentField> = {
+  pending: 'orderStatusPending',
+  confirmed: 'orderStatusConfirmed',
+  processing: 'orderStatusProcessing',
+  shipped: 'orderStatusShipped',
+  out_for_delivery: 'orderStatusOutForDelivery',
+  delivered: 'orderStatusDelivered',
+  cancelled: 'orderStatusCancelled',
+  returned: 'orderStatusReturned',
+  refunded: 'orderStatusRefunded',
+};
+
+/** Localized label for an order status; unknown codes fall back to the raw code. */
+export const orderStatusLabel = (
+  content: SiteContent,
+  t: (en: string, bn?: string) => string,
+  status: string,
+): string => {
+  const field = ORDER_STATUS_FIELD[status];
+  if (!field) return status;
+  return t(content[field], content[`${field}Bn` as keyof SiteContent]);
 };
 
 /** Comma-separated keyword setting → trimmed list (falls back to the bundled set). */

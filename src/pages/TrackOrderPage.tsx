@@ -3,19 +3,12 @@ import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
 import type { Order } from '../types';
 import { Package, Search, Loader2, X, Undo2 } from 'lucide-react';
+import { useSiteContent } from '../context/SiteContentContext';
+import { useLocalized, fillTokens } from '../components/Localized';
+import { orderStatusLabel } from '../data/siteContent';
 
+/** The happy path the tracker draws — cancelled/returned/refunded skip it. */
 const TRACKER_FLOW = ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery', 'delivered'] as const;
-const TRACKER_LABELS: Record<string, string> = {
-  pending: 'Order Placed',
-  confirmed: 'Confirmed',
-  processing: 'Packing',
-  shipped: 'Shipped',
-  out_for_delivery: 'Out for Delivery',
-  delivered: 'Delivered',
-  cancelled: 'Cancelled',
-  returned: 'Returned',
-  refunded: 'Refunded',
-};
 
 /**
  * Dedicated order-tracking page at /track-order.
@@ -28,6 +21,9 @@ export function TrackOrderPage() {
   const [error, setError] = useState('');
   const [searching, setSearching] = useState(false);
   const { getOrderById, fetchOrderById, fetchOrderByTracking } = useStore();
+  // Page copy lives in Admin → Storefront → Orders & tracking (src/data/siteContent.ts).
+  const { content } = useSiteContent();
+  const t = useLocalized();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +43,7 @@ export function TrackOrderPage() {
           : await fetchOrderById(q);
       }
       if (found) setResult(found);
-      else setError('No order found with that ID or tracking code. Please check and try again.');
+      else setError(t(content.trackOrderNotFound, content.trackOrderNotFoundBn));
     } finally {
       setSearching(false);
     }
@@ -57,9 +53,11 @@ export function TrackOrderPage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
       <div className="text-center mb-8">
         <Package className="w-10 h-10 text-neutral-400 mx-auto mb-3" />
-        <h1 className="text-2xl font-black text-neutral-900 tracking-tight">Track Your Order</h1>
+        <h1 className="text-2xl font-black text-neutral-900 tracking-tight">
+          {t(content.trackOrderTitle, content.trackOrderTitleBn)}
+        </h1>
         <p className="text-sm text-neutral-500 mt-1">
-          Enter your order ID or tracking code (e.g. AKS-BD-123456) to see the status.
+          {t(content.trackOrderSubtitle, content.trackOrderSubtitleBn)}
         </p>
       </div>
       <form onSubmit={handleSearch} className="max-w-md mx-auto mb-8">
@@ -70,8 +68,8 @@ export function TrackOrderPage() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Order ID or AKS-BD-XXXXXX"
-              aria-label="Order ID or tracking code"
+              placeholder={t(content.trackOrderInputPlaceholder, content.trackOrderInputPlaceholderBn)}
+              aria-label={t(content.trackOrderInputAria, content.trackOrderInputAriaBn)}
               className="w-full pl-10 pr-3 py-2.5 text-sm font-semibold rounded-xl border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-[#D8232A]/30 focus:border-[#D8232A]"
             />
           </div>
@@ -80,7 +78,7 @@ export function TrackOrderPage() {
             disabled={searching}
             className="px-5 py-2.5 bg-[#D8232A] text-white text-xs font-black rounded-xl hover:bg-[#b51c22] transition-colors cursor-pointer disabled:opacity-60"
           >
-            {searching ? '…' : 'Search'}
+            {searching ? '…' : t(content.trackOrderSearch, content.trackOrderSearchBn)}
           </button>
         </div>
       </form>
@@ -101,7 +99,7 @@ export function TrackOrderPage() {
 
       {!result && !error && !searching && (
         <p className="text-center text-xs text-neutral-400 mt-8">
-          Enter an order ID above to track it.
+          {t(content.trackOrderIdleHint, content.trackOrderIdleHintBn)}
         </p>
       )}
     </div>
@@ -110,6 +108,8 @@ export function TrackOrderPage() {
 
 /** Result card for a tracked order — status progress, items, totals, address. */
 function OrderResult({ order, onClose }: { order: Order; onClose: () => void }) {
+  const { content } = useSiteContent();
+  const t = useLocalized();
   const isCancelled = order.status === 'cancelled';
   const isReturned = order.status === 'returned';
   const isRefunded = order.status === 'refunded';
@@ -120,7 +120,7 @@ function OrderResult({ order, onClose }: { order: Order; onClose: () => void }) 
     <div className="bg-white border border-neutral-200 rounded-2xl p-5 sm:p-6 relative">
       <button
         onClick={onClose}
-        aria-label="Close order details"
+        aria-label={t(content.trackOrderCloseAria, content.trackOrderCloseAriaBn)}
         className="absolute top-4 right-4 w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-500 cursor-pointer"
       >
         <X className="w-4 h-4" />
@@ -129,15 +129,21 @@ function OrderResult({ order, onClose }: { order: Order; onClose: () => void }) 
       {/* Reference */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pb-4 border-b border-neutral-100">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Order ID</p>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">
+            {t(content.orderIdLabel, content.orderIdLabelBn)}
+          </p>
           <p className="text-sm font-black text-neutral-900 break-all">{order.id}</p>
         </div>
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Tracking Code</p>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">
+            {t(content.orderTrackingLabel, content.orderTrackingLabelBn)}
+          </p>
           <p className="text-sm font-black text-[#D8232A]">{order.trackingCode}</p>
         </div>
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">Status</p>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">
+            {t(content.orderStatusLabel, content.orderStatusLabelBn)}
+          </p>
           <span
             className={`inline-block text-[11px] font-black px-2.5 py-1 rounded-full ${
               isCancelled
@@ -149,7 +155,7 @@ function OrderResult({ order, onClose }: { order: Order; onClose: () => void }) 
                     : 'bg-amber-100 text-amber-700'
             }`}
           >
-            {TRACKER_LABELS[order.status] ?? order.status}
+            {orderStatusLabel(content, t, order.status)}
           </span>
         </div>
       </div>
@@ -163,8 +169,8 @@ function OrderResult({ order, onClose }: { order: Order; onClose: () => void }) 
         >
           <Undo2 className="w-4 h-4 shrink-0" />
           {isReturned
-            ? 'This order has been returned to us. Our team will process it shortly — contact support for any questions.'
-            : 'This order has been refunded. The amount will be credited through your original payment method.'}
+            ? t(content.trackOrderReturnedNotice, content.trackOrderReturnedNoticeBn)
+            : t(content.trackOrderRefundedNotice, content.trackOrderRefundedNoticeBn)}
         </div>
       )}
 
@@ -183,7 +189,7 @@ function OrderResult({ order, onClose }: { order: Order; onClose: () => void }) 
                     {i + 1}
                   </div>
                   <span className="text-[9px] font-bold text-neutral-500 mt-1 text-center">
-                    {TRACKER_LABELS[step]}
+                    {orderStatusLabel(content, t, step)}
                   </span>
                 </div>
                 {i < TRACKER_FLOW.length - 1 && (
@@ -219,7 +225,9 @@ function OrderResult({ order, onClose }: { order: Order; onClose: () => void }) 
               <p className="text-sm font-bold text-neutral-900 truncate">{item.product.name}</p>
               <p className="text-[11px] text-neutral-500">
                 {[item.selectedColor?.name, item.selectedSize?.size].filter(Boolean).join(' · ')}
-                {` · Qty ${item.quantity}`}
+                {` · ${fillTokens(t(content.orderItemQty, content.orderItemQtyBn), {
+                  count: String(item.quantity),
+                })}`}
               </p>
             </div>
             <p className="text-sm font-black text-neutral-900">
@@ -232,7 +240,9 @@ function OrderResult({ order, onClose }: { order: Order; onClose: () => void }) 
       {/* Totals + address */}
       <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div>
-          <p className="text-xs font-black text-neutral-900 mb-1.5">Delivery Address</p>
+          <p className="text-xs font-black text-neutral-900 mb-1.5">
+            {t(content.orderDeliveryAddress, content.orderDeliveryAddressBn)}
+          </p>
           <p className="text-xs text-neutral-600 leading-relaxed">
             {addr?.fullName}
             <br />
@@ -245,23 +255,25 @@ function OrderResult({ order, onClose }: { order: Order; onClose: () => void }) 
         </div>
         <div className="space-y-1.5 text-sm">
           <div className="flex justify-between text-neutral-600">
-            <span>Subtotal</span>
+            <span>{t(content.cartSubtotal, content.cartSubtotalBn)}</span>
             <span className="font-semibold">{formatPrice(order.subtotal, 'BDT')}</span>
           </div>
           {order.discount > 0 && (
             <div className="flex justify-between text-emerald-600">
-              <span>Discount</span>
+              <span>{t(content.cartDiscountShort, content.cartDiscountShortBn)}</span>
               <span className="font-semibold">−{formatPrice(order.discount, 'BDT')}</span>
             </div>
           )}
           <div className="flex justify-between text-neutral-600">
-            <span>Delivery Charge</span>
+            <span>{t(content.orderDeliveryCharge, content.orderDeliveryChargeBn)}</span>
             <span className="font-semibold">
-              {order.shippingFee === 0 ? 'Free' : formatPrice(order.shippingFee, 'BDT')}
+              {order.shippingFee === 0
+                ? t(content.cartDeliveryFreeWord, content.cartDeliveryFreeWordBn)
+                : formatPrice(order.shippingFee, 'BDT')}
             </span>
           </div>
           <div className="flex justify-between pt-1.5 text-base font-black text-neutral-900">
-            <span>Total</span>
+            <span>{t(content.cartTotalShort, content.cartTotalShortBn)}</span>
             <span className="text-[#D8232A]">{formatPrice(order.total, 'BDT')}</span>
           </div>
         </div>
