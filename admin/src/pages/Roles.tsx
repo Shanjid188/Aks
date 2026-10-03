@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Role } from '../types';
 import { EmptyState, Spinner, PageHeader } from '../components/ui';
-import { hasPerm, PERM, PERMISSION_CATALOG } from '../lib/permissions';
+import { PERM, PERMISSION_CATALOG } from '../lib/permissions';
+import { useCan } from '../lib/permission-context';
 import { KeyRound, Pencil, Plus, ShieldCheck, Trash2, X } from 'lucide-react';
 
 interface RoleFormState {
@@ -23,7 +24,7 @@ const emptyForm = (): RoleFormState => ({
 export function RolesPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
-  const [me, setMe] = useState<{ isSuper: boolean; permissions: string[] } | null>(null);
+  const can = useCan();
   const [form, setForm] = useState<RoleFormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -33,11 +34,9 @@ export function RolesPage() {
     setLoading(true);
     Promise.all([
       api.get<{ roles: Role[] }>('/admin/roles'),
-      api.get<{ admin: { isSuper: boolean; permissions: string[] } }>('/admin/auth/me'),
     ])
-      .then(([r, m]) => {
+      .then(([r]) => {
         setRoles(r.roles);
-        setMe(m.admin);
       })
       .catch(() => setRoles([]))
       .finally(() => setLoading(false));
@@ -46,8 +45,6 @@ export function RolesPage() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const can = (p: string) => hasPerm(me, p);
 
   const startCreate = () => {
     setFormError(null);

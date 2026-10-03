@@ -3,6 +3,7 @@ import type { AdminUser } from './api';
 import aksLogo from './assets/AKS.logo.jpg';
 import { api, getStoredAdmin, setStoredAdmin, setToken } from './api';
 import { hasPerm, PERM } from './lib/permissions';
+import { PermissionProvider } from './lib/permission-context';
 import { LoginPage } from './pages/LoginPage';
 import { Spinner } from './components/ui';
 
@@ -43,7 +44,7 @@ const SubscribersPage = lazy(() => import('./pages/Subscribers').then((m) => ({ 
 const MessagesPage = lazy(() => import('./pages/Messages').then((m) => ({ default: m.MessagesPage })));
 import {
   Activity, BarChart3, Boxes, Calculator, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
-  Clock, FileText, Image, Images, Inbox, LayoutDashboard, LogOut, Mail, Menu, Package,
+  Clock, FileText, Image, Images, Inbox, LayoutDashboard, LayoutGrid, LogOut, Mail, Menu, Package,
   PackageCheck, Receipt, RotateCcw, Search, Settings, ShieldCheck, ShoppingBag,
   ShoppingCart, Sparkles, Star, Ticket, Truck, UserCog, Users, X, XCircle, Undo2, Percent, Heart,
 } from 'lucide-react';
@@ -89,6 +90,7 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
   { key: 'pos', label: 'POS Register', icon: <Calculator className="w-[18px] h-[18px]" />, permission: PERM.POS_VIEW, desc: 'Point of sale' },
   { key: 'orders', label: 'Orders', icon: <Package className="w-[18px] h-[18px]" />, permission: PERM.ORDERS_VIEW, desc: 'Customer orders' },
   { key: 'products', label: 'Products', icon: <ShoppingBag className="w-[18px] h-[18px]" />, permission: PERM.PRODUCTS_VIEW, desc: 'Catalog & stock' },
+  { key: 'categories', label: 'Categories', icon: <LayoutGrid className="w-[18px] h-[18px]" />, permission: PERM.CATEGORIES_VIEW, desc: 'Divisions & subcategories' },
   { key: 'inventory', label: 'Inventory', icon: <Boxes className="w-[18px] h-[18px]" />, permission: PERM.INVENTORY_VIEW, desc: 'Stock levels' },
   { key: 'invoices', label: 'Invoices', icon: <FileText className="w-[18px] h-[18px]" />, permission: PERM.INVOICES_VIEW, desc: 'Printable invoices' },
   { key: 'packaging', label: 'Packaging', icon: <PackageCheck className="w-[18px] h-[18px]" />, permission: PERM.PACKAGING_VIEW, desc: 'Pack & dispatch' },
@@ -129,7 +131,7 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
  */
 const NAV_GROUPS: { key: string; label: string; icon: ReactNode; keys: PageKey[] }[] = [
   { key: 'operation', label: 'Operation', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders_pending', 'orders_confirmed', 'packaging', 'orders_shipped', 'orders_delivered', 'orders_cancelled', 'orders_returned', 'invoices', 'returns', 'customers'] },
-  { key: 'catalog', label: 'Catalog', icon: <Boxes className="w-4 h-4" />, keys: ['products', 'inventory', 'purchases', 'suppliers'] },
+  { key: 'catalog', label: 'Catalog', icon: <Boxes className="w-4 h-4" />, keys: ['products', 'categories', 'inventory', 'purchases', 'suppliers'] },
   { key: 'marketing', label: 'Marketing', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'gallery', 'offers', 'lovedproducts', 'storefront', 'pages'] },
   { key: 'finance', label: 'Finance', icon: <BarChart3 className="w-4 h-4" />, keys: ['expenses', 'reports'] },
   { key: 'administration', label: 'Administration', icon: <ShieldCheck className="w-4 h-4" />, keys: ['admins', 'roles', 'activity', 'settings'] },
@@ -368,7 +370,7 @@ export default function App() {
         return <ShippedPage />;
       case 'orderoverview':
         return <OrderOverviewPage />;
-            case 'categories':
+      case 'categories':
         return <CategoriesPage />;
       case 'products':
         return <ProductsPage />;
@@ -639,6 +641,7 @@ export default function App() {
   };
 
   return (
+    <PermissionProvider admin={admin}>
     <div className="min-h-screen flex">
       {/* Desktop sidebar — sticky full height, logo always visible at the very top */}
       <aside
@@ -792,5 +795,6 @@ export default function App() {
         {sidebarInner(true)}
       </aside>
     </div>
+    </PermissionProvider>
   );
 }

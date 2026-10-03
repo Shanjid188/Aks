@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import type { Customer, SalesOverview, Stats } from '../types';
 import { EmptyState, Spinner, StatusBadge, formatDate } from '../components/ui';
-import { hasPerm, PERM } from '../lib/permissions';
+import { PERM } from '../lib/permissions';
+import { useCan } from '../lib/permission-context';
 import {
   AlertTriangle,
   ArrowDownRight,
@@ -165,8 +166,10 @@ function SectionCard({
 }
 
 export function Dashboard() {
+  // Permission state is supplied by the shared provider (fed by the login
+  // response), so the dashboard does not re-fetch /admin/auth/me.
+  const can = useCan();
   const [stats, setStats] = useState<Stats | null>(null);
-  const [me, setMe] = useState<{ isSuper: boolean; permissions: string[] } | null>(null);
   const [overview, setOverview] = useState<SalesOverview | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [range, setRange] = useState<string>('30d');
@@ -195,11 +198,6 @@ export function Dashboard() {
   useEffect(() => {
     loadStats();
     loadCustomers();
-    // Role-aware dashboard — widgets render only for permitted modules.
-    api
-      .get<{ admin: { isSuper: boolean; permissions: string[] } }>('/admin/auth/me')
-      .then((r) => setMe(r.admin))
-      .catch(() => setMe({ isSuper: false, permissions: [] }));
   }, [loadStats, loadCustomers]);
 
   const scrollToCustomers = () => {
@@ -234,8 +232,7 @@ export function Dashboard() {
       </div>
     );
   }
-  if (!stats || !me) return <DashboardSkeleton />;
-  const can = (p: string) => hasPerm(me, p);
+  if (!stats) return <DashboardSkeleton />;
 
   /* Needs Attention — every count comes from real database aggregates. */
   const attentionItems = [

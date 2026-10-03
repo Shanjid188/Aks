@@ -3,11 +3,14 @@ import { api } from '../api';
 import type { Supplier } from '../types';
 import { Button, EmptyState, Field, Modal, Spinner, TextInput, formatDate, PageHeader } from '../components/ui';
 import { Plus, RefreshCw, Truck, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
+import { PERM } from '../lib/permissions';
+import { useCan } from '../lib/permission-context';
 
 interface F { id: string | null; name: string; phone: string; email: string; address: string; company: string; notes: string; isActive: boolean }
 const blank = (): F => ({ id: null, name: '', phone: '', email: '', address: '', company: '', notes: '', isActive: true });
 
 export function SuppliersPage() {
+  const can = useCan();
   const [rows, setRows] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +46,7 @@ export function SuppliersPage() {
         actions={
           <>
             <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white/10 border border-white/15 text-white hover:bg-white/20 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
-            <Button onClick={() => { setError(null); setForm(blank()); }}><Plus className="w-3.5 h-3.5" /> Add Supplier</Button>
+            {can(PERM.SUPPLIERS_CREATE) ? <Button onClick={() => { setError(null); setForm(blank()); }}><Plus className="w-3.5 h-3.5" /> Add Supplier</Button> : undefined}
           </>
         }
       />
@@ -65,8 +68,8 @@ export function SuppliersPage() {
                     <td className="px-4 py-3"><p className="text-neutral-700">{s.phone || '—'}</p>{s.email && <p className="text-[10px] text-neutral-400">{s.email}</p>}</td>
                     <td className="px-4 py-3 text-neutral-500 max-w-[180px] truncate">{s.address || '—'}</td>
                     <td className="px-4 py-3 text-neutral-600">{s._count?.purchases ?? 0}</td>
-                    <td className="px-4 py-3"><button onClick={() => toggle(s)} className="cursor-pointer" title={s.isActive ? 'Active' : 'Inactive'}>{s.isActive ? <ToggleRight className="w-5 h-5 text-emerald-600" /> : <ToggleLeft className="w-5 h-5 text-neutral-300" />}</button></td>
-                    <td className="px-5 py-3 text-right"><button onClick={() => setForm({ id: s.id, name: s.name, phone: s.phone || '', email: s.email || '', address: s.address || '', company: s.company || '', notes: s.notes || '', isActive: s.isActive })} className="p-1.5 rounded-lg text-neutral-400 hover:bg-neutral-100 cursor-pointer"><Pencil className="w-3.5 h-3.5" /></button></td>
+                    <td className="px-4 py-3">{can(PERM.SUPPLIERS_EDIT) && <button onClick={() => toggle(s)} className="cursor-pointer" title={s.isActive ? 'Active' : 'Inactive'}>{s.isActive ? <ToggleRight className="w-5 h-5 text-emerald-600" /> : <ToggleLeft className="w-5 h-5 text-neutral-300" />}</button>}</td>
+                    <td className="px-5 py-3 text-right">{can(PERM.SUPPLIERS_EDIT) && <button onClick={() => setForm({ id: s.id, name: s.name, phone: s.phone || '', email: s.email || '', address: s.address || '', company: s.company || '', notes: s.notes || '', isActive: s.isActive })} className="p-1.5 rounded-lg text-neutral-400 hover:bg-neutral-100 cursor-pointer"><Pencil className="w-3.5 h-3.5" /></button>}</td>
                   </tr>
                 ))}
               </tbody>

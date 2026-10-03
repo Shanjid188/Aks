@@ -4,6 +4,8 @@ import type { Coupon } from '../types';
 import { Badge, Button, EmptyState, Field, Modal, Select, Spinner, TextArea, TextInput, Toggle, PageHeader } from '../components/ui';
 import { UploadImageButton } from '../components/ImageUpload';
 import { Plus, Tag, Pencil, Trash2 } from 'lucide-react';
+import { PERM } from '../lib/permissions';
+import { useCan } from '../lib/permission-context';
 
 const empty = {
   code: '',
@@ -18,6 +20,7 @@ const empty = {
 };
 
 export function CouponsPage() {
+  const can = useCan();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -105,9 +108,11 @@ export function CouponsPage() {
         desc={`${coupons.length} promo codes · active ones appear in the storefront “Active Offers” section`}
         icon={<Tag className="w-5 h-5" />}
         actions={
-          <Button onClick={openCreate} className="gap-1">
-            <Plus className="w-3.5 h-3.5" /> New coupon
-          </Button>
+          can(PERM.COUPONS_CREATE) ? (
+            <Button onClick={openCreate} className="gap-1">
+              <Plus className="w-3.5 h-3.5" /> New coupon
+            </Button>
+          ) : undefined
         }
       />
 
@@ -151,12 +156,16 @@ export function CouponsPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
+                    {can(PERM.COUPONS_EDIT) && (
                     <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-900 cursor-pointer">
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
+                    )}
+                    {can(PERM.COUPONS_DELETE) && (
                     <button onClick={() => remove(c)} className="p-1.5 rounded-lg text-neutral-400 hover:bg-red-50 hover:text-red-600 cursor-pointer">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
+                    )}
                   </td>
                 </tr>
               ))}

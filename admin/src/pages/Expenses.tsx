@@ -3,6 +3,8 @@ import { api } from '../api';
 import type { Expense } from '../types';
 import { Button, EmptyState, Field, Modal, PageHeader, Select, Spinner, TextInput, formatDate } from '../components/ui';
 import { Plus, RefreshCw, Trash2, Wallet, Pencil } from 'lucide-react';
+import { PERM } from '../lib/permissions';
+import { useCan } from '../lib/permission-context';
 
 const CAT = ['Delivery', 'Packaging', 'Rent', 'Electricity', 'Internet', 'Salary', 'Marketing', 'Office', 'Other'];
 const PAY = ['cash', 'bkash', 'nagad', 'card', 'bank'];
@@ -10,6 +12,7 @@ interface F { id: string | null; title: string; category: string; amount: string
 const blank = (): F => ({ id: null, title: '', category: 'Other', amount: '', expenseDate: new Date().toISOString().slice(0, 10), paymentMethod: 'cash', note: '' });
 
 export function ExpensesPage() {
+  const can = useCan();
   const [rows, setRows] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +50,7 @@ export function ExpensesPage() {
         actions={
           <>
             <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white/10 border border-white/15 text-white hover:bg-white/20 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
-            <Button onClick={() => { setError(null); setForm(blank()); }}><Plus className="w-3.5 h-3.5" /> Add Expense</Button>
+            {can(PERM.EXPENSES_CREATE) ? <Button onClick={() => { setError(null); setForm(blank()); }}><Plus className="w-3.5 h-3.5" /> Add Expense</Button> : undefined}
           </>
         }
       />
@@ -71,8 +74,12 @@ export function ExpensesPage() {
                     <td className="px-4 py-3 text-right font-black text-neutral-900">{e.amount.toLocaleString('en-IN')}</td>
                     <td className="px-5 py-3">
                       <div className="flex justify-end gap-1">
+                        {can(PERM.EXPENSES_EDIT) && (
                         <button onClick={() => setForm({ id: e.id, title: e.title, category: e.category, amount: String(e.amount), expenseDate: e.expenseDate.slice(0, 10), paymentMethod: e.paymentMethod, note: e.note || '' })} className="p-1.5 rounded-lg text-neutral-400 hover:bg-neutral-100 cursor-pointer" title="Edit"><Pencil className="w-3.5 h-3.5" /></button>
+                        )}
+                        {can(PERM.EXPENSES_DELETE) && (
                         <button onClick={() => del(e.id)} className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                        )}
                       </div>
                     </td>
                   </tr>

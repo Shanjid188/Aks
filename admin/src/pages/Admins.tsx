@@ -2,7 +2,8 @@
 import { api } from '../api';
 import type { AdminUserRow, Role } from '../types';
 import { EmptyState, Spinner, PageHeader } from '../components/ui';
-import { hasPerm, PERM } from '../lib/permissions';
+import { PERM } from '../lib/permissions';
+import { usePermission } from '../lib/permission-context';
 import { Ban, CheckCircle2, KeyRound, Plus, Trash2, UserCog, Users } from 'lucide-react';
 
 const formatDate = (iso: string | null) =>
@@ -22,7 +23,9 @@ export function AdminsPage() {
   const [admins, setAdmins] = useState<AdminUserRow[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
-  const [me, setMe] = useState<{ id: string; email: string; isSuper: boolean; permissions: string[] } | null>(null);
+  // Permission state comes from the shared provider (fed by the login response),
+  // so this page does not re-fetch /admin/auth/me.
+  const { admin, can } = usePermission();
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -33,12 +36,10 @@ export function AdminsPage() {
     Promise.all([
       api.get<{ admins: AdminUserRow[] }>('/admin/admins'),
       api.get<{ roles: Role[] }>('/admin/roles'),
-      api.get<{ admin: { id: string; email: string; isSuper: boolean; permissions: string[] } }>('/admin/auth/me'),
     ])
-      .then(([a, r, m]) => {
+      .then(([a, r]) => {
         setAdmins(a.admins);
         setRoles(r.roles);
-        setMe(m.admin);
       })
       .catch(() => {
         setAdmins([]);
@@ -50,8 +51,6 @@ export function AdminsPage() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const can = (p: string) => hasPerm(me, p);
 
   const createAdmin = async () => {
     if (!form) return;
@@ -248,7 +247,7 @@ export function AdminsPage() {
                     admin={a}
                     roles={roles}
                     can={can}
-                    isSelf={a.email === me?.email}
+                    isSelf={a.email === admin?.email}
                     onToggle={() => toggleStatus(a)}
                     onRoleChange={(roleId) => changeRole(a, roleId)}
                     onResetPassword={() => resetPassword(a)}

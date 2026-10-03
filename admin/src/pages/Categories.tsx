@@ -3,6 +3,8 @@ import { api } from '../api';
 import type { Category, Subcategory } from '../types';
 import { Badge, Button, EmptyState, Field, Modal, PageHeader, Spinner, TextArea, TextInput, Toggle } from '../components/ui';
 import { UploadImageButton } from '../components/ImageUpload';
+import { PERM } from '../lib/permissions';
+import { useCan } from '../lib/permission-context';
 import { Plus, LayoutGrid, Pencil, Trash2, ChevronUp, ChevronDown, Layers } from 'lucide-react';
 
 interface CategoryForm {
@@ -98,6 +100,7 @@ const emptySubForm = (categoryId: string): SubForm => ({
 });
 
 export function CategoriesPage() {
+  const can = useCan();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -272,9 +275,11 @@ export function CategoriesPage() {
         desc="Drives the storefront nav, mega menu, the “Many Worlds, One Mart” rail, marquee, footer and catalog filters. Give a division a name and a picture and its card shows up on the home page — no other page to visit."
         icon={<LayoutGrid className="w-5 h-5" />}
         actions={
-          <Button onClick={openCreate} className="gap-1">
-            <Plus className="w-3.5 h-3.5" /> New division
-          </Button>
+          can(PERM.CATEGORIES_CREATE) ? (
+            <Button onClick={openCreate} className="gap-1">
+              <Plus className="w-3.5 h-3.5" /> New division
+            </Button>
+          ) : undefined
         }
       />
 
@@ -341,20 +346,24 @@ export function CategoriesPage() {
                   >
                     {c.isActive ? 'Hide' : 'Show'}
                   </button>
-                  <button
-                    onClick={() => openEdit(c)}
-                    className="p-1.5 rounded-lg text-neutral-400 hover:bg-neutral-100 cursor-pointer"
-                    title="Edit division"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => removeCategory(c)}
-                    className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
-                    title="Delete division"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {can(PERM.CATEGORIES_EDIT) && (
+                    <button
+                      onClick={() => openEdit(c)}
+                      className="p-1.5 rounded-lg text-neutral-400 hover:bg-neutral-100 cursor-pointer"
+                      title="Edit division"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  )}
+                  {can(PERM.CATEGORIES_DELETE) && (
+                    <button
+                      onClick={() => removeCategory(c)}
+                      className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                      title="Delete division"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -364,9 +373,11 @@ export function CategoriesPage() {
                   <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500 flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5 text-neutral-400" /> Subcategories ({c.subcategories.length})
                   </span>
-                  <Button variant="ghost" onClick={() => openSubCreate(c.id)} className="gap-1">
-                    <Plus className="w-3 h-3" /> Add subcategory
-                  </Button>
+                  {can(PERM.CATEGORIES_CREATE) && (
+                    <Button variant="ghost" onClick={() => openSubCreate(c.id)} className="gap-1">
+                      <Plus className="w-3 h-3" /> Add subcategory
+                    </Button>
+                  )}
                 </div>
 
                 {c.subcategories.length === 0 ? (
@@ -402,20 +413,24 @@ export function CategoriesPage() {
                         >
                           <ChevronDown className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          onClick={() => openSubEdit(c.id, sub)}
-                          title="Edit"
-                          className="p-0.5 rounded text-neutral-400 hover:text-neutral-800 cursor-pointer"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => removeSub(c, sub)}
-                          title="Delete"
-                          className="p-0.5 rounded text-neutral-400 hover:text-red-600 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {can(PERM.CATEGORIES_EDIT) && (
+                          <button
+                            onClick={() => openSubEdit(c.id, sub)}
+                            title="Edit"
+                            className="p-0.5 rounded text-neutral-400 hover:text-neutral-800 cursor-pointer"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {can(PERM.CATEGORIES_DELETE) && (
+                          <button
+                            onClick={() => removeSub(c, sub)}
+                            title="Delete"
+                            className="p-0.5 rounded text-neutral-400 hover:text-red-600 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
