@@ -9,7 +9,8 @@
     "build": "node node_modules/typescript/bin/tsc",
     "prisma:generate": "node node_modules/prisma/build/index.js generate",
     "prisma:push": "node node_modules/prisma/build/index.js db push",
-    "seed": "node --env-file=.env node_modules/tsx/dist/cli.mjs prisma/seed.ts"
+    "seed": "node --env-file=.env node_modules/tsx/dist/cli.mjs prisma/seed.ts",
+    "backfill:roles": "node --env-file=.env node_modules/tsx/dist/cli.mjs prisma/backfill-admin-roles.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

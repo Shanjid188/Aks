@@ -45,6 +45,19 @@ jobs:
             npm ci
             cd ..
 
+            echo "==> Syncing Prisma client and schema"
+            # The client is generated from schema.prisma, so a pull that changes
+            # the schema needs a regenerate before the API will start. `db push`
+            # adds any missing tables (e.g. Role / RolePermission when RBAC was
+            # introduced); it refuses to drop data without an explicit flag.
+            npm run prisma:generate --prefix server
+            npm run prisma:push --prefix server
+
+            echo "==> Repairing admin role assignments"
+            # Accounts created before RBAC have roleId = NULL and would log in
+            # with no permissions at all. Idempotent, so safe on every deploy.
+            npm run backfill:roles --prefix server
+
             echo "==> Building storefront"
             npm run build
 
