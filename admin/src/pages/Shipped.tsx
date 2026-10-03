@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Order } from '../types';
-import { Button, EmptyState, Spinner, formatDate } from '../components/ui';
+import { Button, EmptyState, Spinner, formatDate, PageHeader } from '../components/ui';
 import {
   Truck, CheckCircle2, RotateCcw, Loader2,
 } from 'lucide-react';
@@ -70,15 +70,13 @@ export function ShippedPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900">Shipped Orders</h2>
-          <p className="text-xs text-neutral-500 mt-0.5">Confirm courier handoff, then mark Delivery or Return.</p>
-        </div>
-        <button onClick={load} className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 cursor-pointer" title="Refresh">
-          <Truck className="w-3.5 h-3.5 text-neutral-600" />
-        </button>
-      </div>
+      <PageHeader
+        eyebrow="Logistics"
+        title="Shipped Orders"
+        desc={`${orders.length} in transit · confirm courier handoff, then mark Delivery or Return`}
+        icon={<Truck className="w-5 h-5" />}
+        actions={<button onClick={load} className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-white/15 bg-white/10 text-white hover:bg-white/20 cursor-pointer" title="Refresh"><Truck className="w-3.5 h-3.5" /></button>}
+      />
 
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 

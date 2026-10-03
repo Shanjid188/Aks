@@ -14,6 +14,7 @@ server/prisma/dev.db-journal
 # Local dev/debug artifacts (logs, PIDs, command-output captures, DB backups)
 *.pid
 server/prisma/dev.db.bak-*
+server/prisma/dev.db.backup-*
 *-build-out.txt
 *-build-run.txt
 _pf-*-build.txt

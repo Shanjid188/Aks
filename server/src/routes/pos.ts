@@ -164,6 +164,24 @@ router.post(
   })
 );
 
+/** Admin: a stored POS sale for receipt (re)printing — includes payments + cashier. */
+router.get(
+  '/admin/pos/receipt/:orderId',
+  requirePermission(PERM.POS_VIEW),
+  asyncHandler(async (req, res) => {
+    const order = await prisma.order.findUnique({
+      where: { id: req.params.orderId },
+      include: {
+        items: true,
+        payments: true,
+        cashier: { select: { name: true, email: true } },
+      },
+    });
+    if (!order || order.source !== 'pos') return res.status(404).json({ error: 'POS sale not found' });
+    res.json({ order });
+  })
+);
+
 /** Admin: held POS carts (persisted as orders whose heldAt is set). */
 router.get(
   '/pos/holds',

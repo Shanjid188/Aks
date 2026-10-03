@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { dataLoader } from '../lib/dataLoader';
+import { dataLoader, CACHE_KEYS } from '../lib/dataLoader';
+import { readCache } from '../lib/apiCache';
 import { DEFAULT_CHECKOUT_CONFIG } from '../data/checkout';
 import type { CheckoutConfig } from '../data/checkout';
 import { DEFAULT_SITE_CONTENT, DEFAULT_SITE_SEO, DEFAULT_STORE_NAME, DEFAULT_TRENDING_SEARCHES } from '../data/siteContent';
@@ -33,7 +34,11 @@ const SiteContentContext = createContext<SiteContentValue>(FALLBACK);
  * and shares it with every section, so the page makes a single settings request.
  */
 export const SiteContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [value, setValue] = useState<SiteContentValue>(FALLBACK);
+  // Start from the previous visit's copy when it exists, then revalidate — the
+  // header/footer wording is therefore correct on the very first paint.
+  const [value, setValue] = useState<SiteContentValue>(
+    () => readCache<SiteContentValue>(CACHE_KEYS.siteContent) ?? FALLBACK
+  );
 
   useEffect(() => {
     let cancelled = false;

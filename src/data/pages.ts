@@ -308,3 +308,16 @@ Questions about these terms: info@aksgarments.com.bd or +8801728-843503.`,
     sortOrder: 5,
   },
 ];
+
+/**
+ * Slugs that belong in the footer's "Consumer Policy" column instead of
+ * "Information" (reference layout: returns, refunds, exchange, cancellation).
+ * Everything else — About, Contact, Privacy, Terms … — stays under Information.
+ */
+const POLICY_SLUG = /return|refund|exchange|cancel|pre-?order|discount|warranty|guarantee/i;
+
+/** Split the pages marked "show in footer" into the two footer page columns. */
+export const splitFooterPages = (pages: ContentPageData[]) => ({
+  info: pages.filter((p) => !POLICY_SLUG.test(p.slug)),
+  policy: pages.filter((p) => POLICY_SLUG.test(p.slug)),
+});

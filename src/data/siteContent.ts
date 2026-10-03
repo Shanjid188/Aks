@@ -217,22 +217,19 @@ interface SiteContentBase {
   trackOrderCloseAria: string;
   trackOrderReturnedNotice: string;
   trackOrderRefundedNotice: string;
-  /* “Why Shop With Us” strip (above the footer) */
+  /* Promo gallery heading (last homepage section, above the footer) */
   promoTagline: string;
   promoTitle: string;
   promoSubtitle: string;
-  promoItem1Title: string;
-  /** `{amount}` is replaced with the live free-delivery threshold. */
-  promoItem1Sub: string;
-  promoItem2Title: string;
-  promoItem2Sub: string;
-  promoItem4Title: string;
-  promoItem4Sub: string;
   promoCta: string;
   /* Footer */
   footerBrand: string;
+  footerFollowUs: string;
   footerDivisionsHeading: string;
   footerCareHeading: string;
+  footerInfoHeading: string;
+  footerPaymentsLabel: string;
+  footerPolicyHeading: string;
   footerTrack: string;
   footerGuides: string;
   footerClub: string;
@@ -296,7 +293,7 @@ const DEFAULT_SITE_CONTENT_BASE: SiteContentBase = {
   headerSaleChip: 'Festive Sale Up to 40%',
   headerSaleChipShort: 'Festive Sale',
 
-  headerAllDepartments: 'All Departments',
+  headerAllDepartments: 'All Products',
   headerDivisions: 'Divisions',
   headerOtherDivisions: 'Other Divisions',
   headerCategoriesSuffix: 'Categories',
@@ -456,22 +453,20 @@ const DEFAULT_SITE_CONTENT_BASE: SiteContentBase = {
   trackOrderRefundedNotice:
     'This order has been refunded. The amount will be credited through your original payment method.',
 
-  promoTagline: 'Why Shop With Us',
+  promoTagline: 'Offers & Collections',
   promoTitle: 'One Mart. Many Choices.',
   promoSubtitle:
     'Five curated divisions, one trusted destination — quality products delivered to your doorstep across Bangladesh.',
-  promoItem1Title: 'Free Delivery',
-  promoItem1Sub: 'On orders above {amount}',
-  promoItem2Title: 'Exclusive Deals',
-  promoItem2Sub: 'Member-only offers',
-  promoItem4Title: 'Quality Promise',
-  promoItem4Sub: 'Checked before dispatch',
   promoCta: 'Shop Now',
 
   footerBrand:
     "AKS Mart is Bangladesh's multi-division marketplace — SHUDDHO food, AKS CRAFT handicrafts, AKS HOME living, AKS BEAUTY personal care and AKS PRINT custom print — all under one roof at aksmartbd.com.",
+  footerFollowUs: 'Follow Us',
   footerDivisionsHeading: 'Divisions',
-  footerCareHeading: 'Customer Care',
+  footerCareHeading: 'Support',
+  footerInfoHeading: 'Information',
+  footerPaymentsLabel: 'Pay with',
+  footerPolicyHeading: 'Consumer Policy',
   footerTrack: 'Track Your Order',
   footerGuides: 'Product & Fit Guides',
   footerClub: 'AKS Mart Club Rewards',
@@ -529,7 +524,7 @@ const DEFAULT_SITE_CONTENT_BN: BanglaOf<SiteContentBase> = {
   headerSaleChipBn: 'উৎসব সেল ৪০% পর্যন্ত ছাড়',
   headerSaleChipShortBn: 'উৎসব সেল',
 
-  headerAllDepartmentsBn: 'সব বিভাগ',
+  headerAllDepartmentsBn: 'সব পণ্য',
   headerDivisionsBn: 'বিভাগসমূহ',
   headerOtherDivisionsBn: 'অন্যান্য বিভাগ',
   headerCategoriesSuffixBn: 'ক্যাটাগরি',
@@ -690,22 +685,20 @@ const DEFAULT_SITE_CONTENT_BN: BanglaOf<SiteContentBase> = {
   trackOrderRefundedNoticeBn:
     'এই অর্ডারের টাকা ফেরত দেওয়া হয়েছে। আপনার আগের পেমেন্ট মাধ্যমেই টাকা ফেরত যাবে।',
 
-  promoTaglineBn: 'কেন আমাদের থেকে কিনবেন',
+  promoTaglineBn: 'অফার ও কালেকশন',
   promoTitleBn: 'এক মার্ট। অনেক পছন্দ।',
   promoSubtitleBn:
     'পাঁচটি কিউরেটেড ডিভিশন, একটি বিশ্বস্ত গন্তব্য — বাংলাদেশ জুড়ে আপনার দোরগোড়ায় মানসম্পন্ন পণ্য পৌঁছে যাবে।',
-  promoItem1TitleBn: 'ফ্রি ডেলিভারি',
-  promoItem1SubBn: '{amount} এর উপরে অর্ডারে',
-  promoItem2TitleBn: 'এক্সক্লুসিভ ডিল',
-  promoItem2SubBn: 'শুধুমাত্র সদস্যদের অফার',
-  promoItem4TitleBn: 'কোয়ালিটি প্রমিস',
-  promoItem4SubBn: 'ডিসপ্যাচের আগে যাচাই',
   promoCtaBn: 'এখনই কিনুন',
 
   footerBrandBn:
     'AKS Mart বাংলাদেশের বহুমুখী মার্কেটপ্লেস — SHUDDHO খাদ্যপণ্য, AKS CRAFT হস্তশিল্প, AKS HOME গৃহসজ্জা, AKS BEAUTY ব্যক্তিগত যত্ন এবং AKS PRINT কাস্টম প্রিন্ট — সবই এক ছাদের নিচে, aksmartbd.com-এ।',
+  footerFollowUsBn: 'ফলো করুন',
   footerDivisionsHeadingBn: 'বিভাগসমূহ',
-  footerCareHeadingBn: 'কাস্টমার কেয়ার',
+  footerCareHeadingBn: 'সহায়তা',
+  footerInfoHeadingBn: 'তথ্য',
+  footerPaymentsLabelBn: 'পেমেন্ট করুন',
+  footerPolicyHeadingBn: 'ভোক্তা নীতি',
   footerTrackBn: 'আপনার অর্ডার ট্র্যাক করুন',
   footerGuidesBn: 'পণ্য ও সাইজ গাইড',
   footerClubBn: 'AKS Mart ক্লাব রিওয়ার্ড',
@@ -917,17 +910,15 @@ const SITE_CONTENT_BASE_KEYS: Record<keyof SiteContentBase, string> = {
   promoTagline: 'content.promoBar.tagline',
   promoTitle: 'content.promoBar.title',
   promoSubtitle: 'content.promoBar.subtitle',
-  promoItem1Title: 'content.promoBar.item1Title',
-  promoItem1Sub: 'content.promoBar.item1Sub',
-  promoItem2Title: 'content.promoBar.item2Title',
-  promoItem2Sub: 'content.promoBar.item2Sub',
-  promoItem4Title: 'content.promoBar.item4Title',
-  promoItem4Sub: 'content.promoBar.item4Sub',
   promoCta: 'content.promoBar.cta',
 
   footerBrand: 'content.footer.brand',
+  footerFollowUs: 'content.footer.followUs',
   footerDivisionsHeading: 'content.footer.divisionsHeading',
   footerCareHeading: 'content.footer.careHeading',
+  footerInfoHeading: 'content.footer.infoHeading',
+  footerPaymentsLabel: 'content.footer.paymentsLabel',
+  footerPolicyHeading: 'content.footer.policyHeading',
   footerTrack: 'content.footer.track',
   footerGuides: 'content.footer.guides',
   footerClub: 'content.footer.club',

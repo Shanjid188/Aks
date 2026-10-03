@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Subscriber } from '../types';
-import { Badge, Button, EmptyState, Field, Modal, Spinner, TextInput } from '../components/ui';
+import { Badge, Button, EmptyState, Field, Modal, Spinner, TextInput, PageHeader } from '../components/ui';
 import { Mail, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 
 /**
@@ -93,26 +93,20 @@ export function SubscribersPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900">Newsletter Subscribers</h2>
-          <p className="text-xs text-neutral-400">
-            {total} addresses · {active} subscribed
-          </p>
-          <p className="text-[11px] text-neutral-400 mt-0.5">
-            Collected from the storefront footer. Nothing is emailed automatically — copy this list when you want to
-            send something.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={load} className="gap-1">
-            <RefreshCw className="w-3.5 h-3.5" /> Reload
-          </Button>
-          <Button onClick={() => setAdding(true)} className="gap-1">
-            <Plus className="w-3.5 h-3.5" /> Add address
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Marketing"
+        title="Newsletter Subscribers"
+        desc={`${total} addresses · ${active} subscribed · collected from the storefront footer`}
+        icon={<Mail className="w-5 h-5" />}
+        actions={
+          <>
+            <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white/10 border border-white/15 text-white hover:bg-white/20 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Reload</button>
+            <Button onClick={() => setAdding(true)} className="gap-1">
+              <Plus className="w-3.5 h-3.5" /> Add address
+            </Button>
+          </>
+        }
+      />
 
       <div className="relative max-w-sm">
         <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />

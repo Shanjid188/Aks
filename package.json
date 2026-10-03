@@ -8,6 +8,8 @@
     "build": "node node_modules/vite/bin/vite.js build",
     "preview": "node node_modules/vite/bin/vite.js preview",
     "lint": "node node_modules/typescript/bin/tsc --noEmit",
+    "audit:copy": "node scripts/audit-copy.mjs",
+    "audit:copy:all": "node scripts/audit-copy.mjs --all",
     "dev:api": "cd server && npm run dev",
     "dev:admin": "cd admin && npm run dev",
     "setup:api": "cd server && npm install --no-audit --no-fund && npm run prisma:generate && npm run prisma:push && npm run seed",

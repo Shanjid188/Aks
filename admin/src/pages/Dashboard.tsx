@@ -97,16 +97,26 @@ function KpiCard({
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={`bg-white rounded-2xl border p-4 text-left transition-shadow ${
-        highlight ? 'border-amber-300 shadow-sm ring-1 ring-amber-100' : 'border-neutral-200'
-      } hover:shadow-md ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
+      className={`group relative overflow-hidden rounded-2xl border bg-white p-4 text-left shadow-[0_1px_2px_rgba(16,24,40,.04)] transition-all duration-200 ${
+        highlight ? 'border-amber-300 ring-1 ring-amber-100' : 'border-neutral-200/80'
+      } ${
+        onClick
+          ? 'cursor-pointer hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_18px_44px_-20px_rgba(16,24,40,.5)]'
+          : 'cursor-default'
+      }`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${accent}`}>{icon}</div>
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-[0.18] blur-2xl transition-opacity duration-200 group-hover:opacity-30 ${accent}`}
+      />
+      <div className="relative flex items-center justify-between gap-2">
+        <span className={`grid h-10 w-10 place-items-center rounded-xl shadow-sm ${accent}`}>{icon}</span>
         {delta != null && (
           <span
-            className={`inline-flex items-center gap-0.5 text-[10px] font-black px-1.5 py-0.5 rounded-full ${
-              delta >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+            className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-black ring-1 ${
+              delta >= 0
+                ? 'bg-emerald-50 text-emerald-700 ring-emerald-100'
+                : 'bg-red-50 text-red-700 ring-red-100'
             }`}
           >
             {delta >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
@@ -114,11 +124,11 @@ function KpiCard({
           </span>
         )}
       </div>
-      <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-neutral-400 leading-tight">
+      <p className="relative mt-3 text-[10px] font-bold uppercase tracking-wider text-neutral-400 leading-tight">
         {labelEn}
       </p>
-      <p className="text-xl font-black text-neutral-900 mt-0.5">{value}</p>
-      {sub && <p className="text-[10px] text-neutral-400 mt-1 font-medium">{sub}</p>}
+      <p className="relative mt-0.5 text-2xl font-black tracking-tight text-neutral-900">{value}</p>
+      {sub && <p className="relative mt-1 text-[10px] font-medium text-neutral-400">{sub}</p>}
     </button>
   );
 }
@@ -139,9 +149,9 @@ function SectionCard({
   className?: string;
 }) {
   return (
-    <section className={`bg-white rounded-2xl border border-neutral-200 ${className}`}>
-      <header className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between gap-3 flex-wrap">
-        <h3 className="text-sm font-black text-neutral-900 flex items-center gap-2">
+    <section className={`overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,.04)] ${className}`}>
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 bg-gradient-to-b from-neutral-50/90 to-white px-5 py-4">
+        <h3 className="flex items-center gap-2 text-sm font-black tracking-tight text-neutral-900">
           {icon}
           <span>
             {titleEn}
@@ -275,17 +285,37 @@ export function Dashboard() {
     },
   ].filter((item) => item.count > 0);
 
+  // Hero copy — live greeting + date, no external data.
+  const now = new Date();
+  const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
+  const todayLabel = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
   return (
     <div className="space-y-5">
-      {/* Page heading */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900">
-            Business Overview
-          </h2>
-          <p className="text-xs text-neutral-500 mt-0.5">
-            A live snapshot of AKS Mart — sales, orders, customers and inventory.
-          </p>
+      {/* Page heading — premium hero band */}
+      <div className="relative overflow-hidden rounded-3xl border border-neutral-800/40 bg-gradient-to-br from-neutral-900 via-neutral-900 to-[#3b0d10] px-6 py-6 text-white shadow-[0_24px_60px_-28px_rgba(16,24,40,.75)]">
+        <span aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[#D8232A]/30 blur-3xl" />
+        <span aria-hidden className="pointer-events-none absolute -bottom-24 right-24 h-48 w-48 rounded-full bg-amber-500/10 blur-3xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/50">{greeting}</p>
+            <h2 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">Business Overview</h2>
+            <p className="mt-1.5 max-w-xl text-sm text-white/60">
+              A live snapshot of AKS Mart — sales, orders, customers and inventory.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-2 text-xs font-semibold text-white/80 ring-1 ring-white/15 backdrop-blur">
+              <Clock className="h-3.5 w-3.5" /> {todayLabel}
+            </span>
+            <button
+              onClick={() => { loadStats(); loadCustomers(); }}
+              title="Refresh dashboard"
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-2 text-xs font-semibold text-white/80 ring-1 ring-white/15 backdrop-blur transition-colors hover:bg-white/20 cursor-pointer"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Refresh
+            </button>
+          </div>
         </div>
       </div>
 
@@ -362,7 +392,7 @@ export function Dashboard() {
               <div key={s.key} className="relative">
                 <button
                   onClick={() => goOrders(s.filter)}
-                  className={`w-full text-left rounded-2xl border p-4 ${s.tone} ${s.count > 0 ? 'ring-2 ring-offset-1 ring-current/30 hover:scale-[1.02] cursor-pointer' : 'opacity-60 cursor-pointer'} transition-all`}
+                  className={`w-full text-left rounded-2xl border p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${s.tone} ${s.count > 0 ? 'ring-1 ring-current/20 hover:ring-2' : 'opacity-70'} cursor-pointer`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide">
@@ -420,15 +450,15 @@ export function Dashboard() {
         icon={<Banknote className="w-4 h-4 text-emerald-500" />}
         className="overflow-hidden"
         action={
-          <div className="flex flex-wrap gap-1.5">
+          <div className="inline-flex flex-wrap gap-1 rounded-xl bg-neutral-100 p-1">
             {SALES_RANGES.map((r) => (
               <button
                 key={r.id}
                 onClick={() => setRange(r.id)}
-                className={`text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                className={`text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                   range === r.id
-                    ? 'bg-neutral-900 text-white'
-                    : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-600'
+                    ? 'bg-white text-neutral-900 shadow-sm ring-1 ring-neutral-200'
+                    : 'text-neutral-500 hover:text-neutral-800'
                 }`}
               >
                 {r.en}
@@ -452,14 +482,14 @@ export function Dashboard() {
           </div>
         ) : (
           <div className="p-5">
-            <div className="flex flex-wrap items-end gap-x-8 gap-y-2 mb-4">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-400">Revenue</p>
-                <p className="text-2xl font-black text-[#D8232A]">{bdt(overview.totalRevenue)}</p>
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:max-w-md">
+              <div className="rounded-2xl border border-neutral-200/80 bg-gradient-to-br from-[#D8232A]/[0.06] to-white p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Revenue</p>
+                <p className="mt-0.5 text-2xl font-black tracking-tight text-[#D8232A]">{bdt(overview.totalRevenue)}</p>
               </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-400">Orders</p>
-                <p className="text-2xl font-black text-neutral-900">{overview.totalOrders}</p>
+              <div className="rounded-2xl border border-neutral-200/80 bg-gradient-to-br from-neutral-900/[0.05] to-white p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Orders</p>
+                <p className="mt-0.5 text-2xl font-black tracking-tight text-neutral-900">{overview.totalOrders}</p>
               </div>
             </div>
 
@@ -548,7 +578,7 @@ export function Dashboard() {
           ) : (
             <ul className="divide-y divide-neutral-100">
               {stats.recentOrders.map((o) => (
-                <li key={o.id} className="px-5 py-3 flex items-center gap-3 flex-wrap">
+                <li key={o.id} className="px-5 py-3 flex items-center gap-3 flex-wrap transition-colors hover:bg-neutral-50/70">
                   <div className="min-w-[130px]">
                     <p className="text-xs font-black text-neutral-900">{o.orderNumber}</p>
                     <p className="text-[10px] text-neutral-400 font-mono">{o.trackingCode}</p>
@@ -598,8 +628,11 @@ export function Dashboard() {
                       </p>
                       <p className="text-xs font-black text-[#D8232A]">{bdt(cat.revenue)}</p>
                     </div>
-                    <div className="h-2 rounded-full bg-neutral-100 overflow-hidden">
-                      <div className="h-full rounded-full bg-[#D8232A]" style={{ width: `${pct}%` }} />
+                    <div className="h-2.5 overflow-hidden rounded-full bg-neutral-100">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-[#D8232A] to-[#f1575e]"
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
                     <p className="text-[10px] text-neutral-400 mt-1">
                       {cat.ordersCount} orders • {cat.qty} items sold
@@ -729,7 +762,7 @@ export function Dashboard() {
           ) : (
             <ul className="divide-y divide-neutral-100">
               {stats.topProducts.map((p, i) => (
-                <li key={`${p.name}-${i}`} className="px-5 py-3 flex items-center gap-3">
+                <li key={`${p.name}-${i}`} className="px-5 py-3 flex items-center gap-3 transition-colors hover:bg-neutral-50/70">
                   <span className="w-6 h-6 rounded-lg bg-neutral-900 text-white text-[10px] font-black flex items-center justify-center shrink-0">
                     {i + 1}
                   </span>
@@ -769,7 +802,7 @@ export function Dashboard() {
           ) : (
             <ul className="divide-y divide-neutral-100">
               {stats.lowStockProducts.map((p) => (
-                <li key={p.id} className="px-5 py-3 flex items-center gap-3">
+                <li key={p.id} className="px-5 py-3 flex items-center gap-3 transition-colors hover:bg-neutral-50/70">
                   {p.image ? (
                     <img src={p.image} alt="" className="w-10 h-10 rounded-lg object-cover bg-neutral-100 shrink-0" />
                   ) : (

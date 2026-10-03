@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
 import { isFreeDeliveryCoupon } from '../utils/coupons';
+import { maxOrderableQty } from '../utils/stock';
+import { apiErrorMessage } from '../api';
 import { navigate } from '../lib/router';
 import { useSiteContent } from '../context/SiteContentContext';
 import { useLocalized, fillTokens } from '../components/Localized';
@@ -124,6 +126,20 @@ export function CheckoutPage() {
 
     setIsPlacingOrder(true);
     setOrderError(null);
+    // Pre-flight: the API refuses a tracked product with no units left, so catch
+    // it here with a clear, per-item message and keep the cart intact.
+    const shortOnStock = cart.find((item) => item.quantity > maxOrderableQty(item));
+    if (shortOnStock) {
+      const left = maxOrderableQty(shortOnStock);
+      setOrderError(
+        left <= 0
+          ? `${shortOnStock.product.name} is out of stock right now. Please remove it from your bag.`
+          : `Only ${left} left of ${shortOnStock.product.name} — please lower the quantity in your bag to continue.`
+      );
+      setIsPlacingOrder(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     try {
       const newOrder = await createOrder({
         items: cart,
@@ -149,9 +165,12 @@ export function CheckoutPage() {
         estimatedDelivery: 'Delivery time will be confirmed after your order is placed.',
       });
       navigate(`/order-success/${newOrder.id}`);
-    } catch {
-      // Honest failure: keep the page, keep the cart, let the customer retry.
-      setOrderError("We couldn't place your order right now. Please try again.");
+    } catch (e) {
+      // Honest failure: keep the page, keep the cart, let the customer retry —
+      // and show the reason the API gave (stock, delivery area, payment method…).
+      setOrderError(
+        apiErrorMessage(e, "We couldn't place your order right now. Please try again.")
+      );
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsPlacingOrder(false);

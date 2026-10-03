@@ -2,17 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 import type { Order, OrderItem, Product } from '../types';
 import {
-  Button,
-  ConfirmDialog,
-  ORDER_STATUS_META,
-  Spinner,
-  StatusBadge,
-  formatDate,
-} from '../components/ui';
+  Button, ConfirmDialog, ORDER_STATUS_META, Spinner, StatusBadge, formatDate, PageHeader } from '../components/ui';
 import {
   ArrowLeft, Check, FileText, Loader2, Minus, PackageCheck, Plus,
   Search, Trash2, Truck, X,
 } from 'lucide-react';
+import { openInvoice } from '../lib/invoice';
+import { openPackingSlip } from '../lib/packingSlip';
 
 const bdt = (n: number) => `BDT ${Number(n || 0).toLocaleString('en-IN')}`;
 
@@ -58,90 +54,6 @@ interface CustomerDraft {
 }
 
 /* ── Print helpers — real order data only, no mock values ─────────────────── */
-
-/** A4 invoice (customer copy — prices + totals) built from the live order. */
-function printInvoice(order: Order) {
-  const a = (order.customerAddress as Record<string, string>) || {};
-  const rows = (order.items || []).map((it) => `
-    <tr>
-      <td style="padding:8px 0;border-bottom:1px solid #e5e5e5;font-size:12px">${it.productName}<br/><span style="color:#999;font-size:11px">${it.productSku}${it.size ? ' · ' + it.size : ''}${it.color && it.color !== 'Default' ? ' · ' + it.color : ''}</span></td>
-      <td style="padding:8px;border-bottom:1px solid #e5e5e5;text-align:center;font-size:12px">${it.quantity}</td>
-      <td style="padding:8px;border-bottom:1px solid #e5e5e5;text-align:right;font-size:12px">${bdt(it.price)}</td>
-      <td style="padding:8px;border-bottom:1px solid #e5e5e5;text-align:right;font-size:12px">${bdt(it.price * it.quantity)}</td>
-    </tr>`).join('');
-  const w = window.open('', '_blank', 'width=900,height=1200');
-  if (!w) return;
-  w.document.write(`
-  <html><head><title>Invoice ${order.invoiceNumber || order.orderNumber}</title>
-  <style>
-    body{font-family:Arial,Helvetica,sans-serif;color:#171717;margin:0;padding:24px}
-    .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #D8232A;padding-bottom:14px;margin-bottom:18px}
-    .brand{font-size:22px;font-weight:900;letter-spacing:-.5px}.brand span{color:#D8232A}
-    .meta{text-align:right;font-size:12px;color:#525252}
-    .box{display:flex;justify-content:space-between;gap:24px;margin-bottom:18px}
-    .box div{width:50%;font-size:12px;color:#404040;line-height:1.6}
-    .box b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#a3a3a3;margin-bottom:4px}
-    table{width:100%;border-collapse:collapse}
-    thead th{text-align:left;font-size:11px;text-transform:uppercase;color:#a3a3a3;border-bottom:2px solid #e5e5e5;padding:6px 0}
-    .totals{margin-top:16px;margin-left:auto;width:280px}
-    .totals div{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid #f5f5f5}
-    .totals .grand{font-size:16px;font-weight:900;color:#D8232A;padding-top:8px;border-top:2px solid #171717}
-    .foot{margin-top:26px;font-size:11px;color:#a3a3a3;line-height:1.7;border-top:1px solid #e5e5e5;padding-top:12px}
-    .sig{margin-top:36px;display:flex;justify-content:space-between;font-size:12px;color:#525252}
-    .sign{width:200px;border-top:1px solid #171717;padding-top:6px;text-align:center}
-    @media print{ body{-webkit-print-color-adjust:exact} }
-  </style></head><body>
-    <div class="head">
-      <div class="brand">AKS <span>Mart</span><div style="font-size:11px;color:#737373;font-weight:500">One Mart. Many Choices.</div></div>
-      <div class="meta"><b style="font-size:14px;color:#171717">INVOICE</b><br/>${order.invoiceNumber || order.orderNumber}<br/>${formatDate(order.createdAt)}</div>
-    </div>
-    <div class="box">
-      <div><b>Billed To</b>${a.fullName || order.customerName}<br/>${a.phone || order.customerPhone}<br/>${[a.streetAddress, a.thana, a.district, a.division].filter(Boolean).join(', ')}</div>
-      <div><b>Order</b>${order.orderNumber}<br/>${order.trackingCode}<br/>${order.paymentMethod.toUpperCase()} · ${(order.paymentStatus || 'unpaid').toUpperCase()}</div>
-    </div>
-    <table><thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Amount</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="totals">
-      <div><span>Subtotal</span><span>${bdt(order.subtotal)}</span></div>
-      ${order.discount > 0 ? `<div><span>Discount</span><span>-${bdt(order.discount)}</span></div>` : ''}
-      <div><span>Shipping</span><span>${order.shippingFee === 0 ? 'FREE' : bdt(order.shippingFee)}</span></div>
-      <div class="grand"><span>Total</span><span>${bdt(order.total)}</span></div>
-    </div>
-    <div class="foot">Thank you for shopping with AKS Mart.</div>
-    <div class="sig"><div class="sign">Customer Signature</div><div class="sign">Authorized Signature</div></div>
-  </body></html>`);
-  w.document.close();
-  w.focus();
-  w.print();
-}
-
-/** Packaging slip (packing-team copy — items to pack, no prices) from the live order. */
-function printSlip(order: Order) {
-  const a = (order.customerAddress as Record<string, string>) || {};
-  const rows = (order.items || []).map((it) => `
-    <tr><td style="padding:7px;border-bottom:1px solid #e5e5e5">${it.productName}<br/><span style="color:#999;font-size:11px">${it.productSku}</span></td><td style="padding:7px;border-bottom:1px solid #e5e5e5">${it.color || '—'}</td><td style="padding:7px;border-bottom:1px solid #e5e5e5">${it.size || '—'}</td><td style="padding:7px;border-bottom:1px solid #e5e5e5;text-align:center">${it.quantity}</td><td style="width:50px;text-align:center">☐</td></tr>`).join('');
-  const w = window.open('', '_blank', 'width=760,height=1000');
-  if (!w) return;
-  w.document.write(`
-  <html><head><title>Packaging Slip ${order.orderNumber}</title><style>
-    body{font-family:Arial,Helvetica,sans-serif;color:#171717;margin:0;padding:22px;font-size:13px}
-    .head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #D8232A;padding-bottom:12px;margin-bottom:14px}
-    .brand{font-size:20px;font-weight:900}.brand span{color:#D8232A}
-    .no{text-align:right;font-size:12px;color:#525252}
-    .cust{margin-bottom:12px;font-size:12px;color:#404040;line-height:1.6}
-    table{width:100%;border-collapse:collapse}thead th{text-align:left;font-size:11px;text-transform:uppercase;color:#a3a3a3;border-bottom:2px solid #e5e5e5;padding:5px}
-    .foot{margin-top:26px;display:flex;justify-content:space-between;font-size:12px}
-    .sign{width:200px;border-top:1px solid #171717;padding-top:6px;text-align:center;color:#525252}
-    @media print{ body{-webkit-print-color-adjust:exact} }
-  </style></head><body>
-    <div class="head"><div class="brand">AKS <span>Mart</span></div><div class="no"><b style="font-size:14px">PACKING SLIP</b><br/>${order.orderNumber}<br/>${order.trackingCode}<br/>${formatDate(order.createdAt)}</div></div>
-    <div class="cust"><b>Ship To</b><br/>${a.fullName || order.customerName}<br/>${a.phone || order.customerPhone}<br/>${[a.streetAddress, a.thana, a.district, a.division].filter(Boolean).join(', ')}</div>
-    <table><thead><tr><th>Item</th><th>Color</th><th>Size</th><th style="text-align:center">Qty</th><th style="text-align:center">✓</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="foot"><div class="sign">Packed By</div><div class="sign">Checked By</div></div>
-  </body></html>`);
-  w.document.close();
-  w.focus();
-  w.print();
-}
 
 /* ── The Manage Order page (POS-style) ────────────────────────────────────── */
 
@@ -311,8 +223,8 @@ export function ManageOrder({
   const printAndAdvance = async (kind: 'slip' | 'invoice') => {
     if (!order) return;
     setActionError(null);
-    if (kind === 'slip') printSlip(order);
-    else printInvoice(order);
+    if (kind === 'slip') openPackingSlip(order, { autoPrint: true });
+    else openInvoice(order);
     if (order.status === 'confirmed') {
       try {
         await setStatus('processing');
@@ -436,44 +348,48 @@ export function ManageOrder({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={onBack}><ArrowLeft className="w-4 h-4" /> Orders</Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-black text-neutral-900">Manage Order</h2>
-              <StatusBadge status={status} />
-            </div>
-            <p className="text-xs text-neutral-400 font-mono">
-              {order.orderNumber} · {order.trackingCode}
-              {order.invoiceNumber ? ` · ${order.invoiceNumber}` : ''} · {formatDate(order.createdAt)}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {editable && (
-            <>
-              <Button variant="danger" onClick={() => setConfirmCancel(true)} disabled={busy}>
-                <X className="w-4 h-4" /> Cancel Order
+      <PageHeader
+        eyebrow="Orders"
+        title={
+          <span className="inline-flex items-center gap-2">
+            Manage Order
+            <StatusBadge status={status} />
+          </span>
+        }
+        desc={
+          <span className="font-mono">
+            {order.orderNumber} · {order.trackingCode}
+            {order.invoiceNumber ? ` · ${order.invoiceNumber}` : ''} · {formatDate(order.createdAt)}
+          </span>
+        }
+        icon={<PackageCheck className="w-5 h-5" />}
+        actions={
+          <>
+            <Button variant="ghost" onClick={onBack}><ArrowLeft className="w-4 h-4" /> Orders</Button>
+            {editable && (
+              <>
+                <Button variant="danger" onClick={() => setConfirmCancel(true)} disabled={busy}>
+                  <X className="w-4 h-4" /> Cancel Order
+                </Button>
+                <Button onClick={updateAndConfirm} disabled={busy || draft.length === 0}>
+                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  {busy ? 'Working…' : 'Update & Confirm'}
+                </Button>
+              </>
+            )}
+            {status === 'shipped' && (
+              <Button onClick={markDelivered} disabled={busy}>
+                {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Mark Delivered
               </Button>
-              <Button onClick={updateAndConfirm} disabled={busy || draft.length === 0}>
-                {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                {busy ? 'Working…' : 'Update & Confirm'}
+            )}
+            {!editable && dirty && (
+              <Button variant="secondary" onClick={saveChanges} disabled={busy}>
+                {busy ? 'Saving…' : 'Save Changes'}
               </Button>
-            </>
-          )}
-          {status === 'shipped' && (
-            <Button onClick={markDelivered} disabled={busy}>
-              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Mark Delivered
-            </Button>
-          )}
-          {!editable && dirty && (
-            <Button variant="secondary" onClick={saveChanges} disabled={busy}>
-              {busy ? 'Saving…' : 'Save Changes'}
-            </Button>
-          )}
-        </div>
-      </div>
+            )}
+          </>
+        }
+      />
 
       {/* Flow hint */}
       <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">

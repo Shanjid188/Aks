@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Role } from '../types';
-import { EmptyState, Spinner } from '../components/ui';
+import { EmptyState, Spinner, PageHeader } from '../components/ui';
 import { hasPerm, PERM, PERMISSION_CATALOG } from '../lib/permissions';
 import { KeyRound, Pencil, Plus, ShieldCheck, Trash2, X } from 'lucide-react';
 
@@ -127,20 +127,20 @@ export function RolesPage() {
   /* __ROLES_UI__ */
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900">Roles & Permissions</h2>
-          <p className="text-xs text-neutral-500 mt-0.5">
-            Create custom roles and choose exactly what each one can do. Assign them to admin users.
-          </p>
-        </div>
-        <button
-          onClick={startCreate}
-          className="self-start inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-4 py-2.5 bg-[#D8232A] hover:bg-[#b51c22] text-white cursor-pointer"
-        >
-          <Plus className="w-4 h-4" /> New Role
-        </button>
-      </div>
+      <PageHeader
+        eyebrow="Access control"
+        title="Roles & Permissions"
+        desc="Create custom roles and choose exactly what each one can do. Assign them to admin users."
+        icon={<ShieldCheck className="w-5 h-5" />}
+        actions={
+          <button
+            onClick={startCreate}
+            className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-4 py-2.5 bg-[#D8232A] hover:bg-[#b51c22] text-white cursor-pointer"
+          >
+            <Plus className="w-4 h-4" /> New Role
+          </button>
+        }
+      />
 
       {notice && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-800">

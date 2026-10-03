@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { useSiteContent } from '../context/SiteContentContext';
 import { useLocalized } from './Localized';
 import { navigate } from '../lib/router';
 import { formatPrice } from '../utils/format';
+import { dataLoader } from '../lib/dataLoader';
 import { Star, ArrowRight, ShieldCheck, Truck, RotateCcw } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { SkeletonBlock } from './Skeleton';
 import type { Product } from '../types';
+
+/** The showcase holds one hero circle plus four products around it. */
+const MAX_PICKS = 5;
 
 const imgOf = (p: Product): string => p.colors?.[0]?.image || p.images?.[0] || '';
 
@@ -91,13 +96,35 @@ const TRUST_ICONS: { icon: LucideIcon; tint: string }[] = [
 /**
  * Circle showcase — one hero product inside a big brand-red ring with a glass
  * info card, satellite product callouts around it, and a trust strip below.
- * Pure presentation: every item is a real catalog product and navigates to its
- * detail page. Renders nothing if the catalog is too small.
+ * Every item is a real catalog product with full details and navigates to its
+ * detail page. The items are the merchant's own picks — product links pasted
+ * in Admin → Loved Products — and while none are picked the section chooses
+ * its trending / best-selling favourites instead.
  */
 export const ProductShowcaseCircle: React.FC = () => {
-  const { products } = useStore();
+  const { products, catalogLoading } = useStore();
   const { content } = useSiteContent();
   const t = useLocalized();
+  /** The merchant's pasted picks. Empty until the API answers — then the
+   *  auto-selection below shows in the meantime. */
+  const [picks, setPicks] = useState<Product[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    dataLoader.loadLoveBanners().then((entries) => {
+      if (cancelled) return;
+      const chosen = entries
+        .slice(0, MAX_PICKS)
+        .map((e) => e.link?.match(/^\/products\/([^/?#]+)/)?.[1])
+        .filter((slug): slug is string => Boolean(slug))
+        .map((slug) => products.find((p) => p.slug === slug))
+        .filter((p): p is Product => Boolean(p) && imgOf(p) !== '');
+      setPicks(chosen);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [products]);
 
   /** Trust-strip copy is admin-editable; the icons and tints stay in code. */
   const trustItems = TRUST_ICONS.map((item, i) => ({
@@ -113,8 +140,6 @@ export const ProductShowcaseCircle: React.FC = () => {
   }));
 
   const usable = products.filter((p) => imgOf(p) !== '');
-  if (usable.length < 2) return null;
-
   const byScore = [...usable].sort(
     (a, b) =>
       Number(!!b.isTrending) - Number(!!a.isTrending) ||
@@ -122,8 +147,23 @@ export const ProductShowcaseCircle: React.FC = () => {
       (b.rating || 0) - (a.rating || 0) ||
       (b.reviewsCount || 0) - (a.reviewsCount || 0)
   );
-  const hero = byScore[0];
-  const satellites = byScore.slice(1, 5);
+  // The merchant's picked products win; otherwise the section picks favourites.
+  const picked = picks.length > 0;
+  const show = picked ? picks : byScore.slice(0, MAX_PICKS);
+  // Placeholder while the catalog loads — bundled products never flash here.
+  if (catalogLoading) {
+    return (
+      <section className="bg-white py-14 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SkeletonBlock className="h-[320px] sm:h-[420px]" />
+        </div>
+      </section>
+    );
+  }
+
+  if (show.length === 0 || (!picked && show.length < 2)) return null;
+  const hero = show[0];
+  const satellites = show.slice(1, MAX_PICKS);
   const leftPair = satellites.filter((_, i) => i % 2 === 0);
   const rightPair = satellites.filter((_, i) => i % 2 === 1);
 
@@ -181,7 +221,7 @@ export const ProductShowcaseCircle: React.FC = () => {
                 type="button"
                 onClick={() => navigate(`/products/${hero.slug}`)}
                 aria-label={`View ${hero.name}`}
-                className="group relative block h-[300px] w-[300px] rounded-full bg-[#D8232A] p-3 shadow-[0_30px_70px_-20px_rgba(216,35,42,0.5)] transition-transform duration-500 hover:scale-[1.02] focus:outline-none sm:h-[380px] sm:w-[380px] lg:h-[440px] lg:w-[440px]"
+                className="group relative block h-[min(300px,82vw)] w-[min(300px,82vw)] rounded-full bg-[#D8232A] p-3 shadow-[0_30px_70px_-20px_rgba(216,35,42,0.5)] transition-transform duration-500 hover:scale-[1.02] focus:outline-none sm:h-[380px] sm:w-[380px] lg:h-[440px] lg:w-[440px]"
               >
                 <span className="block h-full w-full overflow-hidden rounded-full bg-[#FDF6EC] p-2">
                   <img

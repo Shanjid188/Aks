@@ -62,7 +62,8 @@ export interface OrderItem {
   color: string;
   quantity: number;
   price: number;
-  product?: { id: string; name: string; images: string[] } | null;
+  /** Live product join for thumbnails; `originalPrice` powers the invoice discount column, `weight` the packing-slip total. */
+  product?: { id: string; name: string; images: string[]; originalPrice?: number | null; weight?: number | null } | null;
 }
 
 export interface ShippingAddress {
@@ -237,6 +238,52 @@ export interface HeroSlide {
   image: string;
   accentColor: string;
   tagline: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Image-only banner shown in the column beside the hero carousel. */
+export interface SideBanner {
+  id: string;
+  image: string;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Homepage promo gallery banner (GET /admin/gallery-banners) — image-only,
+ *  with an optional link for where the tile goes when clicked. */
+export interface GalleryBanner {
+  id: string;
+  image: string;
+  link: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** "Active Offers" artwork (GET /admin/offer-banners) — image-only tiles for
+ *  the homepage offers section, with an optional click-through link. */
+export interface OfferBanner {
+  id: string;
+  image: string;
+  link: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** "Loved by our customers" wall photo (GET /admin/love-banners) — image-only,
+ *  with an optional click-through link. */
+export interface LoveBanner {
+  id: string;
+  image: string;
+  link: string | null;
   sortOrder: number;
   isActive: boolean;
   createdAt: string;

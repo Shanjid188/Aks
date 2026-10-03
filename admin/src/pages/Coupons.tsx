@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Coupon } from '../types';
-import { Badge, Button, EmptyState, Field, Modal, Select, Spinner, TextArea, TextInput, Toggle } from '../components/ui';
+import { Badge, Button, EmptyState, Field, Modal, Select, Spinner, TextArea, TextInput, Toggle, PageHeader } from '../components/ui';
 import { UploadImageButton } from '../components/ImageUpload';
 import { Plus, Tag, Pencil, Trash2 } from 'lucide-react';
 
@@ -99,17 +99,17 @@ export function CouponsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900">Coupons</h2>
-          <p className="text-xs text-neutral-400">
-            {coupons.length} promo codes · active ones appear in the storefront “Active Offers” section
-          </p>
-        </div>
-        <Button onClick={openCreate} className="gap-1">
-          <Plus className="w-3.5 h-3.5" /> New coupon
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Marketing"
+        title="Coupons"
+        desc={`${coupons.length} promo codes · active ones appear in the storefront “Active Offers” section`}
+        icon={<Tag className="w-5 h-5" />}
+        actions={
+          <Button onClick={openCreate} className="gap-1">
+            <Plus className="w-3.5 h-3.5" /> New coupon
+          </Button>
+        }
+      />
 
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 

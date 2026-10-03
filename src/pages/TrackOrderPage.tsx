@@ -177,7 +177,7 @@ function OrderResult({ order, onClose }: { order: Order; onClose: () => void }) 
       {/* Status progress */}
       {!isCancelled && currentStep >= 0 && (
         <div className="py-5 border-b border-neutral-100 overflow-x-auto">
-          <div className="flex items-center min-w-[420px]">
+          <div className="flex items-center min-w-[360px]">
             {TRACKER_FLOW.map((step, i) => (
               <React.Fragment key={step}>
                 <div className="flex flex-col items-center shrink-0">

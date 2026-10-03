@@ -1,7 +1,7 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { AdminUserRow, Role } from '../types';
-import { EmptyState, Spinner } from '../components/ui';
+import { EmptyState, Spinner, PageHeader } from '../components/ui';
 import { hasPerm, PERM } from '../lib/permissions';
 import { Ban, CheckCircle2, KeyRound, Plus, Trash2, UserCog, Users } from 'lucide-react';
 
@@ -107,25 +107,25 @@ export function AdminsPage() {
   /* __ADMINS_UI__ */
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900">Admin Users</h2>
-          <p className="text-xs text-neutral-500 mt-0.5">
-            Manage team accounts — assign roles, enable or disable access.
-          </p>
-        </div>
-        {can(PERM.ADMINS_CREATE) && (
-          <button
-            onClick={() => {
-              setFormError(null);
-              setForm(emptyForm());
-            }}
-            className="self-start inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-4 py-2.5 bg-[#D8232A] hover:bg-[#b51c22] text-white cursor-pointer"
-          >
-            <Plus className="w-4 h-4" /> New Admin
-          </button>
-        )}
-      </div>
+      <PageHeader
+        eyebrow="Access control"
+        title="Admin Users"
+        desc={`${admins.length} accounts · assign roles, enable or disable access`}
+        icon={<UserCog className="w-5 h-5" />}
+        actions={
+          can(PERM.ADMINS_CREATE) ? (
+            <button
+              onClick={() => {
+                setFormError(null);
+                setForm(emptyForm());
+              }}
+              className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-4 py-2.5 bg-[#D8232A] hover:bg-[#b51c22] text-white cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> New Admin
+            </button>
+          ) : undefined
+        }
+      />
 
       {notice && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-bold text-blue-800">

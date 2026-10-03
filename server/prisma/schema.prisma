@@ -585,3 +585,70 @@ model HeroSlide {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+/**
+ * Homepage hero side banners — image-only, exactly like HeroSlide: whatever
+ * artwork the merchant uploads (Admin → Hero Slides → Side banners) is rendered
+ * as-is in the column beside the carousel, with no text or buttons on top.
+ */
+model SideBanner {
+  id        String   @id @default(cuid())
+  image     String // URL or public path of the banner artwork
+  sortOrder Int      @default(0) // lower = higher up the column
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/**
+ * Homepage promo gallery banners — the image-only bento grid that closes the
+ * home page just above the footer. Like SideBanner there is nothing to fill in
+ * but the artwork (Admin → Gallery Images); the optional link decides where a
+ * tile goes when it is clicked.
+ */
+model GalleryBanner {
+  id        String   @id @default(cuid())
+  image     String // URL or public path of the banner artwork
+  link      String? // optional: "/category/craft" or an external URL
+  sortOrder Int      @default(0) // 1 = wide banner, 2-3 = squares, 4 = tall column
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/**
+ * "Active Offers" artwork — image-only offer tiles for the homepage offers
+ * section (Admin → Offer Images). Uploading a picture is the whole job; while
+ * none exist the section keeps showing the coupon tickets built from
+ * Admin → Coupons.
+ */
+model OfferBanner {
+  id        String   @id @default(cuid())
+  image     String // URL or public path of the offer artwork
+  link      String? // optional: "/products" or an external URL
+  sortOrder Int      @default(0) // 1 = big banner, 2+ = the tiles below it
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/**
+ * "Loved by our customers" photo wall — customer photos uploaded in Admin →
+ * Customer Photos. Image-only like the other banner sets; the storefront
+ * section hides itself while the set is empty.
+ */
+model LoveBanner {
+  id        String   @id @default(cuid())
+  image     String // URL or public path of the customer photo
+  link      String? // optional: "/products/<slug>" or an external URL
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/**
+ * "Many Worlds, One Mart" is a category showcase — its cards are the divisions
+ * created in Admin → Categories (name + picture), so there is no separate model
+ * for it here.
+ */

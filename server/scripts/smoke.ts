@@ -1,5 +1,7 @@
 // Quick end-to-end API smoke test against a running server (default localhost:4000).
-// Run:  tsx src/smoke.ts
+// Run: node --env-file=.env node_modules/tsx/dist/cli.mjs scripts/smoke.ts
+import { isLocalApi, rollbackTestOrder } from './test-cleanup.ts';
+
 const BASE = process.env.API_URL || 'http://localhost:4000';
 const EMAIL = 'admin@aksgarments.com.bd';
 const PASSWORD = 'Admin@123';
@@ -77,7 +79,21 @@ async function main() {
   const couponVal = await api('/api/coupons/validate', 'POST', { code: 'AKS15' });
   check('POST /api/coupons/validate (AKS15)', couponVal.status === 200 && couponVal.data.valid === true);
 
-  // Create an order
+  // Homepage artwork sets (Admin → Gallery / Offer Images / Loved Products)
+  const bannerSets: [string, string][] = [
+    ['/api/gallery-banners', 'gallery images'],
+    ['/api/offer-banners', 'offer images'],
+    ['/api/love-banners', 'loved products'],
+  ];
+  for (const [path, label] of bannerSets) {
+    const res = await api(path);
+    check(`GET ${path} (${label})`, res.status === 200 && Array.isArray(res.data.banners), res.status);
+  }
+
+  // Create an order. Delivery zones are configured in Admin → Settings, so the
+  // first configured zone is used — the API rejects ids it does not know.
+  const publicSettings = await api('/api/settings/public');
+  const zone = publicSettings.data.settings?.shippingZones?.[0]?.id || 'inside_dhaka';
   const orderItem = {
     product: { name: single.name, sku: single.sku, price: single.price },
     productName: single.name,
@@ -88,20 +104,32 @@ async function main() {
   const createOrder = await api('/api/orders', 'POST', {
     items: [orderItem],
     customerAddress: { fullName: 'Smoke Test User', phone: '01700000000', email: 'smoke@test.com', division: 'Dhaka', district: 'Dhaka', thana: 'Gulshan', streetAddress: '1 Test Rd', postalCode: '1212' },
-    deliveryMethod: 'standard',
+    deliveryMethod: zone,
     paymentMethod: 'cod',
     couponCode: 'FREESHIP',
   });
-  check('POST /api/orders', createOrder.status === 201 && createOrder.data.order.trackingCode.startsWith('AKS-BD-'), createOrder.data);
-  const trackingCode = createOrder.data.order.trackingCode;
+  check('POST /api/orders', createOrder.status === 201 && !!createOrder.data.order?.trackingCode?.startsWith('AKS-BD-'), createOrder.data);
+  const trackingCode = createOrder.data.order?.trackingCode as string | undefined;
 
-  const track = await api(`/api/orders/track/${trackingCode}`);
-  check('GET /api/orders/track/:code', track.status === 200 && track.data.order.trackingCode === trackingCode);
+  const track = trackingCode ? await api(`/api/orders/track/${trackingCode}`) : { status: 0, data: {} };
+  check('GET /api/orders/track/:code', !!trackingCode && track.status === 200 && track.data.order?.trackingCode === trackingCode);
 
   // Admin can update order status
-  const orderId = createOrder.data.order.id;
-  const updateStatus = await api(`/api/admin/orders/${orderId}`, 'PATCH', { status: 'processing' }, token);
-  check('PATCH /api/admin/orders/:id status', updateStatus.status === 200 && updateStatus.data.order.status === 'processing', { status: updateStatus.data.order?.status });
+  const orderId = createOrder.data.order?.id as string | undefined;
+  const updateStatus = orderId
+    ? await api(`/api/admin/orders/${orderId}`, 'PATCH', { status: 'processing' }, token)
+    : { status: 0, data: {} };
+  check('PATCH /api/admin/orders/:id status', updateStatus.status === 200 && updateStatus.data.order?.status === 'processing', { status: updateStatus.data.order?.status });
+
+  // Roll the throwaway order back out of the local DB so a verification run
+  // leaves the owner's dashboard and inventory exactly as it found them.
+  // (Skipped when the API is remote — there is no delete route by design.)
+  if (isLocalApi && orderId) {
+    const rollback = await rollbackTestOrder(orderId);
+    check('test order rolled back (order + stock + coupon)', rollback.removed, rollback);
+  } else if (!isLocalApi) {
+    console.log('  ℹ cleanup skipped — remote API (no delete route); test order left in place');
+  }
 
   console.log(`\n${'='.repeat(30)}`);
   console.log(`Result: ${pass} passed, ${fail} failed`);

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Customer } from '../types';
-import { EmptyState, Spinner, formatDate } from '../components/ui';
+import { EmptyState, Spinner, formatDate, PageHeader } from '../components/ui';
 import { Mail, MapPin, RefreshCw, ShoppingBag, Users } from 'lucide-react';
 
 const bdt = (n: number) => `BDT ${Math.round(n).toLocaleString('en-IN')}`;
@@ -37,28 +37,18 @@ export function CustomersPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900">Customers</h2>
-          <p className="text-xs text-neutral-500 mt-0.5">
-            Every unique customer built from real orders — spending, location and last order.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search name, phone, email…"
-            className="w-56 text-xs font-semibold rounded-lg border border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#D8232A]/30 focus:border-[#D8232A]"
-          />
-          <button
-            onClick={load}
-            className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-700 cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="People"
+        title="Customers"
+        desc="Every unique customer built from real orders — spending, location and last order."
+        icon={<Users className="w-5 h-5" />}
+        actions={
+          <>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, phone, email…" className="w-52 text-xs font-semibold rounded-lg border border-white/15 px-3 py-2 bg-white/10 text-white placeholder:text-white/40 outline-none focus:border-white/40 focus:bg-white/15" />
+            <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white/10 border border-white/15 text-white hover:bg-white/20 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
+          </>
+        }
+      />
       {/* __CUSTOMERS_TABLE__ */}
       <section className="bg-white rounded-2xl border border-neutral-200">
         <header className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between gap-3">

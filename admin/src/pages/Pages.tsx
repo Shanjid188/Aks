@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { ContentPage } from '../types';
-import { Badge, Button, EmptyState, Field, Modal, Spinner, TextArea, TextInput, Toggle } from '../components/ui';
+import { Badge, Button, EmptyState, Field, Modal, Spinner, TextArea, TextInput, Toggle, PageHeader } from '../components/ui';
 import { Plus, FileText, Pencil, Trash2, ExternalLink } from 'lucide-react';
 
 interface FormState {
@@ -116,23 +116,23 @@ export function PagesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900">Content Pages</h2>
-          <p className="text-xs text-neutral-400">
-            {rows.length} pages · live at /&lt;slug&gt; and linked in the footer
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            setError(null);
-            setForm(blank());
-          }}
-          className="gap-1"
-        >
-          <Plus className="w-3.5 h-3.5" /> New page
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Content"
+        title="Content Pages"
+        desc={`${rows.length} pages · live at /<slug> and linked in the footer`}
+        icon={<FileText className="w-5 h-5" />}
+        actions={
+          <Button
+            onClick={() => {
+              setError(null);
+              setForm(blank());
+            }}
+            className="gap-1"
+          >
+            <Plus className="w-3.5 h-3.5" /> New page
+          </Button>
+        }
+      />
 
       <p className="text-[11px] text-neutral-500 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
         The seeded policy pages are drafts written from the promises already shown on the storefront. Please review

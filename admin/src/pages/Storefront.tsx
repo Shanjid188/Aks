@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Announcement, Promotion } from '../types';
-import { Button, EmptyState, Field, Modal, Spinner, TextArea, TextInput } from '../components/ui';
+import { Button, EmptyState, Field, Modal, Spinner, TextArea, TextInput, PageHeader } from '../components/ui';
 import { Plus, RefreshCw, Megaphone, Tag, Trash2, Pencil } from 'lucide-react';
+import { UploadImageButton } from '../components/ImageUpload';
 import { DEFAULT_SITE_CONTENT, SITE_CONTENT_KEYS } from '../../../src/data/siteContent';
 
 /* Announcements manager � real DB-backed CRUD. */
@@ -109,11 +110,11 @@ function PromoManager() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-neutral-500">Homepage promo banners � stored in the database.</p>
+        <p className="text-xs text-neutral-500">Optional extra artwork for the homepage gallery above the footer — for plain image-only banners use <strong>Gallery Images</strong> in the sidebar (upload and you are done). What you set here only shows while that page is empty, in sort order, and rows without an image are skipped.</p>
         <Button onClick={() => { setError(null); setForm(blankP()); }}><Plus className="w-3.5 h-3.5" /> New Promotion</Button>
       </div>
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
-      {loading ? <Spinner /> : rows.length === 0 ? <EmptyState icon={<Tag className="w-6 h-6" />} title="No promotions" hint="Create promotions to feature on the homepage." /> : (
+      {loading ? <Spinner /> : rows.length === 0 ? <EmptyState icon={<Tag className="w-6 h-6" />} title="No promotions" hint="For the gallery above the footer, add pictures in Gallery Images — no title needed." /> : (
         <div className="space-y-2">
           {rows.map((p) => (
             <div key={p.id} className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl border border-neutral-100">
@@ -134,10 +135,17 @@ function PromoManager() {
           <div className="space-y-4">
             <Field label="Title"><TextInput value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
             <Field label="Subtitle"><TextInput value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} /></Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Image URL"><TextInput value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} /></Field>
-              <Field label="Link"><TextInput value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} /></Field>
-            </div>
+            <Field label="Banner image">
+              <div className="flex items-center gap-2">
+                <TextInput value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} placeholder="/images/uploads/…" />
+                <UploadImageButton label="Upload" onUploaded={(url) => setForm({ ...form, image: url })} />
+              </div>
+            </Field>
+            {form.image && (
+              <img src={form.image} alt="" className="h-24 w-full rounded-xl border border-neutral-200 object-cover" />
+            )}
+            <Field label="Link (product, category or full URL)"><TextInput value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} />
+            </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Start date"><TextInput type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></Field>
               <Field label="End date"><TextInput type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} /></Field>
@@ -253,7 +261,7 @@ const HOMEPAGE_GROUPS: ContentGroup[] = [
     fields: [
       { key: 'content.header.saleChip', label: 'Sale chip (navbar)' },
       { key: 'content.header.saleChipShort', label: 'Sale chip (mobile menu)' },
-      { key: 'content.header.allDepartments', label: '�All Departments� label' },
+      { key: 'content.header.allDepartments', label: '“All Products” label (nav + footer)' },
       { key: 'content.header.divisions', label: '�Divisions� menu label' },
       { key: 'content.header.otherDivisions', label: '�Other Divisions� heading (mega menu)' },
       { key: 'content.header.categoriesSuffix', label: 'Categories heading suffix' },
@@ -268,21 +276,15 @@ const HOMEPAGE_GROUPS: ContentGroup[] = [
       { key: 'content.header.trendingSearches', label: 'Trending searches (comma separated)', long: true, single: true },
     ],
   },
-  /* �Why Shop With Us� strip � sits right above the footer. */
+  /* Promo gallery heading — the homepage section right above the footer. */
   {
-    title: 'Why Shop With Us strip',
-    hint: 'The four promise cards above the footer. Keep {amount} in the delivery note to show the live free-delivery threshold.',
+    title: 'Promo gallery heading',
+    hint: 'The words above the closing homepage image gallery. The images themselves come from the Promotions tab — upload a banner image there and it appears in the grid.',
     fields: [
-      { key: 'content.promoBar.tagline', label: 'Tagline (pill above the title)' },
+      { key: 'content.promoBar.tagline', label: 'Eyebrow (pill above the heading)' },
       { key: 'content.promoBar.title', label: 'Heading' },
       { key: 'content.promoBar.subtitle', label: 'Intro paragraph', long: true },
-      { key: 'content.promoBar.item1Title', label: 'Card 1 title' },
-      { key: 'content.promoBar.item1Sub', label: 'Card 1 note ({amount} = live threshold)' },
-      { key: 'content.promoBar.item2Title', label: 'Card 2 title' },
-      { key: 'content.promoBar.item2Sub', label: 'Card 2 note' },
-      { key: 'content.promoBar.item4Title', label: 'Card 4 title' },
-      { key: 'content.promoBar.item4Sub', label: 'Card 4 note' },
-      { key: 'content.promoBar.cta', label: 'Button label' },
+      { key: 'content.promoBar.cta', label: 'Link label (beside the heading)' },
     ],
   },
 ];
@@ -495,7 +497,11 @@ const FOOTER_GROUPS: ContentGroup[] = [
     title: 'Footer columns',
     fields: [
       { key: 'content.footer.divisionsHeading', label: 'Divisions column heading' },
-      { key: 'content.footer.careHeading', label: 'Customer care heading' },
+      { key: 'content.footer.followUs', label: 'Social row heading (e.g. Follow Us)' },
+      { key: 'content.footer.careHeading', label: 'Support column heading' },
+      { key: 'content.footer.policyHeading', label: 'Consumer Policy column heading' },
+      { key: 'content.footer.infoHeading', label: 'Information column heading' },
+      { key: 'content.footer.paymentsLabel', label: 'Pay-with strip heading (e.g. "Pay with")' },
       { key: 'content.footer.track', label: 'Link: track order' },
       { key: 'content.footer.guides', label: 'Link: product & fit guides' },
       { key: 'content.footer.club', label: 'Link: club rewards' },
@@ -569,20 +575,22 @@ function ContentManager({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900">{title}</h2>
-          <p className="text-xs text-neutral-400">{hint}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={load} className="gap-1">
-            <RefreshCw className="w-3.5 h-3.5" /> Reload
-          </Button>
-          <Button onClick={() => void save()} disabled={saving}>
-            {saving ? 'Saving�' : 'Save changes'}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Storefront"
+        title={title}
+        desc={hint}
+        icon={<Megaphone className="w-5 h-5" />}
+        actions={
+          <>
+            <Button variant="ghost" onClick={load} className="gap-1">
+              <RefreshCw className="w-3.5 h-3.5" /> Reload
+            </Button>
+            <Button onClick={() => void save()} disabled={saving}>
+              Save changes
+            </Button>
+          </>
+        }
+      />
 
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
       {status && <p className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{status}</p>}

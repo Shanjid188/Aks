@@ -108,7 +108,18 @@ router.get(
         { subcategory: { contains: term } },
       ];
     }
-    if (q.all !== 'true') where.isActive = true;
+    // Visibility filter: ?status=active | inactive | all (takes precedence),
+    // or legacy ?all=true (= all). Default (no filter) = active only.
+    const statusRaw = String(q.status || '').toLowerCase();
+    if (statusRaw === 'all' || statusRaw === 'active' || statusRaw === 'inactive') {
+      if (statusRaw === 'inactive') where.isActive = false;
+      else if (statusRaw === 'active') where.isActive = true;
+      // 'all' → no isActive filter: admin sees active + inactive together
+    } else if (q.all === 'true') {
+      // legacy: no filter
+    } else {
+      where.isActive = true;
+    }
 
     const products = await prisma.product.findMany({ where, orderBy: [{ updatedAt: 'desc' as const }] });
     res.json({ products: products.map(productToApi), count: products.length });
@@ -168,7 +179,11 @@ router.patch(
   })
 );
 
-/** Soft-delete: hides the product from the storefront but keeps order history valid. */
+/** Hard-delete: permanently removes the product from the database.
+ * Order history stays valid — OrderItem rows keep their productName/productSku
+ * snapshots, only productId is unlinked (SetNull). Reviews + StockMovements
+ * are removed (cascade / explicit).
+ * Visibility (storefront hide/show) is controlled only via isActive (PATCH). */
 router.delete(
   '/admin/products/:id',
   requirePermission(PERM.PRODUCTS_DELETE),
@@ -177,15 +192,20 @@ router.delete(
     const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'Product not found' });
 
-    const product = await prisma.product.update({ where: { id }, data: { isActive: false } });
+    // Unlink order items first (keep history, drop FK), clear stock ledger,
+    // then delete the product row itself.
+    await prisma.orderItem.updateMany({ where: { productId: id }, data: { productId: null } });
+    await prisma.stockMovement.deleteMany({ where: { productId: id } });
+    await prisma.review.deleteMany({ where: { productId: id } });
+    await prisma.product.delete({ where: { id } });
     await logAudit({
       admin: currentAdmin(req),
       action: 'product.deleted',
       entity: 'product',
       entityId: id,
-      details: `${existing.name} (${existing.sku})`,
+      details: `${existing.name} (${existing.sku}) — permanently deleted`,
     });
-    res.json({ product: productToApi(product), deleted: true });
+    res.json({ deleted: true, id });
   })
 );
 

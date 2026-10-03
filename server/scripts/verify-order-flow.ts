@@ -1,5 +1,7 @@
 // Focused verification for the new order lifecycle + dashboard endpoints.
 // Run: node node_modules/tsx/dist/cli.mjs scripts/verify-order-flow.ts
+import { isLocalApi, rollbackTestOrder } from './test-cleanup.ts';
+
 const BASE = process.env.API_URL || 'http://localhost:4000';
 const EMAIL = 'admin@aksgarments.com.bd';
 const PASSWORD = 'Admin@123';
@@ -41,6 +43,12 @@ async function main() {
   const product = products.data.products?.[0];
   check('products list available', !!product);
 
+  // Delivery zones are configured in Admin → Settings, so use the first zone the
+  // API actually knows — a hard-coded id would be rejected as "not a valid
+  // delivery area".
+  const publicSettings = await api('/api/settings/public');
+  const zone = publicSettings.data.settings?.shippingZones?.[0]?.id || 'inside_dhaka';
+
   // Place a customer order → must default to 'pending'
   const created = await api('/api/orders', 'POST', {
     items: [
@@ -56,7 +64,7 @@ async function main() {
       fullName: 'Flow Verify User', phone: '01711223344', email: 'flow@test.com',
       division: 'Dhaka', district: 'Dhaka', thana: 'Banani', streetAddress: '2 Flow Rd', postalCode: '1213',
     },
-    deliveryMethod: 'standard',
+    deliveryMethod: zone,
     paymentMethod: 'cod',
   });
   check('POST /api/orders → 201', created.status === 201, created.data);
@@ -65,7 +73,7 @@ async function main() {
     subtotal: created.data.order?.subtotal,
     expected: product.price * 2,
   });
-  const orderId = created.data.order.id;
+  const orderId = created.data.order?.id as string | undefined;
 
   // Unauthorized admin action must be rejected
   const unauth = await api(`/api/admin/orders/${orderId}`, 'PATCH', { status: 'confirmed' });
@@ -108,9 +116,18 @@ async function main() {
   check('GET /admin/sales-overview?range=7d', overview.status === 200 && Array.isArray(overview.data.points) && overview.data.points.length === 7);
   check('overview has today order in buckets', overview.data.totalOrders >= 1, overview.data.totalOrders);
 
-  // Clean up the verification order so the owner's dashboard is not polluted.
-  const del = await api(`/api/admin/orders/${orderId}`, 'DELETE', undefined, token);
-  check('verification order removed (any 2xx/404)', del.status === 200 || del.status === 404 || del.status === 405, del.status);
+  // Clean up the verification order so the owner's dashboard and inventory are
+  // left exactly as they were. The API exposes no delete route (orders are
+  // cancelled, never erased), so the throwaway order is rolled straight out of
+  // the local DB — only when this run targets a local API.
+  if (isLocalApi && orderId) {
+    const rollback = await rollbackTestOrder(orderId);
+    check('verification order rolled back (order + stock + coupon)', rollback.removed, rollback);
+  } else if (!isLocalApi) {
+    console.log('  ℹ cleanup skipped — remote API (no delete route); order left in place');
+  } else {
+    console.log('  ℹ cleanup skipped — no order was created');
+  }
 
   console.log(`\n== Result: ${pass} passed, ${fail} failed ==\n`);
   if (fail > 0) process.exit(1);

@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import {
-  ShieldCheck,
-  Truck,
-  RotateCcw,
-  Headphones,
-  Phone,
+  CreditCard,
+  Facebook,
+  Instagram,
+  Mail,
   MapPin,
-  Globe,
+  MessageCircle,
+  Music2,
+  Phone,
+  Youtube,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Logo } from './Logo';
 import { Bi } from './Bi';
 import { navigate } from '../lib/router';
@@ -18,7 +21,47 @@ import { useSiteContent } from '../context/SiteContentContext';
 import { useLocalized, fillTokens } from './Localized';
 import { apiErrorMessage, subscribeNewsletter } from '../api';
 import type { ContentPageData } from '../data/pages';
+import { splitFooterPages } from '../data/pages';
 import type { CategoryType } from '../types';
+import { PAYMENT_BRANDS } from '../data/payments';
+
+/** Accent colour for a live payment-method pill (Admin → Settings). */
+const methodAccent = (label: string) => {
+  if (/bkash/i.test(label)) return '#D12053';
+  if (/nagad/i.test(label)) return '#F26522';
+  if (/cash|cod/i.test(label)) return '#15803D';
+  return '#D8232A';
+};
+
+/** Absolute URL for a social handle — bare handles get https://, WhatsApp gets wa.me. */
+const socialHref = (id: string, raw: string) => {
+  const value = raw.trim();
+  if (value === '') return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  if (id === 'whatsapp') return `https://wa.me/${value.replace(/\D/g, '')}`;
+  return `https://${value}`;
+};
+
+/**
+ * One footer link column (reference: `.footer-widget`). Hidden when it has no
+ * links, so an empty Information or Consumer Policy column never leaves a gap.
+ */
+const FooterColumn: React.FC<{
+  title: string;
+  titleBn: string;
+  hidden?: boolean;
+  children?: React.ReactNode;
+}> = ({ title, titleBn, hidden, children }) => {
+  if (hidden) return null;
+  return (
+    <div className="lg:col-span-2">
+      <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+        <Bi en={title} bn={titleBn} />
+      </h4>
+      <ul className="mt-3 space-y-2 text-xs text-neutral-400">{children}</ul>
+    </div>
+  );
+};
 
 export const Footer: React.FC = () => {
   const {
@@ -60,6 +103,18 @@ export const Footer: React.FC = () => {
       cancelled = true;
     };
   }, []);
+
+  // Reference layout splits the footer pages into Information and Consumer Policy.
+  const { info: infoPages, policy: policyPages } = splitFooterPages(footerPages);
+
+  // Social profiles — only the ones filled in at Admin → Settings are rendered.
+  const socials: { id: string; label: string; icon: LucideIcon; href: string }[] = [
+    { id: 'facebook', label: 'Facebook', icon: Facebook, href: socialHref('facebook', storeInfo.facebook) },
+    { id: 'instagram', label: 'Instagram', icon: Instagram, href: socialHref('instagram', storeInfo.instagram) },
+    { id: 'youtube', label: 'YouTube', icon: Youtube, href: socialHref('youtube', storeInfo.youtube) },
+    { id: 'tiktok', label: 'TikTok', icon: Music2, href: socialHref('tiktok', storeInfo.tiktok) },
+    { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, href: socialHref('whatsapp', storeInfo.whatsapp) },
+  ].filter((s) => s.href !== '');
 
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterState, setNewsletterState] = useState<'idle' | 'sending'>('idle');
@@ -122,143 +177,170 @@ export const Footer: React.FC = () => {
   };
 
   return (
-    <footer className="bg-neutral-900 text-neutral-300 pt-16 pb-12 border-t border-neutral-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        {/* Middle Navigation & Newsletter */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
-          {/* Brand & Newsletter (2 cols) */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center gap-2.5">
+    <footer className="border-t border-neutral-800 bg-neutral-900 text-neutral-300">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        {/* Simple columns — brand block beside four link columns */}
+        <div className="grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-12 lg:gap-x-10">
+          {/* Brand — logo, intro, contact, social & newsletter */}
+          <div className="space-y-4 sm:col-span-2 lg:col-span-4">
+            {/* Logo links home, exactly like the reference */}
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2.5 cursor-pointer"
+              aria-label={storeInfo.name}
+            >
               <Logo className="h-9 w-9 rounded-md shrink-0" />
               <span className="text-xs uppercase font-bold tracking-widest text-neutral-300">
                 {storeInfo.name.toUpperCase()} BANGLADESH
               </span>
-            </div>
-            <p className="text-xs text-neutral-400 leading-relaxed max-w-sm">
+            </button>
+
+            <p className="text-xs text-neutral-400 leading-relaxed">
               <Bi en={content.footerBrand} bn={content.footerBrandBn} />
             </p>
-            {/* Brand motto */}
-            <div className="pt-1 border-l-2 border-[#D8232A] pl-3 max-w-sm">
-              <p className="text-[11px] font-bold text-neutral-200 leading-snug">
-                “{storeInfo.mottoEn}”
-              </p>
-            </div>
 
-            {/* Newsletter Form */}
-            <div className="pt-2">
-              <p className="text-xs font-bold text-white mb-2">
+            {/* Footer contact — address, phone, email (Admin → Settings) */}
+            <ul className="space-y-2 text-xs text-neutral-400">
+              <li className="flex items-start gap-2">
+                <MapPin className="w-3.5 h-3.5 text-[#D8232A] shrink-0 mt-0.5" aria-hidden="true" />
+                <span>{t(storeInfo.address, storeInfo.addressBn)}</span>
+              </li>
+              <li>
+                <a href={`tel:${storeInfo.phoneRaw}`} className="flex items-center gap-2 hover:text-white transition-colors">
+                  <Phone className="w-3.5 h-3.5 text-[#D8232A] shrink-0" aria-hidden="true" />
+                  <span>{storeInfo.phone}</span>
+                </a>
+              </li>
+              {storeInfo.email && (
+                <li>
+                  <a href={`mailto:${storeInfo.email}`} className="flex items-center gap-2 hover:text-white transition-colors">
+                    <Mail className="w-3.5 h-3.5 text-[#D8232A] shrink-0" aria-hidden="true" />
+                    <span>{storeInfo.email}</span>
+                  </a>
+                </li>
+              )}
+            </ul>
+
+            {/* Social profiles — only the ones filled in at Admin → Settings */}
+            {socials.length > 0 && (
+              <ul className="flex items-center gap-2">
+                {socials.map((s) => (
+                  <li key={s.id}>
+                    <a
+                      href={s.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={s.label}
+                      aria-label={s.label}
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-800 text-neutral-400 transition-colors hover:bg-[#D8232A] hover:text-white"
+                    >
+                      <s.icon className="h-3.5 w-3.5" aria-hidden="true" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Newsletter — one compact row (Admin → Storefront → Footer copy) */}
+            <div className="space-y-2 pt-1">
+              <p className="text-[11px] font-bold text-white">
                 <Bi en={content.footerNewsletterTitle} bn={content.footerNewsletterTitleBn} />
               </p>
-              <form onSubmit={handleNewsletterSubmit} className="flex gap-2 max-w-sm">
+              <form onSubmit={handleNewsletterSubmit} className="flex max-w-sm gap-2">
                 <input
                   type="email"
                   value={newsletterEmail}
                   onChange={(e) => setNewsletterEmail(e.target.value)}
                   placeholder={t(content.footerNewsletterPlaceholder, content.footerNewsletterPlaceholderBn)}
                   required
-                  className="flex-1 px-3.5 py-2.5 bg-neutral-800 text-xs text-white rounded-xl border border-neutral-700 outline-none focus:border-[#D8232A] transition-colors"
+                  className="min-w-0 flex-1 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-xs text-white outline-none transition-colors focus:border-[#D8232A]"
                 />
                 <button
                   type="submit"
                   disabled={newsletterState === 'sending'}
-                  className="px-4 py-2.5 bg-[#D8232A] text-white text-xs font-bold rounded-xl hover:bg-[#b51c22] transition-colors shrink-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="shrink-0 cursor-pointer rounded-lg bg-[#D8232A] px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-[#b51c22] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Bi en={content.footerNewsletterCta} bn={content.footerNewsletterCtaBn} />
                 </button>
               </form>
-              <p className="text-[11px] text-neutral-500 mt-1.5">
-                <Bi en={content.footerNewsletterNote} bn={content.footerNewsletterNoteBn} />
-              </p>
             </div>
+
           </div>
 
-          {/* Shop Categories — API-driven divisions (Admin → Categories) */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-              <Bi en={content.footerDivisionsHeading} bn={content.footerDivisionsHeadingBn} />
-            </h4>
-            <ul className="space-y-2 text-xs text-neutral-400">
-              {categories.map((c) => (
-                <li key={c.id}>
-                  <button onClick={() => handleCategoryClick(c.slug as CategoryType)} className="hover:text-white transition-colors cursor-pointer">
-                    {c.name}
-                  </button>
-                </li>
-              ))}
-              <li>
-                <button onClick={() => handleCategoryClick('all')} className="hover:text-white transition-colors cursor-pointer">
-                  <Bi en={content.headerAllDepartments} bn={content.headerAllDepartmentsBn} />
+          {/* Information — content pages ("show in footer") that are not policies */}
+          <FooterColumn
+            title={content.footerInfoHeading}
+            titleBn={content.footerInfoHeadingBn}
+            hidden={infoPages.length === 0}
+          >
+            {infoPages.map((p) => (
+              <li key={p.slug}>
+                <button
+                  onClick={() => navigate('/' + p.slug)}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  <Bi en={p.title} bn={p.titleBn || p.title} />
                 </button>
               </li>
-            </ul>
-          </div>
+            ))}
+          </FooterColumn>
 
-          {/* Customer Care */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white"><Bi en={content.footerCareHeading} bn={content.footerCareHeadingBn} /></h4>
-            <ul className="space-y-2 text-xs text-neutral-400">
-              <li>
-                <button onClick={() => navigate('/track-order')} className="hover:text-white transition-colors cursor-pointer">
-                  <Bi en={content.footerTrack} bn={content.footerTrackBn} />
+          {/* Shop By — API-driven divisions (Admin → Categories), reference: "Shop By" */}
+          <FooterColumn title={content.footerDivisionsHeading} titleBn={content.footerDivisionsHeadingBn}>
+            {categories.map((c) => (
+              <li key={c.id}>
+                <button onClick={() => handleCategoryClick(c.slug as CategoryType)} className="hover:text-white transition-colors cursor-pointer">
+                  {c.name}
                 </button>
               </li>
-              <li>
-                <button onClick={() => setIsSizeGuideOpen(true)} className="hover:text-white transition-colors cursor-pointer">
-                  <Bi en={content.footerGuides} bn={content.footerGuidesBn} />
-                </button>
-              </li>
-              <li>
-                <button onClick={() => setIsAksMartClubOpen(true)} className="hover:text-white transition-colors cursor-pointer">
-                  <Bi en={content.footerClub} bn={content.footerClubBn} />
-                </button>
-              </li>
-              {footerPages.map((p) => (
-                <li key={p.slug}>
-                  <button
-                    onClick={() => navigate('/' + p.slug)}
-                    className="hover:text-white transition-colors cursor-pointer text-left"
-                  >
-                    <Bi en={p.title} bn={p.titleBn || p.title} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
+            ))}
+            <li>
+              <button onClick={() => handleCategoryClick('all')} className="hover:text-white transition-colors cursor-pointer">
+                <Bi en={content.headerAllDepartments} bn={content.headerAllDepartmentsBn} />
+              </button>
+            </li>
+          </FooterColumn>
 
-          {/* Contact Details */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white"><Bi en={content.footerContactHeading} bn={content.footerContactHeadingBn} /></h4>
-            <div className="space-y-2.5 text-xs text-neutral-400">
-              <a
-                href={`tel:${storeInfo.phoneRaw}`}
-                className="flex items-center gap-2 hover:text-white transition-colors"
-              >
-                <Phone className="w-4 h-4 text-[#D8232A] shrink-0" />
-                <span>
-                  <Bi en={content.footerContactPhoneLabel} bn={content.footerContactPhoneLabelBn} />: {storeInfo.phone}
-                </span>
-              </a>
-              <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-[#D8232A] shrink-0 mt-0.5" />
-                <span>
-                  {storeInfo.address}
-                </span>
-              </div>
-              <a
-                href={`https://${storeInfo.site}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-2 hover:text-white transition-colors"
-              >
-                <Globe className="w-4 h-4 text-[#D8232A] shrink-0" />
-                <span>www.{storeInfo.site}</span>
-              </a>
-            </div>
-          </div>
+          {/* Support — help links, reference: "Support" column */}
+          <FooterColumn title={content.footerCareHeading} titleBn={content.footerCareHeadingBn}>
+            <li>
+              <button onClick={() => navigate('/track-order')} className="hover:text-white transition-colors cursor-pointer">
+                <Bi en={content.footerTrack} bn={content.footerTrackBn} />
+              </button>
+            </li>
+            <li>
+              <button onClick={() => setIsSizeGuideOpen(true)} className="hover:text-white transition-colors cursor-pointer">
+                <Bi en={content.footerGuides} bn={content.footerGuidesBn} />
+              </button>
+            </li>
+            <li>
+              <button onClick={() => setIsAksMartClubOpen(true)} className="hover:text-white transition-colors cursor-pointer">
+                <Bi en={content.footerClub} bn={content.footerClubBn} />
+              </button>
+            </li>
+          </FooterColumn>
+
+          {/* Consumer Policy — return / refund / exchange pages, reference column */}
+          <FooterColumn
+            title={content.footerPolicyHeading}
+            titleBn={content.footerPolicyHeadingBn}
+            hidden={policyPages.length === 0}
+          >
+            {policyPages.map((p) => (
+              <li key={p.slug}>
+                <button
+                  onClick={() => navigate('/' + p.slug)}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  <Bi en={p.title} bn={p.titleBn || p.title} />
+                </button>
+              </li>
+            ))}
+          </FooterColumn>
         </div>
 
-        {/* Bottom Bar: Payment Logos & Copyright */}
-        <div className="pt-8 border-t border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
+        {/* Footer bottom — copyright and the payments we accept (reference: footer-bottom) */}
+        <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-neutral-800 pt-5 text-xs text-neutral-500 sm:flex-row">
           <div className="flex items-center gap-2">
             <span>
               {t(
@@ -276,11 +358,49 @@ export const Footer: React.FC = () => {
             </span>
           </div>
 
-          {/* Payment badges — the methods the merchant actually offers (Admin → Settings) */}
-          <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold text-neutral-400">
+          {/* Pay with — self-drawn brand badges plus the live methods the
+              merchant actually offers (Admin → Settings). */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="mr-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-500">
+              <Bi en={content.footerPaymentsLabel} bn={content.footerPaymentsLabelBn} />
+            </span>
+
+            {/* Pay with — self-drawn brand badges (src/data/payments.ts) */}
+            {PAYMENT_BRANDS.map((brand) => (
+              <span
+                key={brand.id}
+                title={brand.label}
+                className="flex h-6 items-center gap-1.5 rounded-md px-2 shadow-sm"
+                style={{ backgroundColor: brand.bg ?? '#FFFFFF' }}
+              >
+                {brand.mark === 'mastercard' && (
+                  <span className="relative block h-3.5 w-5" aria-hidden="true">
+                    <span className="absolute left-0 top-0 h-3.5 w-3.5 rounded-full bg-[#EB001B]" />
+                    <span className="absolute right-0 top-0 h-3.5 w-3.5 rounded-full bg-[#F79E1B]" />
+                  </span>
+                )}
+                {brand.mark === 'card' && (
+                  <CreditCard className="h-3 w-3" style={{ color: brand.color }} aria-hidden="true" />
+                )}
+                <span
+                  className={`font-bold leading-none ${brand.italic ? 'italic tracking-tight' : ''} ${
+                    brand.size === 'md' ? 'text-[12px]' : 'text-[9px]'
+                  }`}
+                  style={{ color: brand.color }}
+                >
+                  {brand.label}
+                </span>
+              </span>
+            ))}
+
+            {/* Live methods — bKash / Nagad / COD … whatever Admin → Settings says */}
             {paymentMethods.map((m) => (
-              <span key={m.id} className="bg-neutral-800 px-2 py-1 rounded text-neutral-300">
-                {t(m.label, m.labelBn || m.label)}
+              <span
+                key={m.id}
+                className="flex h-6 items-center rounded-md bg-white px-2 text-[9px] font-bold leading-none shadow-sm"
+                style={{ color: methodAccent(m.label) }}
+              >
+                {m.label}
               </span>
             ))}
           </div>

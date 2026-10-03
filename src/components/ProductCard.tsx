@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Product, ProductColor } from '../types';
 import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
+import { isOutOfStock } from '../utils/stock';
 import { Heart, Eye, ShoppingBag, Star, Check, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { navigate } from '../lib/router';
@@ -36,6 +37,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
 
   const isFav = isInWishlist(product.id);
   const isCompared = isInCompare(product.id);
+  /** Admin → Products stock tracking: a tracked product with no units left is
+   *  unbuyable (the API refuses the order), so the card says so up front. */
+  const outOfStock = isOutOfStock(product);
 
   // Handle Quick Add to Cart
   const handleQuickAdd = (sizeObj: (typeof product.sizes)[0], e: React.MouseEvent) => {
@@ -72,6 +76,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
 
           {/* Badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {outOfStock && (
+              <span className="bg-neutral-900 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase">
+                Out of stock
+              </span>
+            )}
             {product.discountPercent && (
               <span className="bg-[#D8232A] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase">
                 {product.discountPercent}% OFF
@@ -204,6 +213,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
 
         {/* Badges */}
         <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-10">
+          {outOfStock && (
+            <span className="bg-neutral-900 text-white text-[10px] font-black px-2 py-0.5 rounded-sm uppercase shadow-xs">
+              Out of stock
+            </span>
+          )}
           {product.discountPercent && (
             <span className="bg-[#D8232A] text-white text-[10px] font-black px-2 py-0.5 rounded-sm uppercase shadow-xs">
               {product.discountPercent}% OFF

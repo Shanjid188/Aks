@@ -8,13 +8,15 @@ import {
   LIFECYCLE_STATUSES,
   Modal,
   ORDER_STATUS_META,
+  PageHeader,
   Select,
   Spinner,
   StatusBadge,
   formatDate,
 } from '../components/ui';
-import { Package, Search, Plus, Minus, Trash2, Loader2, ClipboardList, PackageCheck, Activity } from 'lucide-react';
+import { Package, Search, Plus, Minus, Trash2, Loader2, ClipboardList, PackageCheck, Activity, Printer, Eye, ShoppingCart } from 'lucide-react';
 import { ManageOrder } from './ManageOrder';
+import { openPosReceiptById } from '../lib/posReceipt';
 
 const bdt = (n: number) => `BDT ${n.toLocaleString('en-IN')}`;
 const addr = (o: Order, key: string) => (o.customerAddress as Record<string, string>)?.[key] || '';
@@ -351,23 +353,23 @@ const saveItems = async () => {
 return (
     <div className="space-y-4">
       {/* Header + search */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900">{pageTitle}</h2>
-          <p className="text-xs text-neutral-400">{pageDesc}</p>
-        </div>
-        <div className="flex w-full sm:w-auto items-center gap-2">
-          <div className="relative flex-1 sm:w-64">
-            <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+      <PageHeader
+        eyebrow="Sales"
+        title={pageTitle}
+        desc={pageDesc}
+        icon={<ShoppingCart className="w-5 h-5" />}
+        actions={
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search order ID / name / phone…"
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-neutral-300 outline-none focus:border-[#D8232A]"
+              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-white/15 bg-white/10 text-white placeholder:text-white/40 outline-none focus:border-white/40 focus:bg-white/15"
             />
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Status filter pills — on a dedicated status page only show All + that status */}
       <div className="flex flex-wrap gap-1.5">
@@ -636,6 +638,12 @@ return (
               </div>
 
               <div className="flex justify-end gap-2 mt-3">
+                {detail.source === 'pos' && (
+                  <>
+                    <Button variant="secondary" onClick={() => openPosReceiptById(detail.id)}><Eye className="w-3.5 h-3.5" /> View Receipt</Button>
+                    <Button variant="secondary" onClick={() => openPosReceiptById(detail.id, { autoPrint: true })}><Printer className="w-3.5 h-3.5" /> Reprint Receipt</Button>
+                  </>
+                )}
                 <Button variant="ghost" onClick={() => setDetail(null)}>Close</Button>
               </div>
             </div>

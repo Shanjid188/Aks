@@ -4,8 +4,10 @@ import { INITIAL_PRODUCTS, INITIAL_REVIEWS } from '../data/products';
 import { FALLBACK_CATEGORIES } from '../data/aksMart';
 import { VALID_COUPONS } from '../data/promos';
 import { isFreeDeliveryCoupon } from '../utils/coupons';
-import { dataLoader, USE_API } from '../lib/dataLoader';
+import { stockLeft } from '../utils/stock';
+import { dataLoader, USE_API, CACHE_KEYS } from '../lib/dataLoader';
 import { DEFAULT_COMMERCE } from '../data/commerce';
+import { readCache } from '../lib/apiCache';
 import type { CommerceSettings } from '../data/commerce';
 import * as API from '../api';
 import { adaptApiOrder } from '../lib/apiAdapter';
@@ -22,6 +24,12 @@ interface StoreContextType {
   reviews: Review[];
   /** Divisions taxonomy from the DB (Admin → Categories), with bundled fallback. */
   categories: Category[];
+  /**
+   * True until the first catalog load settles. Sections gate on this so the
+   * bundled (hardcoded) artwork never flashes before the merchant's own images
+   * arrive from the API.
+   */
+  catalogLoading: boolean;
   /** Active subcategories of one division slug (empty for 'all' / unknown). */
   subcategoriesFor: (categorySlug: string) => Subcategory[];
   cart: CartItem[];
@@ -117,11 +125,26 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [categories, setCategories] = useState<Category[]>(FALLBACK_CATEGORIES);
+  // The previous visit's payload (when there is one) is used for the very first
+  // render and revalidated immediately after, so a returning visitor sees the
+  // real shop at once instead of a skeleton or bundled placeholder data.
+  const [products, setProducts] = useState<Product[]>(
+    () => readCache<Product[]>(CACHE_KEYS.products) ?? INITIAL_PRODUCTS
+  );
+  const [categories, setCategories] = useState<Category[]>(
+    () => readCache<Category[]>(CACHE_KEYS.categories) ?? FALLBACK_CATEGORIES
+  );
   // Free-shipping threshold + standard delivery charge straight from
   // Admin → Settings (bundled defaults until the API answers).
-  const [commerce, setCommerce] = useState<CommerceSettings>(DEFAULT_COMMERCE);
+  const [commerce, setCommerce] = useState<CommerceSettings>(
+    () => readCache<CommerceSettings>(CACHE_KEYS.commerce) ?? DEFAULT_COMMERCE
+  );
+  // Nothing visual is drawn from the bundled fallbacks while this is true (see
+  // the image sections) — it only flips once the API has answered. A cached
+  // payload counts as an answer, so the page is not held back for it.
+  const [catalogLoading, setCatalogLoading] = useState(
+    () => USE_API && readCache(CACHE_KEYS.products) === null
+  );
   const [reviews, setReviews] = useState<Review[]>(() => {
     const saved = localStorage.getItem('aks_reviews');
     return saved ? JSON.parse(saved) : INITIAL_REVIEWS;
@@ -141,6 +164,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setReviews(revs);
       setCategories(cats);
       setCommerce(cash);
+    }).finally(() => {
+      if (!cancelled) setCatalogLoading(false);
     });
     return () => { cancelled = true; };
   }, []);
@@ -289,12 +314,43 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         : { size: '', inStock: true, stockCount: 0 };
     const safeQty = Number.isFinite(quantity) && quantity >= 1 ? Math.floor(quantity) : 1;
     const cartItemId = `${product.id}-${safeColor.name}-${safeSize.size}`;
+
+    // Stock truth first: a tracked product with nothing left (or a size that is
+    // out of stock) can never be ordered — the API refuses it at checkout — so
+    // say so here instead of letting the customer fail at the last step.
+    const available = stockLeft(product);
+    if (available === 0) {
+      addToast({
+        type: 'error',
+        title: 'Out of stock',
+        message: `${product.name} is out of stock right now and cannot be ordered.`,
+      });
+      return;
+    }
+    if (safeSize.inStock === false) {
+      addToast({
+        type: 'error',
+        title: `Size ${safeSize.size} is out of stock`,
+        message: `Please pick another size of ${product.name}.`,
+      });
+      return;
+    }
+
+    const existing = cart.find((item) => item.cartItemId === cartItemId);
+    const wanted = (existing?.quantity ?? 0) + safeQty;
+    const allowed = available === null ? wanted : Math.min(wanted, available);
+    if (allowed < wanted && available !== null) {
+      addToast({
+        type: 'warning',
+        title: 'Limited stock',
+        message: `Only ${available} left of ${product.name} — the bag now holds ${allowed}.`,
+      });
+    }
+
     setCart((prev) => {
-      const existing = prev.find((item) => item.cartItemId === cartItemId);
-      if (existing) {
-        return prev.map((item) =>
-          item.cartItemId === cartItemId ? { ...item, quantity: item.quantity + safeQty } : item
-        );
+      const row = prev.find((item) => item.cartItemId === cartItemId);
+      if (row) {
+        return prev.map((item) => (item.cartItemId === cartItemId ? { ...item, quantity: allowed } : item));
       }
       return [
         ...prev,
@@ -303,7 +359,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           product,
           selectedColor: safeColor,
           selectedSize: safeSize,
-          quantity: safeQty,
+          quantity: allowed,
           addedAt: Date.now(),
         },
       ];
@@ -602,9 +658,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return mappedOrder;
     } catch (e) {
       console.warn('[createOrder] Order API failed:', e);
-      // Surface the failure to checkout so the customer sees an honest error and can
-      // retry â€” no fake local "success" receipts when the backend call fails.
-      throw new Error("We couldn't place your order right now. Please try again.");
+      // Surface the API's own reason — "X doesn't have enough stock (available: 0)",
+      // "Please choose a valid delivery area" — so the customer and the shop can act
+      // on it instead of failing with a generic sentence.
+      throw new Error(
+        API.apiErrorMessage(e, "We couldn't place your order right now. Please try again.")
+      );
     }
   };
 
@@ -691,6 +750,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <StoreContext.Provider
       value={{
+        catalogLoading,
         products,
         reviews,
         categories,

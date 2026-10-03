@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Review } from '../types';
-import { Badge, Button, EmptyState, Spinner } from '../components/ui';
+import { Badge, Button, EmptyState, Spinner, PageHeader } from '../components/ui';
 import { MessageSquare, Star, Trash2 } from 'lucide-react';
 
 export function ReviewsPage() {
@@ -34,13 +34,12 @@ export function ReviewsPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-black text-neutral-900">Customer Reviews</h2>
-        <p className="text-xs text-neutral-400">{reviews.length} reviews across all products</p>
-        <p className="text-[11px] text-neutral-400 mt-0.5">
-          A product's star rating and review count on the storefront come from its approved reviews.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Feedback"
+        title="Customer Reviews"
+        desc={`${reviews.length} reviews across all products · a product's star rating and review count on the storefront come from its approved reviews`}
+        icon={<MessageSquare className="w-5 h-5" />}
+      />
 
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 

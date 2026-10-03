@@ -35,13 +35,15 @@ router.post(
   requirePermission(PERM.SLIDES_CREATE),
   asyncHandler(async (req, res) => {
     const body = (req.body || {}) as Record<string, unknown>;
-    if (!body.title || !body.image) {
-      return res.status(400).json({ error: 'title and image are required' });
+    // Slides are image-only (Admin → Hero slides). The copy columns stay in the
+    // schema for legacy rows, but an image is all a new slide needs.
+    if (!body.image) {
+      return res.status(400).json({ error: 'image is required' });
     }
     const slide = await prisma.heroSlide.create({
       data: {
         badge: String(body.badge || ''),
-        title: String(body.title),
+        title: String(body.title || ''),
         subtitle: String(body.subtitle || ''),
         ctaText: String(body.ctaText || 'Shop Now'),
         ctaCategory: String(body.ctaCategory || 'all'),

@@ -1,41 +1,51 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import type { AdminUser } from './api';
 import aksLogo from './assets/AKS.logo.jpg';
 import { api, getStoredAdmin, setStoredAdmin, setToken } from './api';
 import { hasPerm, PERM } from './lib/permissions';
 import { LoginPage } from './pages/LoginPage';
-import { Dashboard } from './pages/Dashboard';
-import { ProductsPage } from './pages/Products';
-import { CategoriesPage } from './pages/Categories';
-import { OrdersPage } from './pages/Orders';
-import { OrderOverviewPage } from './pages/OrderOverview';
-import { ShippedPage } from './pages/Shipped';
-import { CustomersPage } from './pages/Customers';
-import { CouponsPage } from './pages/Coupons';
-import { ReviewsPage } from './pages/Reviews';
-import { HeroSlidesPage } from './pages/HeroSlides';
-import { RolesPage } from './pages/Roles';
-import { AdminsPage } from './pages/Admins';
-import { ActivityLogsPage } from './pages/ActivityLogs';
-import { ExpensesPage } from './pages/Expenses';
-import { InventoryPage } from './pages/Inventory';
-import { InvoicesPage } from './pages/Invoices';
-import { PackagingPage } from './pages/Packaging';
-import { PosPage } from './pages/POS';
-import { PurchasesPage } from './pages/Purchases';
-import { ReportsPage } from './pages/Reports';
-import { ReturnsPage } from './pages/Returns';
-import { SettingsPage } from './pages/Settings';
-import { SuppliersPage } from './pages/Suppliers';
-import StorefrontPage from './pages/Storefront';
-import { PagesPage } from './pages/Pages';
-import { SubscribersPage } from './pages/Subscribers';
-import { MessagesPage } from './pages/Messages';
+import { Spinner } from './components/ui';
+
+/*
+ * Only the login screen and the console shell are in the first download. Each
+ * module is fetched the moment it is opened (and stays cached afterwards), so
+ * signing in no longer waits for all 30 pages to be compiled and shipped.
+ */
+const Dashboard = lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })));
+const ProductsPage = lazy(() => import('./pages/Products').then((m) => ({ default: m.ProductsPage })));
+const CategoriesPage = lazy(() => import('./pages/Categories').then((m) => ({ default: m.CategoriesPage })));
+const OrdersPage = lazy(() => import('./pages/Orders').then((m) => ({ default: m.OrdersPage })));
+const OrderOverviewPage = lazy(() => import('./pages/OrderOverview').then((m) => ({ default: m.OrderOverviewPage })));
+const ShippedPage = lazy(() => import('./pages/Shipped').then((m) => ({ default: m.ShippedPage })));
+const CustomersPage = lazy(() => import('./pages/Customers').then((m) => ({ default: m.CustomersPage })));
+const CouponsPage = lazy(() => import('./pages/Coupons').then((m) => ({ default: m.CouponsPage })));
+const ReviewsPage = lazy(() => import('./pages/Reviews').then((m) => ({ default: m.ReviewsPage })));
+const HeroSlidesPage = lazy(() => import('./pages/HeroSlides').then((m) => ({ default: m.HeroSlidesPage })));
+const GalleryImagesPage = lazy(() => import('./pages/GalleryImages').then((m) => ({ default: m.GalleryImagesPage })));
+const OfferImagesPage = lazy(() => import('./pages/OfferImages').then((m) => ({ default: m.OfferImagesPage })));
+const LovedProductsPage = lazy(() => import('./pages/LovedProducts').then((m) => ({ default: m.LovedProductsPage })));
+const RolesPage = lazy(() => import('./pages/Roles').then((m) => ({ default: m.RolesPage })));
+const AdminsPage = lazy(() => import('./pages/Admins').then((m) => ({ default: m.AdminsPage })));
+const ActivityLogsPage = lazy(() => import('./pages/ActivityLogs').then((m) => ({ default: m.ActivityLogsPage })));
+const ExpensesPage = lazy(() => import('./pages/Expenses').then((m) => ({ default: m.ExpensesPage })));
+const InventoryPage = lazy(() => import('./pages/Inventory').then((m) => ({ default: m.InventoryPage })));
+const InvoicesPage = lazy(() => import('./pages/Invoices').then((m) => ({ default: m.InvoicesPage })));
+const PackagingPage = lazy(() => import('./pages/Packaging').then((m) => ({ default: m.PackagingPage })));
+const PosPage = lazy(() => import('./pages/POS').then((m) => ({ default: m.PosPage })));
+const PurchasesPage = lazy(() => import('./pages/Purchases').then((m) => ({ default: m.PurchasesPage })));
+const ReportsPage = lazy(() => import('./pages/Reports').then((m) => ({ default: m.ReportsPage })));
+const ReturnsPage = lazy(() => import('./pages/Returns').then((m) => ({ default: m.ReturnsPage })));
+const SettingsPage = lazy(() => import('./pages/Settings').then((m) => ({ default: m.SettingsPage })));
+const SuppliersPage = lazy(() => import('./pages/Suppliers').then((m) => ({ default: m.SuppliersPage })));
+const StorefrontPage = lazy(() => import('./pages/Storefront'));
+const PagesPage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.PagesPage })));
+const SubscribersPage = lazy(() => import('./pages/Subscribers').then((m) => ({ default: m.SubscribersPage })));
+const MessagesPage = lazy(() => import('./pages/Messages').then((m) => ({ default: m.MessagesPage })));
 import {
   Activity, BarChart3, Boxes, Calculator, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
-  Clock, FileText, Image, Inbox, LayoutDashboard, LogOut, Mail, Menu, Package,
+  Clock, FileText, Image, Images, Inbox, LayoutDashboard, LogOut, Mail, Menu, Package,
   PackageCheck, Receipt, RotateCcw, Search, Settings, ShieldCheck, ShoppingBag,
-  ShoppingCart, Sparkles, Star, Ticket, Truck, UserCog, Users, X, XCircle, Undo2,
+  ShoppingCart, Sparkles, Star, Ticket, Truck, UserCog, Users, X, XCircle, Undo2, Percent, Heart,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -61,6 +71,9 @@ type PageKey =
   | 'reports'
   | 'activity'
   | 'slides'
+  | 'gallery'
+  | 'offers'
+  | 'lovedproducts'
   | 'storefront'
   | 'admins'
   | 'roles'
@@ -89,6 +102,9 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
   { key: 'reports', label: 'Reports', icon: <BarChart3 className="w-[18px] h-[18px]" />, permission: PERM.REPORTS_VIEW, desc: 'Sales & analytics' },
   { key: 'activity', label: 'Activity Logs', icon: <Activity className="w-[18px] h-[18px]" />, permission: PERM.ACTIVITY_LOGS_VIEW, desc: 'Audit trail' },
   { key: 'slides', label: 'Hero Slides', icon: <Image className="w-[18px] h-[18px]" />, permission: PERM.SLIDES_VIEW, desc: 'Homepage banners' },
+  { key: 'gallery', label: 'Gallery Images', icon: <Images className="w-[18px] h-[18px]" />, permission: PERM.STOREFRONT_VIEW, desc: 'Section above the footer' },
+  { key: 'offers', label: 'Offer Images', icon: <Percent className="w-[18px] h-[18px]" />, permission: PERM.STOREFRONT_VIEW, desc: 'Active Offers artwork' },
+  { key: 'lovedproducts', label: 'Loved Products', icon: <Heart className="w-[18px] h-[18px]" />, permission: PERM.STOREFRONT_VIEW, desc: 'Loved by our customers section' },
   { key: 'storefront', label: 'Storefront', icon: <Sparkles className="w-[18px] h-[18px]" />, permission: PERM.STOREFRONT_VIEW, desc: 'Promos & announcements' },
   { key: 'pages', label: 'Content Pages', icon: <FileText className="w-[18px] h-[18px]" />, permission: PERM.STOREFRONT_VIEW, desc: 'About & policy pages' },
   { key: 'subscribers', label: 'Subscribers', icon: <Mail className="w-[18px] h-[18px]" />, permission: PERM.MARKETING_SUBSCRIBERS_VIEW, desc: 'Newsletter audience' },
@@ -114,7 +130,7 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
 const NAV_GROUPS: { key: string; label: string; icon: ReactNode; keys: PageKey[] }[] = [
   { key: 'operation', label: 'Operation', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders_pending', 'orders_confirmed', 'packaging', 'orders_shipped', 'orders_delivered', 'orders_cancelled', 'orders_returned', 'invoices', 'returns', 'customers'] },
   { key: 'catalog', label: 'Catalog', icon: <Boxes className="w-4 h-4" />, keys: ['products', 'inventory', 'purchases', 'suppliers'] },
-  { key: 'marketing', label: 'Marketing', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'storefront', 'pages'] },
+  { key: 'marketing', label: 'Marketing', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'gallery', 'offers', 'lovedproducts', 'storefront', 'pages'] },
   { key: 'finance', label: 'Finance', icon: <BarChart3 className="w-4 h-4" />, keys: ['expenses', 'reports'] },
   { key: 'administration', label: 'Administration', icon: <ShieldCheck className="w-4 h-4" />, keys: ['admins', 'roles', 'activity', 'settings'] },
 ];
@@ -270,10 +286,12 @@ export default function App() {
   };
 
   const navigate = (key: PageKey) => {
-    // Status shortcuts (orders_pending, orders_confirmed, ...) open the Orders
+    // Status shortcuts (orders_pending, orders_confirmed, …) open the Orders
     // page with a preset status filter via localStorage — the Orders page reads
     // and removes it on mount, the same mechanism Dashboard "View" actions use.
-    const shortcutMatch = key.match(/^orders_(pending|confirmed|shipped|delivered|cancelled)$/);
+    // Keep this list in sync with the `orders_*` entries in NAV: every shortcut
+    // that is not matched here falls through to the switch's `default` (Dashboard).
+    const shortcutMatch = key.match(/^orders_(pending|confirmed|shipped|delivered|cancelled|returned)$/);
     if (shortcutMatch) {
       if (shortcutMatch[1] === 'shipped') {
         // Shipped has its own dedicated page (courier handoff → delivery/return).
@@ -378,6 +396,12 @@ export default function App() {
         return <CouponsPage />;
       case 'slides':
         return <HeroSlidesPage />;
+      case 'gallery':
+        return <GalleryImagesPage />;
+      case 'offers':
+        return <OfferImagesPage />;
+      case 'lovedproducts':
+        return <LovedProductsPage />;
       case 'storefront':
         return <StorefrontPage />;
       case 'pages':
@@ -735,8 +759,20 @@ export default function App() {
           </div>
         </header>
 
-        {/* Main content — scrolls below the topbar */}
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">{render()}</main>
+        {/* Main content — scrolls below the topbar. Modules load on demand, so a
+            skeleton-free spinner shows for the moment a page chunk arrives. */}
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center gap-2 py-16 text-xs font-semibold text-neutral-400">
+                <Spinner small />
+                Loading module…
+              </div>
+            }
+          >
+            {render()}
+          </Suspense>
+        </main>
       </div>
 
       {/* Mobile drawer backdrop */}

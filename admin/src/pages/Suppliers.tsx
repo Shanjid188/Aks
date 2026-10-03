@@ -1,7 +1,7 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Supplier } from '../types';
-import { Button, EmptyState, Field, Modal, Spinner, TextInput, formatDate } from '../components/ui';
+import { Button, EmptyState, Field, Modal, Spinner, TextInput, formatDate, PageHeader } from '../components/ui';
 import { Plus, RefreshCw, Truck, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
 
 interface F { id: string | null; name: string; phone: string; email: string; address: string; company: string; notes: string; isActive: boolean }
@@ -35,13 +35,18 @@ export function SuppliersPage() {
   };
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-        <div><h2 className="text-lg font-black text-neutral-900">Suppliers</h2><p className="text-xs text-neutral-500 mt-0.5">Vendors you buy stock from.</p></div>
-        <div className="flex items-center gap-2">
-          <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white border border-neutral-200 hover:bg-neutral-50 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
-          <Button onClick={() => { setError(null); setForm(blank()); }}><Plus className="w-3.5 h-3.5" /> Add Supplier</Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Procurement"
+        title="Suppliers"
+        desc={`${rows.length} vendors you buy stock from`}
+        icon={<Truck className="w-5 h-5" />}
+        actions={
+          <>
+            <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white/10 border border-white/15 text-white hover:bg-white/20 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
+            <Button onClick={() => { setError(null); setForm(blank()); }}><Plus className="w-3.5 h-3.5" /> Add Supplier</Button>
+          </>
+        }
+      />
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
       <section className="bg-white rounded-2xl border border-neutral-200">
         <header className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between">

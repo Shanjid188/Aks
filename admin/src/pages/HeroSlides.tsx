@@ -1,89 +1,237 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
-import type { HeroSlide } from '../types';
-import { Badge, Button, EmptyState, Field, Modal, Select, Spinner, TextArea, TextInput, Toggle } from '../components/ui';
+import type { HeroSlide, SideBanner } from '../types';
+import { Badge, Button, EmptyState, Field, Modal, Spinner, TextInput, Toggle, PageHeader } from '../components/ui';
 import { UploadImageButton } from '../components/ImageUpload';
 import { Plus, Images, Pencil, Trash2 } from 'lucide-react';
 
+/** Slides and side banners are both image-only: the storefront renders the
+ *  uploaded artwork, so the form is just image + order + visibility. */
 interface FormState {
-  badge: string;
-  title: string;
-  subtitle: string;
-  ctaText: string;
-  ctaCategory: string;
-  ctaSubcategory: string;
-  ctaBrand: string;
   image: string;
-  accentColor: string;
-  tagline: string;
   sortOrder: string;
   isActive: boolean;
 }
 
-const CTA_CATEGORIES = [
-  'all',
-  'food',
-  'craft',
-  'home',
-  'beauty',
-  'print',
-];
-const CTA_CATEGORY_LABELS: Record<string, string> = {
-  all: 'All products',
-  food: 'SHUDDHO',
-  craft: 'AKS CRAFT',
-  home: 'AKS HOME',
-  beauty: 'AKS BEAUTY',
-  print: 'AKS PRINT',
-};
-
 const emptyForm: FormState = {
-  badge: '',
-  title: '',
-  subtitle: '',
-  ctaText: 'Shop Now',
-  ctaCategory: 'all',
-  ctaSubcategory: '',
-  ctaBrand: '',
   image: '',
-  accentColor: '#D8232A',
-  tagline: '',
   sortOrder: '0',
   isActive: true,
 };
 
-function fromSlide(s: HeroSlide): FormState {
+/** Shared by both lists — hero slides and side banners have the same fields. */
+function fromRow(r: { image: string; sortOrder: number; isActive: boolean }): FormState {
   return {
-    badge: s.badge,
-    title: s.title,
-    subtitle: s.subtitle,
-    ctaText: s.ctaText,
-    ctaCategory: s.ctaCategory,
-    ctaSubcategory: s.ctaSubcategory ?? '',
-    ctaBrand: s.ctaBrand ?? '',
-    image: s.image,
-    accentColor: s.accentColor,
-    tagline: s.tagline,
-    sortOrder: String(s.sortOrder),
-    isActive: s.isActive,
+    image: r.image,
+    sortOrder: String(r.sortOrder),
+    isActive: r.isActive,
   };
 }
 
 function toPayload(f: FormState): Record<string, unknown> {
   return {
-    badge: f.badge.trim(),
-    title: f.title.trim(),
-    subtitle: f.subtitle.trim(),
-    ctaText: f.ctaText.trim() || 'Shop Now',
-    ctaCategory: f.ctaCategory,
-    ctaSubcategory: f.ctaSubcategory.trim() || null,
-    ctaBrand: f.ctaBrand.trim() || null,
     image: f.image.trim(),
-    accentColor: f.accentColor,
-    tagline: f.tagline.trim(),
     sortOrder: Number(f.sortOrder) || 0,
     isActive: f.isActive,
   };
+}
+
+/**
+ * Side banners — the image-only column beside the hero carousel. Same idea as
+ * the slides above: upload the artwork, set the order, show/hide. The storefront
+ * renders the upload as-is, with no copy laid over it.
+ */
+function SideBannersSection() {
+  const [banners, setBanners] = useState<SideBanner[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<SideBanner | null>(null);
+  const [form, setForm] = useState<FormState>(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    api
+      .get<{ banners: SideBanner[] }>('/admin/side-banners')
+      .then((res) => setBanners(res.banners))
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const set = (key: keyof FormState, value: string | boolean) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm(emptyForm);
+    setError(null);
+    setModalOpen(true);
+  };
+
+  const openEdit = (b: SideBanner) => {
+    setEditing(b);
+    setForm(fromRow(b));
+    setError(null);
+    setModalOpen(true);
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      const payload = toPayload(form);
+      if (editing) {
+        const res = await api.patch<{ banner: SideBanner }>(`/admin/side-banners/${editing.id}`, payload);
+        setBanners((prev) => prev.map((b) => (b.id === editing.id ? res.banner : b)));
+      } else {
+        const res = await api.post<{ banner: SideBanner }>('/admin/side-banners', payload);
+        setBanners((prev) => [...prev, res.banner]);
+      }
+      setModalOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (b: SideBanner) => {
+    if (!window.confirm('Delete this side banner?')) return;
+    await api.del(`/admin/side-banners/${b.id}`);
+    setBanners((prev) => prev.filter((x) => x.id !== b.id));
+  };
+
+  const toggleActive = async (b: SideBanner) => {
+    const res = await api.patch<{ banner: SideBanner }>(`/admin/side-banners/${b.id}`, { isActive: !b.isActive });
+    setBanners((prev) => prev.map((x) => (x.id === b.id ? res.banner : x)));
+  };
+
+  return (
+    <section className="space-y-3 pt-4 border-t border-neutral-200">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-base font-black text-neutral-900">Side banners (beside the hero)</h3>
+          <p className="text-xs text-neutral-400">
+            {banners.length} image banner{banners.length === 1 ? '' : 's'} · shown in the column next to the homepage slider — the image is the whole banner.
+          </p>
+        </div>
+        <Button onClick={openCreate} className="gap-1">
+          <Plus className="w-3.5 h-3.5" /> New banner
+        </Button>
+      </div>
+
+      {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+
+      {loading ? (
+        <Spinner />
+      ) : banners.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-neutral-200">
+          <EmptyState
+            icon={<Images className="w-6 h-6" />}
+            title="No side banners yet"
+            hint="Upload a banner image to fill the column beside the hero slider."
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-4 gap-3">
+          {[...banners]
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((b) => (
+              <div key={b.id} className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
+                <div className="relative aspect-[16/10] bg-neutral-100">
+                  {b.image && <img src={b.image} alt="" className="w-full h-full object-cover" />}
+                  <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-neutral-900 backdrop-blur">
+                    #{b.sortOrder}
+                  </span>
+                  {!b.isActive && <span aria-hidden="true" className="absolute inset-0 bg-white/60" />}
+                </div>
+                <div className="flex items-center justify-between gap-2 px-3 py-2">
+                  <button onClick={() => toggleActive(b)} className="cursor-pointer" title="Click to show/hide on the storefront">
+                    {b.isActive ? (
+                      <Badge color="bg-emerald-50 text-emerald-700">Live</Badge>
+                    ) : (
+                      <Badge color="bg-neutral-100 text-neutral-500">Hidden</Badge>
+                    )}
+                  </button>
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => openEdit(b)}
+                      title="Edit / replace image"
+                      className="p-1.5 rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-900 cursor-pointer"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => remove(b)}
+                      title="Delete"
+                      className="p-1.5 rounded-lg text-neutral-400 hover:bg-red-50 hover:text-red-600 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Side Banner' : 'New Side Banner'}>
+        <form onSubmit={submit} className="space-y-4">
+          {/* Shown inside the modal too — the page-level banner sits behind the overlay. */}
+          {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-2">
+              <Field
+                label="Banner image"
+                hint="Upload from your PC, or paste an image URL / /images/... path served from public/. The image is the whole banner — no text or buttons are added on top."
+              >
+                <div className="flex items-start gap-2">
+                  <TextInput
+                    required
+                    value={form.image}
+                    placeholder="/images/my-banner.jpg or https://…"
+                    onChange={(e) => set('image', e.target.value)}
+                  />
+                  <UploadImageButton onUploaded={(url) => set('image', url)} />
+                </div>
+              </Field>
+            </div>
+            <Field label="Sort order" hint="Lower shows first">
+              <TextInput type="number" value={form.sortOrder} onChange={(e) => set('sortOrder', e.target.value)} />
+            </Field>
+          </div>
+
+          {form.image && (
+            <div className="rounded-xl overflow-hidden border border-neutral-200 bg-neutral-50">
+              <img
+                src={form.image}
+                alt="Banner preview"
+                className="w-full h-40 object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                }}
+              />
+            </div>
+          )}
+
+          <Toggle checked={form.isActive} onChange={(v) => set('isActive', v)} label="Show on storefront" />
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Saving…' : 'Save banner'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+    </section>
+  );
 }
 
 export function HeroSlidesPage() {
@@ -110,12 +258,14 @@ export function HeroSlidesPage() {
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
+    setError(null);
     setModalOpen(true);
   };
 
   const openEdit = (s: HeroSlide) => {
     setEditing(s);
-    setForm(fromSlide(s));
+    setForm(fromRow(s));
+    setError(null);
     setModalOpen(true);
   };
 
@@ -143,7 +293,7 @@ export function HeroSlidesPage() {
   };
 
   const remove = async (s: HeroSlide) => {
-    if (!window.confirm(`Delete slide "${s.title}"?`)) return;
+    if (!window.confirm(`Delete slide "${s.title || 'banner image'}"?`)) return;
     await api.del(`/admin/hero-slides/${s.id}`);
     setSlides((prev) => prev.filter((x) => x.id !== s.id));
   };
@@ -155,15 +305,17 @@ export function HeroSlidesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900">Hero Slides</h2>
-          <p className="text-xs text-neutral-400">{slides.length} sliding banners on the storefront homepage</p>
-        </div>
-        <Button onClick={openCreate} className="gap-1">
-          <Plus className="w-3.5 h-3.5" /> New slide
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Storefront"
+        title="Hero Slides"
+        desc={`${slides.length} sliding banners on the storefront homepage`}
+        icon={<Images className="w-5 h-5" />}
+        actions={
+          <Button onClick={openCreate} className="gap-1">
+            <Plus className="w-3.5 h-3.5" /> New slide
+          </Button>
+        }
+      />
 
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
@@ -178,9 +330,7 @@ export function HeroSlidesPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-neutral-50 text-neutral-500 uppercase tracking-wider text-[10px]">
               <tr>
-                <th className="py-3 px-4">Slide</th>
-                <th className="py-3 px-4">Badge</th>
-                <th className="py-3 px-4">CTA</th>
+                <th className="py-3 px-4">Slide image</th>
                 <th className="py-3 px-4">Order</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4 text-right">Actions</th>
@@ -195,13 +345,13 @@ export function HeroSlidesPage() {
                       <div className="flex items-center gap-3 min-w-0">
                         {s.image && <img src={s.image} alt="" className="w-16 h-10 rounded-lg object-cover bg-neutral-100 shrink-0" />}
                         <div className="min-w-0">
-                          <p className="font-bold text-neutral-900 truncate max-w-56">{s.title}</p>
-                          <p className="text-[11px] text-neutral-400 truncate max-w-56">{s.subtitle}</p>
+                          <p className="font-bold text-neutral-900 truncate max-w-56">
+                            {s.title || 'Banner image'}
+                          </p>
+                          <p className="text-[11px] text-neutral-400 truncate max-w-56">{s.image}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-neutral-600">{s.badge || '—'}</td>
-                    <td className="px-4 py-3 text-neutral-600">{s.ctaText}</td>
                     <td className="px-4 py-3 text-neutral-600">{s.sortOrder}</td>
                     <td className="px-4 py-3">
                       <button onClick={() => toggleActive(s)} className="cursor-pointer" title="Click to toggle">
@@ -227,62 +377,26 @@ export function HeroSlidesPage() {
         </div>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Slide' : 'New Hero Slide'} wide>
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Slide' : 'New Hero Slide'}>
         <form onSubmit={submit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Title">
-              <TextInput required value={form.title} onChange={(e) => set('title', e.target.value)} />
-            </Field>
-            <Field label="Badge">
-              <TextInput value={form.badge} placeholder="e.g. FESTIVE COLLECTION 2026" onChange={(e) => set('badge', e.target.value)} />
-            </Field>
-            <Field label="Subtitle / description">
-              <TextArea value={form.subtitle} onChange={(e) => set('subtitle', e.target.value)} />
-            </Field>
-            <Field label="Tagline">
-              <TextInput value={form.tagline} placeholder="Crafted care • AKS Mart quality" onChange={(e) => set('tagline', e.target.value)} />
-            </Field>
-            <Field label="Image" hint="Upload from your PC, or paste an image URL / /images/... path served from public/">
-              <div className="flex items-start gap-2">
-                <TextInput required value={form.image} placeholder="/images/my-banner.jpg or https://…" onChange={(e) => set('image', e.target.value)} />
-                <UploadImageButton
-                  onUploaded={(url) => set('image', url)}
-                />
-              </div>
-            </Field>
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="Accent color">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={/^#[0-9a-fA-F]{6}$/.test(form.accentColor) ? form.accentColor : '#D8232A'}
-                    onChange={(e) => set('accentColor', e.target.value)}
-                    className="w-9 h-9 rounded-lg border border-neutral-300 cursor-pointer bg-white p-0.5 shrink-0"
+          {/* Shown inside the modal too — the page-level banner sits behind the overlay. */}
+          {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-2">
+              <Field
+                label="Banner image"
+                hint="Upload from your PC, or paste an image URL / /images/... path served from public/. The image is the whole slide — no text or buttons are added on top."
+              >
+                <div className="flex items-start gap-2">
+                  <TextInput required value={form.image} placeholder="/images/my-banner.jpg or https://…" onChange={(e) => set('image', e.target.value)} />
+                  <UploadImageButton
+                    onUploaded={(url) => set('image', url)}
                   />
-                  <TextInput value={form.accentColor} onChange={(e) => set('accentColor', e.target.value)} />
                 </div>
               </Field>
-              <Field label="Sort order" hint="Lower shows first">
-                <TextInput type="number" value={form.sortOrder} onChange={(e) => set('sortOrder', e.target.value)} />
-              </Field>
             </div>
-            <Field label="CTA button text">
-              <TextInput value={form.ctaText} onChange={(e) => set('ctaText', e.target.value)} />
-            </Field>
-            <Field label="CTA category filter">
-              <Select value={form.ctaCategory} onChange={(e) => set('ctaCategory', e.target.value)}>
-                {CTA_CATEGORIES.map((c) => (
-                                    <option key={c} value={c}>
-                    {CTA_CATEGORY_LABELS[c] ?? c}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="CTA subcategory (optional)">
-              <TextInput value={form.ctaSubcategory} placeholder="e.g. Rice & Staples" onChange={(e) => set('ctaSubcategory', e.target.value)} />
-            </Field>
-            <Field label="CTA brand (optional)" hint="Must match a brand name exactly to pre-filter">
-              <TextInput value={form.ctaBrand} placeholder="e.g. SHUDDHO" onChange={(e) => set('ctaBrand', e.target.value)} />
+            <Field label="Sort order" hint="Lower shows first">
+              <TextInput type="number" value={form.sortOrder} onChange={(e) => set('sortOrder', e.target.value)} />
             </Field>
           </div>
 
@@ -311,6 +425,8 @@ export function HeroSlidesPage() {
           </div>
         </form>
       </Modal>
+
+      <SideBannersSection />
     </div>
   );
 }

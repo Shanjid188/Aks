@@ -1,28 +1,44 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { StoreProvider } from './context/StoreContext';
 import { SiteContentProvider, useSiteContent } from './context/SiteContentContext';
 import { applyDefaultSeo } from './lib/seo';
 import { RouterProvider, useRouter, matchRoute } from './lib/router';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
-import { PromoBar } from './components/PromoBar';
 import { ToastContainer } from './components/ToastContainer';
-import { CartDrawer } from './components/CartDrawer';
-import { WishlistDrawer } from './components/WishlistDrawer';
-import { ProductDetailModal } from './components/ProductDetailModal';
-import { SizeGuideModal } from './components/SizeGuideModal';
-import { AksMartClubModal } from './components/AksMartClubModal';
-import { ShoeFinderModal } from './components/ShoeFinderModal';
-import { CompareModal } from './components/CompareModal';
-
+import { SkeletonBlock } from './components/Skeleton';
 import { HomePage } from './pages/HomePage';
-import { ProductsPage } from './pages/ProductsPage';
-import { ProductDetailPage } from './pages/ProductDetailPage';
-import { CartPage } from './pages/CartPage';
-import { CheckoutPage } from './pages/CheckoutPage';
-import { OrderSuccessPage } from './pages/OrderSuccessPage';
-import { TrackOrderPage } from './pages/TrackOrderPage';
-import { ContentPage } from './pages/ContentPage';
+
+/*
+ * Only the home page is part of the first download. Every other page and every
+ * overlay is fetched the moment it is actually needed, so the storefront paints
+ * straight away instead of waiting for the whole shop (catalog, cart, checkout,
+ * tracking, modals …) to arrive first.
+ */
+const CartDrawer = lazy(() => import('./components/CartDrawer').then((m) => ({ default: m.CartDrawer })));
+const WishlistDrawer = lazy(() => import('./components/WishlistDrawer').then((m) => ({ default: m.WishlistDrawer })));
+const ProductDetailModal = lazy(() => import('./components/ProductDetailModal').then((m) => ({ default: m.ProductDetailModal })));
+const SizeGuideModal = lazy(() => import('./components/SizeGuideModal').then((m) => ({ default: m.SizeGuideModal })));
+const AksMartClubModal = lazy(() => import('./components/AksMartClubModal').then((m) => ({ default: m.AksMartClubModal })));
+const ShoeFinderModal = lazy(() => import('./components/ShoeFinderModal').then((m) => ({ default: m.ShoeFinderModal })));
+const CompareModal = lazy(() => import('./components/CompareModal').then((m) => ({ default: m.CompareModal })));
+
+const ProductsPage = lazy(() => import('./pages/ProductsPage').then((m) => ({ default: m.ProductsPage })));
+const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })));
+const CartPage = lazy(() => import('./pages/CartPage').then((m) => ({ default: m.CartPage })));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })));
+const OrderSuccessPage = lazy(() => import('./pages/OrderSuccessPage').then((m) => ({ default: m.OrderSuccessPage })));
+const TrackOrderPage = lazy(() => import('./pages/TrackOrderPage').then((m) => ({ default: m.TrackOrderPage })));
+const ContentPage = lazy(() => import('./pages/ContentPage').then((m) => ({ default: m.ContentPage })));
+
+/** Shown for the split second while an on-demand page arrives. */
+const PageFallback: React.FC = () => (
+  <div className="mx-auto max-w-7xl space-y-4 px-4 py-10 sm:px-6 lg:px-8">
+    <SkeletonBlock className="h-8 w-52" />
+    <SkeletonBlock className="h-4 w-80" />
+    <SkeletonBlock className="h-[320px]" />
+  </div>
+);
 
 function RouteRenderer() {
   const { path } = useRouter();
@@ -59,19 +75,22 @@ function MainAppContent() {
       <SeoTags />
       <Header />
       <main className="flex-1">
-        <RouteRenderer />
+        <Suspense fallback={<PageFallback />}>
+          <RouteRenderer />
+        </Suspense>
       </main>
-      <PromoBar />
       <Footer />
 
-      {/* Global modals & drawers */}
-      <ProductDetailModal />
-      <CartDrawer />
-      <WishlistDrawer />
-      <SizeGuideModal />
-      <AksMartClubModal />
-      <ShoeFinderModal />
-      <CompareModal />
+      {/* Global modals & drawers — on demand, so they never delay the page. */}
+      <Suspense fallback={null}>
+        <ProductDetailModal />
+        <CartDrawer />
+        <WishlistDrawer />
+        <SizeGuideModal />
+        <AksMartClubModal />
+        <ShoeFinderModal />
+        <CompareModal />
+      </Suspense>
       <ToastContainer />
     </div>
   );

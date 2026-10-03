@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
-import { EmptyState, Spinner } from '../components/ui';
+import { EmptyState, PageHeader, Spinner } from '../components/ui';
 import { RefreshCw, BarChart3, TrendingUp, Wallet, ShoppingBag } from 'lucide-react';
 
 const bdt = (n: number) => `BDT ${Math.round(n).toLocaleString('en-IN')}`;
@@ -38,15 +38,20 @@ export function ReportsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div><h2 className="text-lg font-black text-neutral-900">Reports</h2><p className="text-xs text-neutral-500 mt-0.5">Real sales, orders, source, payment method and top products.</p></div>
-        <div className="flex items-center gap-1.5">
-          {ranges.map(([id, label]) => (
-            <button key={id} onClick={() => setRange(id)} className={`text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer ${range === id ? 'bg-neutral-900 text-white' : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-600'}`}>{label}</button>
-          ))}
-          <button onClick={load} className="ml-1 inline-flex items-center justify-center w-8 h-8 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 cursor-pointer" title="Refresh"><RefreshCw className="w-3.5 h-3.5 text-neutral-600" /></button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Insights"
+        title="Reports"
+        desc="Real sales, orders, source, payment method and top products."
+        icon={<BarChart3 className="w-5 h-5" />}
+        actions={
+          <>
+            {ranges.map(([id, label]) => (
+              <button key={id} onClick={() => setRange(id)} className={`text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer ${range === id ? 'bg-white text-neutral-900' : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'}`}>{label}</button>
+            ))}
+            <button onClick={load} className="ml-1 inline-flex items-center justify-center w-8 h-8 rounded-lg border border-white/15 bg-white/10 text-white hover:bg-white/20 cursor-pointer" title="Refresh"><RefreshCw className="w-3.5 h-3.5" /></button>
+          </>
+        }
+      />
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
       {loading ? <Spinner /> : !data ? (
         <EmptyState icon={<BarChart3 className="w-6 h-6" />} title="No report data" hint="Select a range and try again." />

@@ -1,7 +1,15 @@
 // AKS Garments — typed API client
+import { readCache, writeCache } from './lib/apiCache';
+
 type ApiOpts = { method?: string; body?: unknown };
 
-export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
+/**
+ * Reads that must always hit the network: per-visitor data (order tracking) and
+ * content that was just written (reviews the customer posted themselves).
+ */
+const NEVER_CACHED = [/^\/orders\//, /\/reviews$/];
+
+async function request<T>(path: string, opts: ApiOpts): Promise<T> {
   const res = await fetch(`${import.meta.env.VITE_API_BASE ?? '/api'}${path}`, {
     method: opts.method ?? 'GET',
     headers: { 'Content-Type': 'application/json', ...(opts.body ? {} : {}) },
@@ -12,6 +20,29 @@ export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
 
   return (await res.json()) as T;
+}
+
+/**
+ * GETs are cached (stale-while-revalidate): the caller still receives the fresh
+ * payload, and the copy on disk is what makes the next visit paint instantly.
+ * If the API is unreachable the last good payload is served instead of an error,
+ * so a flaky connection never empties the shop.
+ */
+export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
+  const method = opts.method ?? 'GET';
+  if (method !== 'GET' || NEVER_CACHED.some((re) => re.test(path))) {
+    return request<T>(path, opts);
+  }
+
+  try {
+    const fresh = await request<T>(path, opts);
+    writeCache(path, fresh);
+    return fresh;
+  } catch (e) {
+    const cached = readCache<T>(path);
+    if (cached !== null) return cached;
+    throw e;
+  }
 }
 
 /**
@@ -69,6 +100,9 @@ export interface ApiProduct {
   pattern: string | null;
   sleeve: string | null;
   cushionTech: string | null;
+  /** Live stock tracking — a tracked product with 0 units cannot be ordered. */
+  trackStock?: boolean;
+  stockQuantity?: number;
 }
 
 export interface ApiReview {
@@ -163,6 +197,56 @@ export interface ApiHeroSlide {
 }
 
 export const fetchHeroSlides = () => api<{ slides: ApiHeroSlide[] }>('/hero-slides');
+
+/* ── Hero side banners (image-only, Admin → Hero Slides → Side banners) ───── */
+
+export interface ApiSideBanner {
+  id: string;
+  image: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export const fetchSideBanners = () => api<{ banners: ApiSideBanner[] }>('/side-banners');
+
+/* ── Homepage promo gallery banners (Admin → Gallery Images) ───────────────── */
+
+export interface ApiGalleryBanner {
+  id: string;
+  image: string;
+  /** Optional target — internal route or external URL. */
+  link: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export const fetchGalleryBanners = () => api<{ banners: ApiGalleryBanner[] }>('/gallery-banners');
+
+/* ── "Active Offers" artwork (Admin → Offer Images) ────────────────────────── */
+
+export interface ApiOfferBanner {
+  id: string;
+  image: string;
+  /** Optional target — internal route or external URL. */
+  link: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export const fetchOfferBanners = () => api<{ banners: ApiOfferBanner[] }>('/offer-banners');
+
+/* ── "Loved by our customers" photo wall (Admin → Customer Photos) ──────────── */
+
+export interface ApiLoveBanner {
+  id: string;
+  image: string;
+  /** Optional target — internal route or external URL. */
+  link: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export const fetchLoveBanners = () => api<{ banners: ApiLoveBanner[] }>('/love-banners');
 
 export const fetchProductReviews = (slug: string) =>
   api<{ reviews: ApiReview[] }>(`/products/${slug}/reviews`);

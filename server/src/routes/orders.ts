@@ -47,12 +47,13 @@ async function resolveOrderProduct(it: Record<string, unknown>) {
 const ITEM_INCLUDE = {
   items: {
     include: {
-      product: { select: { id: true, name: true, images: true, colors: true, sizes: true } },
+      product: { select: { id: true, name: true, images: true, colors: true, sizes: true, originalPrice: true, weight: true } },
     },
   },
 };
 
-function orderToApi(order: { customerAddress: string; items?: unknown; [k: string]: unknown }) {
+/** Public: serialise an order for API responses (parses the address JSON + item images). */
+export function orderToApi(order: { customerAddress: string; items?: unknown; [k: string]: unknown }) {
   let customerAddress: unknown = {};
   if (typeof order.customerAddress === 'string' && order.customerAddress) {
     try {

@@ -18,7 +18,9 @@ router.get(
 
     const orders = await prisma.order.findMany({
       where,
-      include: { items: true },
+      // The item's live product join carries the per-unit weight the packing slip
+      // totals up (when the merchant has set any).
+      include: { items: { include: { product: { select: { weight: true } } } } },
       orderBy: { createdAt: 'desc' as const },
       take: 300,
     });

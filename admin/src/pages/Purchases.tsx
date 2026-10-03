@@ -1,7 +1,7 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Purchase, Supplier } from '../types';
-import { Button, EmptyState, Field, Modal, Select, Spinner, TextInput, formatDate } from '../components/ui';
+import { Button, EmptyState, Field, Modal, Select, Spinner, TextInput, formatDate, PageHeader } from '../components/ui';
 import { Plus, RefreshCw, ReceiptText, PackagePlus, Loader2, CheckCircle2 } from 'lucide-react';
 
 interface Line { productId: string; name: string; quantity: number; costPrice: number }
@@ -47,13 +47,18 @@ export function PurchasesPage() {
   const upLine = (i: number, patch: Partial<Line>) => setForm((f) => f ? { ...f, lines: f.lines.map((l, idx) => idx === i ? { ...l, ...patch } : l) } : f);
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-        <div><h2 className="text-lg font-black text-neutral-900">Purchases</h2><p className="text-xs text-neutral-500 mt-0.5">Stock purchase orders — receiving adds inventory automatically.</p></div>
-        <div className="flex items-center gap-2">
-          <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white border border-neutral-200 hover:bg-neutral-50 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
-          <Button onClick={() => { setError(null); setForm(blank()); }}><Plus className="w-3.5 h-3.5" /> New Purchase</Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Procurement"
+        title="Purchases"
+        desc={`${rows.length} purchase orders · receiving adds inventory automatically`}
+        icon={<ReceiptText className="w-5 h-5" />}
+        actions={
+          <>
+            <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white/10 border border-white/15 text-white hover:bg-white/20 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
+            <Button onClick={() => { setError(null); setForm(blank()); }}><Plus className="w-3.5 h-3.5" /> New Purchase</Button>
+          </>
+        }
+      />
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
       {notice && <p className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{notice}</p>}
       <section className="bg-white rounded-2xl border border-neutral-200">

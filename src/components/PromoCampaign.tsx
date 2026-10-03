@@ -7,7 +7,65 @@ import { ArrowRight, Tag, Truck, Gift, Copy, Check } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
 import { useLocalized } from './Localized';
 import { motion } from 'motion/react';
-import { navigate } from '../lib/router';
+import { Link, navigate } from '../lib/router';
+import type { ApiOfferBanner } from '../api';
+
+/** The offers section shows one wide banner plus a row of tiles under it. */
+const MAX_OFFER_TILES = 4;
+
+/** One uploaded offer image — rounded, ringed, slow zoom on hover. */
+const OfferArtTile: React.FC<{ tile: ApiOfferBanner; className: string }> = ({ tile, className }) => {
+  const alt = 'AKS Mart offer';
+  const classes = [
+    'group relative block overflow-hidden rounded-3xl bg-neutral-200 ring-1 ring-black/5',
+    tile.link ? 'cursor-pointer' : 'cursor-default',
+    className,
+  ].join(' ');
+
+  const artwork = (
+    <img
+      src={tile.image}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.04]"
+    />
+  );
+
+  if (tile.link && tile.link.startsWith('/')) {
+    return (
+      <Link to={tile.link} ariaLabel={alt} className={classes}>
+        {artwork}
+      </Link>
+    );
+  }
+  if (tile.link) {
+    return (
+      <a href={tile.link} target="_blank" rel="noreferrer" className={classes}>
+        {artwork}
+      </a>
+    );
+  }
+  return <div className={classes}>{artwork}</div>;
+};
+
+/** Offers uploaded as artwork — the first one is the wide banner, the rest fill
+ *  the row beneath it. No copy is drawn over the merchant's image. */
+const OfferArtwork: React.FC<{ tiles: ApiOfferBanner[] }> = ({ tiles }) => {
+  const [hero, ...row] = tiles;
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      <OfferArtTile tile={hero} className="aspect-[16/9] sm:aspect-[2/1]" />
+      {row.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+          {row.map((tile) => (
+            <OfferArtTile key={tile.id} tile={tile} className="aspect-[4/3]" />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 /** Human value label from real coupon data — "15%", "৳600", "FREE". */
 const valueLabel = (c: Coupon) => {
@@ -31,14 +89,18 @@ export const PromoCampaign: React.FC = () => {
   const { content } = useSiteContent();
   const t = useLocalized();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  // DB-driven offers (Admin → Coupons). dataLoader falls back to the bundled
-  // coupon list when the API is unreachable, so the section never goes blank.
+  // DB-driven offers (Admin → Coupons) plus merchant offer artwork (Admin →
+  // Offer Images). dataLoader falls back to the bundled coupon list when the
+  // API is unreachable, so the section never goes blank.
   const [offers, setOffers] = useState<Coupon[] | null>(null);
+  const [artwork, setArtwork] = useState<ApiOfferBanner[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    dataLoader.loadCoupons().then((list) => {
-      if (!cancelled) setOffers(list);
+    Promise.all([dataLoader.loadCoupons(), dataLoader.loadOfferBanners()]).then(([list, images]) => {
+      if (cancelled) return;
+      setOffers(list);
+      setArtwork(images);
     });
     return () => {
       cancelled = true;
@@ -46,7 +108,12 @@ export const PromoCampaign: React.FC = () => {
   }, []);
 
   // Nothing to advertise yet — hide the section instead of flashing placeholders.
-  if (offers === null || offers.length === 0) return null;
+  if (offers === null || artwork === null) return null;
+  // Uploaded artwork wins over the coupon tickets; the tickets keep working for
+  // merchants who run code-based offers only.
+  const tiles = artwork.slice(0, MAX_OFFER_TILES);
+  const useArtwork = tiles.length > 0;
+  if (!useArtwork && offers.length === 0) return null;
   const [anchor, ...rest] = offers;
 
   const copyCode = async (code: string) => {
@@ -101,7 +168,13 @@ export const PromoCampaign: React.FC = () => {
           centered
         />
 
-        {/* Anchor offer — the strongest coupon gets a hero ticket with background image */}
+        {useArtwork ? (
+          <OfferArtwork tiles={tiles} />
+        ) : (
+          <>
+            {/* Anchor offer — the strongest coupon gets a hero ticket with a
+                background image. Coupon tickets stay for code-based offers; the
+                artwork branch above is what Admin → Offer Images fills. */}
         <motion.button
           type="button"
           whileHover={{ y: -3 }}
@@ -278,6 +351,8 @@ export const PromoCampaign: React.FC = () => {
             );
           })}
         </div>
+          </>
+        )}
       </div>
     </section>
   );

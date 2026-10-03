@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import type { Product } from '../types';
-import { Badge, Button, EmptyState, Field, Modal, Select, Spinner, TextArea, TextInput, Toggle } from '../components/ui';
+import { Badge, Button, EmptyState, Field, Modal, PageHeader, Select, Spinner, TextArea, TextInput, Toggle } from '../components/ui';
 import { UploadImageButton } from '../components/ImageUpload';
 import {
   Plus, Search, AlertTriangle, Package, Pencil, Trash2, Image as ImageIcon, Info, Percent,
@@ -691,26 +691,31 @@ export function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const load = useCallback((term = '') => {
+  const load = useCallback((term = '', status: 'all' | 'active' | 'inactive' = 'all') => {
     setLoading(true);
     setError(null);
-    const q = term ? `?search=${encodeURIComponent(term)}` : '?all=true';
+    const params = new URLSearchParams();
+    if (term.trim()) params.set('search', term.trim());
+    else params.set('all', 'true');
+    params.set('status', status);
     api
-      .get<{ products: Product[] }>(`/admin/products${q}`)
+      .get<{ products: Product[] }>(`/admin/products?${params.toString()}`)
       .then((res) => setProducts(res.products))
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    load('', statusFilter);
+  }, [load, statusFilter]);
 
   const openCreate = () => {
     setEditing(null);
@@ -787,37 +792,76 @@ export function ProductsPage() {
   };
 
   const remove = async (p: Product) => {
-    if (!window.confirm(`Hide "${p.name}" from the storefront?`)) return;
-    await api.del<{ deleted: boolean }>(`/admin/products/${p.id}`);
-    setProducts((prev) => prev.map((x) => (x.id === p.id ? { ...x, isActive: false } : x)));
+    if (!window.confirm(`Permanently DELETE "${p.name}"? This cannot be undone. Order history will keep its name/SKU snapshot.`)) return;
+    try {
+      await api.del<{ deleted: boolean }>(`/admin/products/${p.id}`);
+      // Hard delete — remove the row from the list entirely.
+      setProducts((prev) => prev.filter((x) => x.id !== p.id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Delete failed');
+    }
+  };
+
+  /** Toggle storefront visibility: Active (visible) <-> Inactive (hidden).
+   * This only flips isActive via PATCH — the product row stays in the admin list. */
+  const toggleActive = async (p: Product) => {
+    const next = !p.isActive;
+    setTogglingId(p.id);
+    try {
+      const res = await api.patch<{ product: Product }>(`/admin/products/${p.id}`, { isActive: next });
+      const updated = res.product;
+      if (statusFilter === 'all') {
+        setProducts((prev) => prev.map((x) => (x.id === p.id ? updated : x)));
+      } else {
+        // Under Active/Inactive filter the row may no longer belong — drop it; a reload also follows.
+        setProducts((prev) => prev.filter((x) => x.id !== p.id));
+        load(search, statusFilter);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Status update failed');
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const lowStock = (p: Product) => p.sizes.filter((s) => s.inStock && s.stockCount <= 10).length;
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900">Products</h2>
-          <p className="text-xs text-neutral-400">{products.length} products in database</p>
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-64">
-            <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && load(search)}
-              placeholder="Search products…"
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-neutral-300 outline-none focus:border-[#D8232A]"
-            />
-          </div>
-          <Button onClick={() => load(search)}>Search</Button>
-          <Button onClick={openCreate} className="gap-1">
-            <Plus className="w-3.5 h-3.5" /> New
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Catalog"
+        title="Products"
+        desc={`${products.length} products in database`}
+        icon={<Package className="w-5 h-5" />}
+        actions={
+          <>
+            <div className="relative">
+              <Search className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && load(search, statusFilter)}
+                placeholder="Search products…"
+                className="w-full sm:w-64 pl-9 pr-3 py-2 text-sm rounded-lg border border-white/15 bg-white/10 text-white placeholder:text-white/40 outline-none focus:border-white/40 focus:bg-white/15"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+              title="Filter by visibility"
+              className="px-3 py-2 text-sm font-bold rounded-lg border border-white/15 bg-white/10 text-white outline-none focus:border-white/40 cursor-pointer [&>option]:text-neutral-900"
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            <Button onClick={() => load(search, statusFilter)} variant="ghost" className="!bg-white/10 !text-white hover:!bg-white/20">Search</Button>
+            <Button onClick={openCreate} className="gap-1">
+              <Plus className="w-3.5 h-3.5" /> New
+            </Button>
+          </>
+        }
+      />
 
       {error && !modalOpen && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
@@ -871,17 +915,24 @@ export function ProductsPage() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {p.isActive ? (
-                      <Badge color="bg-emerald-50 text-emerald-700">Active</Badge>
-                    ) : (
-                      <Badge color="bg-neutral-100 text-neutral-500">Hidden</Badge>
-                    )}
+                    <button
+                      onClick={() => toggleActive(p)}
+                      disabled={togglingId === p.id}
+                      title={p.isActive ? 'Set Inactive (hide from storefront)' : 'Set Active (show on storefront)'}
+                      className={`inline-flex cursor-pointer ${togglingId === p.id ? 'opacity-50' : ''}`}
+                    >
+                      {p.isActive ? (
+                        <Badge color="bg-emerald-50 text-emerald-700">Active</Badge>
+                      ) : (
+                        <Badge color="bg-neutral-100 text-neutral-500">Inactive</Badge>
+                      )}
+                    </button>
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-900 cursor-pointer" title="Edit">
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={() => remove(p)} className="p-1.5 rounded-lg text-neutral-400 hover:bg-red-50 hover:text-red-600 cursor-pointer" title="Hide">
+                    <button onClick={() => remove(p)} className="p-1.5 rounded-lg text-neutral-400 hover:bg-red-50 hover:text-red-600 cursor-pointer" title="Delete permanently">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </td>

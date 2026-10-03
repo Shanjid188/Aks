@@ -102,6 +102,14 @@ export interface Product {
   occasion: string;
   cushionTech?: string; // fabric tech or weave specialty
   sku: string;
+  /**
+   * Admin → Products stock tracking. Untracked products are unlimited; a tracked
+   * product with `stockQuantity` 0 cannot be ordered (the API rejects it), so the
+   * storefront hides/blocks it instead of failing at the last checkout step.
+   */
+  trackStock?: boolean;
+  /** Units on hand while `trackStock` is on. */
+  stockQuantity?: number;
 }
 
 export interface CartItem {

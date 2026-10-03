@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Category, Subcategory } from '../types';
-import { Badge, Button, EmptyState, Field, Modal, Spinner, TextArea, TextInput, Toggle } from '../components/ui';
+import { Badge, Button, EmptyState, Field, Modal, PageHeader, Spinner, TextArea, TextInput, Toggle } from '../components/ui';
 import { UploadImageButton } from '../components/ImageUpload';
 import { Plus, LayoutGrid, Pencil, Trash2, ChevronUp, ChevronDown, Layers } from 'lucide-react';
 
@@ -266,17 +266,17 @@ export function CategoriesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900">Categories &amp; Divisions</h2>
-          <p className="text-xs text-neutral-400">
-            Drives the storefront nav, mega menu, division grid, marquee, footer and catalog filters.
-          </p>
-        </div>
-        <Button onClick={openCreate} className="gap-1">
-          <Plus className="w-3.5 h-3.5" /> New division
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Catalog"
+        title="Categories & Divisions"
+        desc="Drives the storefront nav, mega menu, the “Many Worlds, One Mart” rail, marquee, footer and catalog filters. Give a division a name and a picture and its card shows up on the home page — no other page to visit."
+        icon={<LayoutGrid className="w-5 h-5" />}
+        actions={
+          <Button onClick={openCreate} className="gap-1">
+            <Plus className="w-3.5 h-3.5" /> New division
+          </Button>
+        }
+      />
 
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
@@ -449,7 +449,7 @@ export function CategoriesPage() {
           <Field label="Description"><TextArea rows={2} value={form.description} onChange={(e) => set('description', e.target.value)} /></Field>
           <Field label="Description (Bangla)"><TextArea rows={2} value={form.descriptionBn} onChange={(e) => set('descriptionBn', e.target.value)} /></Field>
           <div className="grid grid-cols-3 gap-3">
-            <Field label="Image">
+            <Field label="Image" hint="Anywhere the division needs one picture">
               <TextInput value={form.image} onChange={(e) => set('image', e.target.value)} placeholder="/images/…" />
               <UploadImageButton onUploaded={(url) => set('image', url)} label="Upload" className="mt-1.5" />
             </Field>
@@ -457,7 +457,7 @@ export function CategoriesPage() {
               <TextInput value={form.heroImage} onChange={(e) => set('heroImage', e.target.value)} placeholder="/images/…" />
               <UploadImageButton onUploaded={(url) => set('heroImage', url)} label="Upload" className="mt-1.5" />
             </Field>
-            <Field label="Grid image (division grid)">
+            <Field label="Grid image (Many Worlds, One Mart)" hint="The card picture on the home-page rail">
               <TextInput value={form.gridImage} onChange={(e) => set('gridImage', e.target.value)} placeholder="/images/…" />
               <UploadImageButton onUploaded={(url) => set('gridImage', url)} label="Upload" className="mt-1.5" />
             </Field>

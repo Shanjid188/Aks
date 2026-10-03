@@ -3,12 +3,13 @@ import { useStore } from '../context/StoreContext';
 import { useSiteContent } from '../context/SiteContentContext';
 import { HomeProductCard } from './HomeProductCard';
 import { SectionHeader } from './SectionHeader';
+import { SectionAction } from './SectionAction';
 import { useLocalized } from './Localized';
-import { ArrowRight } from 'lucide-react';
 import { navigate } from '../lib/router';
+import { ProductRailSkeleton } from './Skeleton';
 
 export const FeaturedProducts: React.FC = () => {
-  const { products, setFilters } = useStore();
+  const { products, setFilters, catalogLoading } = useStore();
   const { content } = useSiteContent();
   // Section copy follows the shopper's language (English stays the default).
   const t = useLocalized();
@@ -19,6 +20,18 @@ export const FeaturedProducts: React.FC = () => {
     .filter((p) => p.isFeatured || (p.featuredOrder ?? 0) > 0)
     .sort((a, b) => (a.featuredOrder ?? 99) - (b.featuredOrder ?? 99))
     .slice(0, 8);
+
+  // Placeholder cards while the catalog loads — the bundled products must never
+  // flash before the merchant's own catalogue arrives.
+  if (catalogLoading) {
+    return (
+      <section className="bg-neutral-50 py-14 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <ProductRailSkeleton count={4} />
+        </div>
+      </section>
+    );
+  }
 
   if (featuredProducts.length === 0) return null;
 
@@ -43,13 +56,9 @@ export const FeaturedProducts: React.FC = () => {
           title={t(content.featuredTitle, content.featuredTitleBn)}
           subtitle={t(content.featuredSubtitle, content.featuredSubtitleBn)}
           action={
-            <button
-              onClick={handleViewAll}
-              className="flex items-center gap-1.5 text-sm font-bold text-neutral-900 hover:text-[#D8232A] transition-colors group"
-            >
-              <span>{t(content.featuredAction, content.featuredActionBn)}</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
+            <SectionAction onClick={handleViewAll}>
+              {t(content.featuredAction, content.featuredActionBn)}
+            </SectionAction>
           }
         />
 

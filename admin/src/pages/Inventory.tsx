@@ -1,7 +1,7 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { InventoryItem, StockMovementRow } from '../types';
-import { Button, EmptyState, Field, Modal, Select, Spinner, TextInput, formatDate } from '../components/ui';
+import { Button, EmptyState, Field, Modal, PageHeader, Select, Spinner, TextInput, formatDate } from '../components/ui';
 import { RefreshCw, Boxes, PlusCircle, MinusCircle, History } from 'lucide-react';
 
 const bdt = (n: number) => `BDT ${n.toLocaleString('en-IN')}`;
@@ -53,14 +53,19 @@ export function InventoryPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div><h2 className="text-lg font-black text-neutral-900">Inventory</h2><p className="text-xs text-neutral-500 mt-0.5">{rows.length} products · <span className="text-amber-700 font-bold">{lowCount} low stock</span> · <span className="text-red-600 font-bold">{outCount} out of stock</span></p></div>
-        <div className="flex items-center gap-2">
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name / SKU / barcode…" className="w-52 text-xs font-semibold rounded-lg border border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#D8232A]/30 focus:border-[#D8232A]" />
-          <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white border border-neutral-200 hover:bg-neutral-50 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
-          <Button variant="secondary" onClick={() => { loadHistory(); setShowHistory(!showHistory); }}><History className="w-3.5 h-3.5" /> {showHistory ? 'Stock List' : 'History'}</Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Stock"
+        title="Inventory"
+        desc={<>{rows.length} products · {lowCount} low stock · {outCount} out of stock</>}
+        icon={<Boxes className="w-5 h-5" />}
+        actions={
+          <>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name / SKU / barcode…" className="w-52 text-xs font-semibold rounded-lg border border-white/15 px-3 py-2 bg-white/10 text-white placeholder:text-white/40 outline-none focus:border-white/40 focus:bg-white/15" />
+            <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white/10 border border-white/15 text-white hover:bg-white/20 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
+            <Button variant="secondary" onClick={() => { loadHistory(); setShowHistory(!showHistory); }}><History className="w-3.5 h-3.5" /> {showHistory ? 'Stock List' : 'History'}</Button>
+          </>
+        }
+      />
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
       {showHistory ? (

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { ContactMessage } from '../types';
-import { Badge, Button, EmptyState, Field, Modal, Spinner, TextArea } from '../components/ui';
+import { Badge, Button, EmptyState, Field, Modal, Spinner, TextArea, PageHeader } from '../components/ui';
 import { Inbox, Mail, Phone, RefreshCw, Search, Trash2 } from 'lucide-react';
 
 /** Statuses a message can move through (mirrors the API's allow-list). */
@@ -94,20 +94,15 @@ export function MessagesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900">Contact Messages</h2>
-          <p className="text-xs text-neutral-400">
-            {total} messages{unread > 0 ? ` · ${unread} new` : ''}
-          </p>
-          <p className="text-[11px] text-neutral-400 mt-0.5">
-            Sent from the storefront contact form. Reply by phone or email yourself — this panel does not send mail.
-          </p>
-        </div>
-        <Button variant="ghost" onClick={load} className="gap-1">
-          <RefreshCw className="w-3.5 h-3.5" /> Reload
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Marketing"
+        title="Contact Messages"
+        desc={`${total} messages${unread > 0 ? ` · ${unread} new` : ''} · sent from the storefront contact form`}
+        icon={<Inbox className="w-5 h-5" />}
+        actions={
+          <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white/10 border border-white/15 text-white hover:bg-white/20 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Reload</button>
+        }
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-xl overflow-x-auto">

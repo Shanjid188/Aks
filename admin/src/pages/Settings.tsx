@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
-import { Button, Field, Spinner, TextArea, TextInput, Toggle } from '../components/ui';
+import { Button, Field, Spinner, TextArea, TextInput, Toggle, PageHeader } from '../components/ui';
 import { Save, RefreshCw, Settings as SettingsIcon, Plus } from 'lucide-react';
 import type { ShippingZoneSetting, StoreSettings } from '../types';
 
@@ -56,13 +56,18 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-        <div><h2 className="text-lg font-black text-neutral-900">Settings</h2><p className="text-xs text-neutral-500 mt-0.5">Store-wide configuration — persisted in the database and used by invoices, receipts and the storefront.</p></div>
-        <div className="flex items-center gap-2">
-          <button onClick={load} className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 cursor-pointer" title="Refresh"><RefreshCw className="w-3.5 h-3.5 text-neutral-600" /></button>
-          <Button onClick={save} disabled={saving}><Save className="w-3.5 h-3.5" /> {saving ? 'Saving…' : 'Save Settings'}</Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Configuration"
+        title="Settings"
+        desc="Store-wide configuration — persisted in the database and used by invoices, receipts and the storefront."
+        icon={<SettingsIcon className="w-5 h-5" />}
+        actions={
+          <>
+            <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white/10 border border-white/15 text-white hover:bg-white/20 cursor-pointer" title="Refresh"><RefreshCw className="w-3.5 h-3.5" /></button>
+            <Button onClick={save} disabled={saving}><Save className="w-3.5 h-3.5" /> {saving ? 'Saving…' : 'Save Settings'}</Button>
+          </>
+        }
+      />
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
       {notice && <p className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{notice}</p>}
       {loading ? <Spinner /> : (

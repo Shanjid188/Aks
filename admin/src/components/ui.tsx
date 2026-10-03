@@ -186,6 +186,44 @@ export function Spinner({ small }: { small?: boolean }) {
   );
 }
 
+export function PageHeader({
+  eyebrow,
+  title,
+  desc,
+  actions,
+  icon,
+}: {
+  eyebrow?: string;
+  title: React.ReactNode;
+  desc?: React.ReactNode;
+  actions?: React.ReactNode;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-neutral-800/40 bg-gradient-to-br from-neutral-900 via-neutral-900 to-[#3b0d10] px-6 py-5 text-white shadow-[0_24px_60px_-28px_rgba(16,24,40,.75)]">
+      <span aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[#D8232A]/30 blur-3xl" />
+      <span aria-hidden className="pointer-events-none absolute -bottom-24 right-24 h-48 w-48 rounded-full bg-amber-500/10 blur-3xl" />
+      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3.5 min-w-0">
+          {icon && (
+            <span className="mt-0.5 hidden sm:flex w-11 h-11 rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur items-center justify-center shrink-0 text-white">
+              {icon}
+            </span>
+          )}
+          <div className="min-w-0">
+            {eyebrow && (
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/50">{eyebrow}</p>
+            )}
+            <h2 className="mt-0.5 text-xl font-black tracking-tight sm:text-2xl">{title}</h2>
+            {desc && <p className="mt-1 max-w-xl text-[13px] leading-relaxed text-white/60">{desc}</p>}
+          </div>
+        </div>
+        {actions && <div className="flex flex-wrap items-center gap-2 shrink-0">{actions}</div>}
+      </div>
+    </div>
+  );
+}
+
 export function formatDate(iso: string): string {
   try {
     return new Date(iso).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });

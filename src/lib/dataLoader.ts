@@ -3,8 +3,8 @@
 import * as API from '../api';
 import * as adapter from './apiAdapter';
 import { INITIAL_PRODUCTS, INITIAL_REVIEWS } from '../data/products';
-import { HERO_SLIDES, DEFAULT_ANNOUNCEMENTS, VALID_COUPONS } from '../data/promos';
-import type { HeroSlide, Announcement } from '../data/promos';
+import { HERO_SLIDES, DEFAULT_ANNOUNCEMENTS, VALID_COUPONS, SIDE_BANNERS } from '../data/promos';
+import type { HeroSlide, Announcement, SideBanner } from '../data/promos';
 import { AKS_MART } from '../data/aksMart';
 import { FALLBACK_CATEGORIES } from '../data/aksMart';
 import {
@@ -25,8 +25,21 @@ import type { ContentPageData } from '../data/pages';
 import { DEFAULT_CHECKOUT_CONFIG, checkoutConfigFromSettings } from '../data/checkout';
 import type { CheckoutConfig } from '../data/checkout';
 import { Category, Coupon, Product, Review } from '../types';
+import { writeCache } from './apiCache';
 
 const USE_API = import.meta.env.VITE_USE_API !== 'false';
+
+/**
+ * Cache keys the providers read synchronously on boot. A hit means the previous
+ * visit's payload can be painted immediately while it revalidates, instead of
+ * showing an empty page (or bundled placeholder data) until the API answers.
+ */
+export const CACHE_KEYS = {
+  products: 'store/products',
+  categories: 'store/categories',
+  commerce: 'store/commerce',
+  siteContent: 'store/siteContent',
+} as const;
 
 /** Normalise an API content page into the storefront shape (nulls → ''). */
 const mapContentPage = (p: API.ApiContentPage): ContentPageData => ({
@@ -48,7 +61,10 @@ export const dataLoader = {
     if (!USE_API) return INITIAL_PRODUCTS;
     try {
       const { products: apiProducts } = await API.fetchProducts();
-      return adapter.adaptProducts(apiProducts);
+      const mapped = adapter.adaptProducts(apiProducts);
+      // Remembered so the next visit paints instantly (see apiCache).
+      writeCache(CACHE_KEYS.products, mapped);
+      return mapped;
     } catch (e) {
       console.warn('[dataLoader] API products failed, falling back to local data:', e);
       return INITIAL_PRODUCTS;
@@ -77,6 +93,22 @@ export const dataLoader = {
     } catch (e) {
       console.warn('[dataLoader] API hero slides failed, falling back:', e);
       return HERO_SLIDES;
+    }
+  },
+
+  /** Image-only banners for the hero's side column (Admin → Hero Slides → Side
+   *  banners). Falls back to the bundled promo tiles so the column never sits
+   *  empty — including while the merchant has not uploaded artwork yet. */
+  async loadSideBanners(): Promise<SideBanner[]> {
+    if (!USE_API) return SIDE_BANNERS;
+    try {
+      const { banners } = await API.fetchSideBanners();
+      if (banners.length === 0) return SIDE_BANNERS;
+      // The uploaded artwork IS the tile — no copy is laid over it.
+      return banners.map((b) => ({ id: b.id, eyebrow: '', title: '', subtitle: '', image: b.image }));
+    } catch (e) {
+      console.warn('[dataLoader] API side banners failed, falling back to bundled promo tiles:', e);
+      return SIDE_BANNERS;
     }
   },
 
@@ -135,10 +167,13 @@ export const dataLoader = {
       const { settings } = await API.fetchPublicSettings();
       const num = (value: unknown, fallback: number) =>
         typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
-      return {
+      const commerce: CommerceSettings = {
         freeShippingThreshold: num(settings.freeShippingThreshold, DEFAULT_COMMERCE.freeShippingThreshold),
         defaultShippingCharge: num(settings.defaultShippingCharge, DEFAULT_COMMERCE.defaultShippingCharge),
       };
+      // Remembered so carts and product pages show the right fees immediately.
+      writeCache(CACHE_KEYS.commerce, commerce);
+      return commerce;
     } catch (e) {
       console.warn('[dataLoader] API commerce settings failed, falling back to bundled defaults:', e);
       return DEFAULT_COMMERCE;
@@ -179,6 +214,46 @@ export const dataLoader = {
     }
   },
 
+  /** Active gallery banners for the homepage promo gallery (Admin → Gallery
+   *  Images). Returns null when the API has none, so PromoGallery can fall back
+   *  to uploaded promotion artwork / the bundled division banners. */
+  async loadGalleryBanners(): Promise<API.ApiGalleryBanner[] | null> {
+    if (!USE_API) return null;
+    try {
+      const { banners } = await API.fetchGalleryBanners();
+      return banners.length > 0 ? banners : null;
+    } catch (e) {
+      console.warn('[dataLoader] API gallery banners failed, falling back:', e);
+      return null;
+    }
+  },
+
+  /** Active "Active Offers" artwork (Admin → Offer Images). Empty when none has
+   *  been uploaded, so the offers section falls back to the coupon tickets. */
+  async loadOfferBanners(): Promise<API.ApiOfferBanner[]> {
+    if (!USE_API) return [];
+    try {
+      const { banners } = await API.fetchOfferBanners();
+      return banners;
+    } catch (e) {
+      console.warn('[dataLoader] API offer banners failed, falling back to coupons:', e);
+      return [];
+    }
+  },
+
+  /** Customer photos for the "Loved by our customers" wall (Admin → Customer
+   *  Photos). Empty when none has been uploaded — the section then hides. */
+  async loadLoveBanners(): Promise<API.ApiLoveBanner[]> {
+    if (!USE_API) return [];
+    try {
+      const { banners } = await API.fetchLoveBanners();
+      return banners;
+    } catch (e) {
+      console.warn('[dataLoader] API love banners failed, hiding the customer wall:', e);
+      return [];
+    }
+  },
+
   /** Active promotions from the DB. No bundled promotion data exists, so an
    *  API failure falls back to an empty list (the banner section is hidden). */
   async loadPromotions(): Promise<API.ApiPromotion[]> {
@@ -192,13 +267,16 @@ export const dataLoader = {
     }
   },
 
-  /** Divisions/subcategories taxonomy from the DB (Admin → Categories),
-   *  falling back to the bundled division list when unavailable. */
+  /** Divisions taxonomy from the DB (Admin → Categories) — the source of the
+   *  "Many Worlds, One Mart" rail, and the header/footer menu too. Falls back to
+   *  the bundled division list when the API has nothing to show. */
   async loadCategories(): Promise<Category[]> {
     if (!USE_API) return FALLBACK_CATEGORIES;
     try {
       const { categories } = await API.fetchCategories();
       if (categories.length === 0) return FALLBACK_CATEGORIES;
+      // Remembered so the division rail paints instantly on the next visit.
+      writeCache(CACHE_KEYS.categories, categories);
       return categories as Category[];
     } catch (e) {
       console.warn('[dataLoader] API categories failed, falling back to bundled divisions:', e);
@@ -220,7 +298,7 @@ export const dataLoader = {
     try {
       const { settings } = await API.fetchPublicSettings();
       const raw = settings as unknown as Record<string, unknown>;
-      return {
+      const bundle: SiteContentBundle = {
         content: siteContentFromSettings(raw),
         trendingSearches: trendingSearchesFromSettings(raw),
         seo: siteSeoFromSettings(raw),
@@ -230,6 +308,9 @@ export const dataLoader = {
             ? String(raw[STORE_NAME_KEY])
             : DEFAULT_STORE_NAME,
       };
+      // The next visit starts from this copy (footer/header/product copies).
+      writeCache(CACHE_KEYS.siteContent, bundle);
+      return bundle;
     } catch (e) {
       console.warn('[dataLoader] API site content failed, falling back to bundled copy:', e);
       return fallback;
@@ -278,6 +359,11 @@ export const dataLoader = {
         site: settings.website ?? fallback.site,
         mottoEn: settings.mottoEn ?? fallback.mottoEn,
         mottoBn: settings.mottoBn ?? fallback.mottoBn,
+        facebook: settings.facebook ?? fallback.facebook,
+        whatsapp: settings.whatsapp ?? fallback.whatsapp,
+        instagram: settings.instagram ?? fallback.instagram,
+        youtube: settings.youtube ?? fallback.youtube,
+        tiktok: settings.tiktok ?? fallback.tiktok,
       };
     } catch (e) {
       console.warn('[dataLoader] API store settings failed, falling back to bundled store info:', e);
@@ -311,6 +397,12 @@ export interface StoreInfo {
   site: string;
   mottoEn: string;
   mottoBn: string;
+  /** Social profiles — only the ones the merchant filled in are rendered. */
+  facebook: string;
+  whatsapp: string;
+  instagram: string;
+  youtube: string;
+  tiktok: string;
 }
 
 /** Bundled defaults used when the API is unavailable. */
@@ -327,6 +419,11 @@ export const DEFAULT_STORE_INFO: StoreInfo = {
   site: AKS_MART.site,
   mottoEn: AKS_MART.mottoEn,
   mottoBn: AKS_MART.mottoBn,
+  facebook: '',
+  whatsapp: '',
+  instagram: '',
+  youtube: '',
+  tiktok: '',
 };
 
 export { USE_API };

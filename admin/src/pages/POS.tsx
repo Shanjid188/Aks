@@ -1,9 +1,24 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
-import { Button, EmptyState, Field, Select, Spinner, TextInput, formatDate } from '../components/ui';
-import { Calculator, Minus, Pause, Plus, Printer, RefreshCw, Search, ShoppingCart, Trash2 } from 'lucide-react';
+import { Button, EmptyState, Field, Spinner, TextInput, formatDate, PageHeader } from '../components/ui';
+import { Calculator, CheckCircle2, Minus, Pause, Plus, Printer, RefreshCw, Search, ShoppingCart, Trash2 } from 'lucide-react';
+import { openPosReceipt } from '../lib/posReceipt';
+import type { PosReceiptData } from '../lib/posReceiptTemplate';
 
 const bdt = (n: number) => `BDT ${Number(n || 0).toLocaleString('en-IN')}`;
+
+/** Payment methods the POS offers (mirrors the payment methods the API accepts). */
+const PAYMENT_METHODS: { id: string; label: string }[] = [
+  { id: 'cash', label: 'Cash' },
+  { id: 'bkash', label: 'bKash' },
+  { id: 'nagad', label: 'Nagad' },
+  { id: 'card', label: 'Card' },
+  { id: 'rocket', label: 'Rocket' },
+  { id: 'bank', label: 'Bank Transfer' },
+];
+
+/** Hides the browser's number-input spinner so the cashier just types a figure. */
+const NO_SPINNER = '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
 
 interface PosProduct {
   id: string; name: string; sku: string; barcode: string | null; brand: string; category: string;
@@ -22,43 +37,6 @@ interface HoldRow {
 
 interface SaleResult { subtotal: number; discount: number; tax: number; shippingFee: number; total: number; paidAmount: number; dueAmount: number; paymentStatus: string }
 
-/** Thermal-style receipt in a print window — used for every POS checkout. */
-function printReceipt(order: { orderNumber: string; invoiceNumber: string | null; trackingCode: string; customerName: string; customerPhone: string | null; paymentMethod: string; subtotal: number; discount: number; tax: number; shippingFee: number; total: number; createdAt: string; items: { productName: string; productSku: string; size: string; color: string; quantity: number; price: number }[] }, sale: SaleResult) {
-  const w = window.open('', '_blank', 'width=380,height=720');
-  if (!w) return;
-  const rows = (order.items || []).map((it) => `
-    <tr><td style="padding:4px 0;font-size:11px">${it.productName}<br/><span style="color:#999;font-size:10px">${it.productSku}${it.size && it.size !== 'Free Size' ? ' / ' + it.size : ''}${it.color && it.color !== 'Default' ? ' / ' + it.color : ''}</span></td><td style="text-align:center;font-size:11px">${it.quantity}</td><td style="text-align:right;font-size:11px">${bdt(it.price * it.quantity)}</td></tr>`).join('');
-  w.document.write(`
-  <html><head><title>POS Receipt ${order.orderNumber}</title><style>
-    body{font-family:'Courier New',monospace;color:#000;margin:0;padding:14px;font-size:12px}
-    .center{text-align:center}
-    .line{border-top:1px dashed #000;margin:8px 0}
-    table{width:100%;border-collapse:collapse} thead th{font-size:10px;text-transform:uppercase;border-bottom:1px solid #000;padding:2px 0}
-    .row{display:flex;justify-content:space-between;font-size:12px;padding:1px 0}
-  </style></head><body>
-    <div class="center"><b style="font-size:16px">AKS MART</b><br/>One Mart. Many Choices.<br/>Store POS — Counter Sale</div>
-    <div class="line"></div>
-    <div class="row"><span>Receipt</span><span>${order.invoiceNumber || order.orderNumber}</span></div>
-    <div class="row"><span>Tracking</span><span>${order.trackingCode}</span></div>
-    <div class="row"><span>Date</span><span>${formatDate(order.createdAt)}</span></div>
-    <div class="row"><span>Cashier</span><span>AKS Admin</span></div>
-    <div class="row"><span>Customer</span><span>${order.customerName || 'Walk-in'}</span></div>
-    <div class="line"></div>
-    <table><thead><tr><th style="text-align:left">Item</th><th>Qty</th><th style="text-align:right">Total</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="line"></div>
-    <div class="row"><span>Subtotal</span><span>${bdt(sale.subtotal)}</span></div>
-    ${Number(sale.discount) > 0 ? `<div class="row"><span>Discount</span><span>-${bdt(sale.discount)}</span></div>` : ''}
-    ${Number(sale.tax) > 0 ? `<div class="row"><span>VAT</span><span>${bdt(sale.tax)}</span></div>` : ''}
-    <div class="row" style="font-weight:bold;font-size:14px"><span>TOTAL</span><span>${bdt(sale.total)}</span></div>
-    <div class="row"><span>Paid</span><span>${bdt(sale.paidAmount)}</span></div>
-    ${sale.dueAmount > 0 ? `<div class="row"><span>Due</span><span>${bdt(sale.dueAmount)}</span></div>` : ''}
-    <div class="row"><span>Method</span><span>${(order.paymentMethod || 'cash').toUpperCase()}</span></div>
-    <div class="line"></div>
-    <div class="center">Thank you for shopping with AKS Mart!<br/>Items returned within 7 days in original condition.</div>
-  </body></html>`);
-  w.document.close(); w.focus(); w.print();
-}
-
 export function PosPage() {
   const [catalog, setCatalog] = useState<PosProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,6 +48,8 @@ export function PosPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [note, setNote] = useState('');
   const [discount, setDiscount] = useState('');
+  // Dynamic VAT (%) the cashier can set per sale.
+  const [vatPercent, setVatPercent] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paidAmount, setPaidAmount] = useState('');
   const [busy, setBusy] = useState(false);
@@ -82,7 +62,7 @@ export function PosPage() {
     setLoading(true); setError(null);
     try {
       const [prodRes, invRes] = await Promise.all([
-        api.get<{ products: { id: string; name: string; sku: string; barcode: string | null; brand: string; category: string; price: number; images: string[] }[] }>('/admin/products?all=true'),
+        api.get<{ products: { id: string; name: string; sku: string; barcode: string | null; brand: string; category: string; price: number; images: string[] }[] }>('/admin/products?status=active'),
         api.get<{ items: { id: string; trackStock: boolean; stockQuantity: number; available: number }[] }>('/admin/inventory'),
       ]);
       const stock = new Map((invRes.items || []).map((i) => [i.id, i]));
@@ -134,9 +114,19 @@ export function PosPage() {
   }, [catalog, search, category]);
 
   const cartCount = cart.reduce((s, l) => s + l.quantity, 0);
+  /** productId → qty currently in the cart (drives the "selected" card highlight). */
+  const inCart = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of cart) m.set(l.productId, (m.get(l.productId) || 0) + l.quantity);
+    return m;
+  }, [cart]);
   const subtotal = cart.reduce((s, l) => s + l.price * l.quantity, 0);
   const discountNum = Math.max(0, Number(discount) || 0);
-  const total = Math.max(0, subtotal - discountNum);
+  const vatNum = Math.max(0, Number(vatPercent) || 0);
+  const taxable = Math.max(0, subtotal - discountNum);
+  // Dynamic VAT — mirrors the server formula exactly so the printed total matches.
+  const taxAmount = Math.round(taxable * vatNum) / 100;
+  const total = taxable + taxAmount;
 
   const addToCart = (p: PosProduct) => {
     setError(null); setOk(null);
@@ -173,17 +163,21 @@ export function PosPage() {
 
   const removeLine = (productId: string) => setCart(cart.filter((l) => l.productId !== productId));
 
-  const clearCart = () => { setCart([]); setDiscount(''); setPaidAmount(''); setCustomerName(''); setCustomerPhone(''); setNote(''); setResumedHoldId(null); };
+  const clearCart = () => { setCart([]); setDiscount(''); setVatPercent(''); setPaidAmount(''); setCustomerName(''); setCustomerPhone(''); setNote(''); setResumedHoldId(null); };
 
   const submitSale = async () => {
     if (cart.length === 0) return;
     setBusy(true); setError(null); setOk(null);
     try {
-      const paid = Math.min(total, Math.max(0, Number(paidAmount) || 0));
-      const res = await api.post<{ order: Parameters<typeof printReceipt>[0]; sale: SaleResult }>('/pos/sales', {
+      // Record what the customer actually tendered (it may exceed the total) so the
+      // receipt can show the amount received and the change given. The server still
+      // caps the applied paidAmount, so the order balance stays correct.
+      const tendered = Math.max(0, Number(paidAmount) || 0) || total;
+      const res = await api.post<{ order: PosReceiptData; sale: SaleResult }>('/pos/sales', {
         items: cart.map((l) => ({ productId: l.productId, quantity: l.quantity, price: l.price, size: 'Free Size', color: 'Default' })),
-        payments: [{ method: paymentMethod, amount: paid }],
+        payments: [{ method: paymentMethod, amount: tendered }],
         discount: discountNum,
+        taxPercent: vatNum,
         customerName: customerName.trim() || 'Walk-in Customer',
         customerPhone: customerPhone.trim() || undefined,
         note: note.trim() || undefined,
@@ -191,7 +185,8 @@ export function PosPage() {
       if (resumedHoldId) {
         try { await api.del(`/pos/holds/${resumedHoldId}`); } catch { /* best-effort cleanup */ }
       }
-      printReceipt(res.order, res.sale);
+      // Professional 80mm thermal receipt (shared module) from the real sale.
+      openPosReceipt(res.order, { autoPrint: true });
       setOk(`Sale completed — ${res.order.invoiceNumber || res.order.orderNumber}`);
       clearCart();
       setPaidAmount('');
@@ -256,23 +251,26 @@ export function PosPage() {
     try { await api.del(`/pos/holds/${id}`); loadHolds(); } catch (e) { setError((e as Error).message); }
   };
 
-  const paid = Math.min(total, Math.max(0, Number(paidAmount) || 0));
-  const change = paid > total ? paid - total : 0;
+  // What the customer actually handed over (uncapped) so change is shown correctly.
+  const received = Math.max(0, Number(paidAmount) || 0);
+  const change = received > total ? received - total : 0;
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-        <div>
-          <h2 className="text-lg font-black text-neutral-900 flex items-center gap-2"><Calculator className="w-4 h-4 text-[#D8232A]" /> POS Register</h2>
-          <p className="text-xs text-neutral-500 mt-0.5">Counter sales with live stock checks — checkout posts to /pos/sales.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {holds.length > 0 && (
-            <Button variant="secondary" onClick={() => setShowHolds(!showHolds)}><Pause className="w-3.5 h-3.5" /> Holds ({holds.length})</Button>
-          )}
-          <button onClick={() => { load(); loadHolds(); }} className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 cursor-pointer" title="Refresh catalog"><RefreshCw className="w-3.5 h-3.5 text-neutral-600" /></button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Counter"
+        title="POS Register"
+        desc="Counter sales with live stock checks — checkout posts to /pos/sales."
+        icon={<Calculator className="w-5 h-5" />}
+        actions={
+          <>
+            {holds.length > 0 && (
+              <Button variant="secondary" onClick={() => setShowHolds(!showHolds)}><Pause className="w-3.5 h-3.5" /> Holds ({holds.length})</Button>
+            )}
+            <button onClick={() => { load(); loadHolds(); }} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white/10 border border-white/15 text-white hover:bg-white/20 cursor-pointer" title="Refresh catalog"><RefreshCw className="w-3.5 h-3.5" /></button>
+          </>
+        }
+      />
 
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
       {ok && <p className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{ok}</p>}
@@ -302,26 +300,49 @@ export function PosPage() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
         {/* ─────────── Catalog ─────────── */}
         <section className="xl:col-span-2 bg-white rounded-2xl border border-neutral-200">
-          <header className="px-5 py-4 border-b border-neutral-100 flex flex-col sm:flex-row sm:items-center gap-3">
-            <h3 className="text-sm font-black text-neutral-900 flex items-center gap-2"><ShoppingCart className="w-4 h-4 text-[#D8232A]" /> Catalog</h3>
-            <div className="flex-1 flex flex-col sm:flex-row gap-2">
+          <header className="px-5 py-4 border-b border-neutral-100 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <h3 className="text-sm font-black text-neutral-900 flex items-center gap-2"><ShoppingCart className="w-4 h-4 text-[#D8232A]" /> Catalog</h3>
               <div className="relative flex-1">
                 <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, SKU, barcode or brand…" className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border border-neutral-300 outline-none focus:border-[#D8232A]" />
               </div>
-              <Select value={category} onChange={(e) => setCategory(e.target.value)} className="!w-40">
-                {categories.map((c) => <option key={c} value={c}>{c === 'all' ? 'All categories' : c}</option>)}
-              </Select>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setCategory(c)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${category === c ? 'bg-[#D8232A] border-[#D8232A] text-white' : 'bg-white border-neutral-300 text-neutral-600 hover:border-[#D8232A]/40 hover:text-[#D8232A]'}`}
+                >
+                  {c === 'all' ? 'All categories' : c}
+                </button>
+              ))}
             </div>
           </header>
           {loading ? <Spinner /> : filtered.length === 0 ? <EmptyState icon={<ShoppingCart className="w-6 h-6" />} title="No products match" hint="Adjust the search or category filter." /> : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-4 max-h-[560px] overflow-y-auto">
               {filtered.map((p) => {
                 const out = p.trackStock && p.available <= 0;
+                const qtyInCart = inCart.get(p.id) || 0;
+                const selected = qtyInCart > 0;
                 return (
                   <button key={p.id} onClick={() => addToCart(p)} disabled={out}
-                    className="text-left rounded-xl border border-neutral-200 hover:border-[#D8232A]/40 hover:shadow-md transition-all p-2.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white group">
-                    {p.image ? <img src={p.image} alt="" className="w-full h-20 object-cover rounded-lg bg-neutral-100 mb-2" /> : <div className="w-full h-20 rounded-lg bg-neutral-100 mb-2 flex items-center justify-center text-neutral-300 text-[10px] font-bold">NO IMAGE</div>}
+                    aria-pressed={selected}
+                    className={`relative text-left rounded-xl border-2 transition-all p-2.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white group ${selected ? 'border-[#D8232A] ring-2 ring-[#D8232A]/25 shadow-md' : 'border-neutral-200 hover:border-[#D8232A]/40 hover:shadow-md'}`}>
+                    {selected && (
+                      <span className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-[#D8232A] text-white text-[10px] font-black pl-1 pr-2 py-0.5 shadow" title={`${qtyInCart} in cart`}>
+                        <CheckCircle2 className="w-3 h-3" /> {qtyInCart}
+                      </span>
+                    )}
+                    <div className="relative">
+                      {p.image ? <img src={p.image} alt="" className="w-full h-20 object-cover rounded-lg bg-neutral-100 mb-2" /> : <div className="w-full h-20 rounded-lg bg-neutral-100 mb-2 flex items-center justify-center text-neutral-300 text-[10px] font-bold">NO IMAGE</div>}
+                      {selected && (
+                        <span className="absolute inset-x-0 bottom-2 flex items-center justify-center gap-1 rounded-b-lg bg-[#D8232A]/90 text-white text-[10px] font-black py-0.5">
+                          <CheckCircle2 className="w-3 h-3" /> Added · {qtyInCart} in cart
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[11px] font-bold text-neutral-900 leading-tight truncate">{p.name}</p>
                     <p className="text-[9px] text-neutral-400 font-mono truncate mt-0.5">{p.sku}{p.barcode ? ` · ${p.barcode}` : ''}</p>
                     <div className="flex items-center justify-between mt-1.5">
@@ -367,7 +388,11 @@ export function PosPage() {
 
             <div className="space-y-1.5 text-xs border-t border-neutral-100 pt-3">
               <div className="flex justify-between text-neutral-600"><span>Subtotal</span><span className="font-bold">{bdt(subtotal)}</span></div>
-              <div className="flex justify-between text-neutral-600"><span>Discount</span><input value={discount} onChange={(e) => setDiscount(e.target.value)} type="number" min="0" placeholder="0" className="w-24 px-2 py-1 text-right text-xs rounded-lg border border-neutral-300 outline-none focus:border-[#D8232A]" /></div>
+              <div className="flex items-center justify-between text-neutral-600"><span>Discount</span><input value={discount} onChange={(e) => setDiscount(e.target.value)} type="number" min="0" placeholder="0" className={`${NO_SPINNER} w-24 px-2 py-1 text-right text-xs rounded-lg border border-neutral-300 outline-none focus:border-[#D8232A]`} /></div>
+              <div className="flex items-center justify-between text-neutral-600">
+                <span className="flex items-center gap-1">VAT <input value={vatPercent} onChange={(e) => setVatPercent(e.target.value)} type="number" min="0" placeholder="0" className={`${NO_SPINNER} w-14 px-2 py-1 text-right text-xs rounded-lg border border-neutral-300 outline-none focus:border-[#D8232A]`} /><span className="text-neutral-400">%</span></span>
+                <span className="font-bold text-neutral-800">{bdt(taxAmount)}</span>
+              </div>
               <div className="flex justify-between pt-1 text-base font-black text-neutral-900"><span>Total</span><span className="text-[#D8232A]">{bdt(total)}</span></div>
             </div>
 
@@ -377,17 +402,24 @@ export function PosPage() {
             </div>
             <Field label="Note"><TextInput value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional" /></Field>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Payment">
-                <Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-                  <option value="cash">Cash</option><option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="card">Card</option>
-                </Select>
-              </Field>
-              <Field label="Paid amount"><TextInput type="number" min="0" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} placeholder={String(Math.round(total))} /></Field>
+            <div>
+              <span className="block text-[11px] font-bold text-neutral-500 mb-1">Payment method</span>
+              <div className="flex flex-wrap gap-1.5">
+                {PAYMENT_METHODS.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setPaymentMethod(m.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${paymentMethod === m.id ? 'bg-[#D8232A] border-[#D8232A] text-white' : 'bg-white border-neutral-300 text-neutral-600 hover:border-[#D8232A]/40 hover:text-[#D8232A]'}`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex justify-between text-xs font-bold text-neutral-700">
-              <span>Change to return</span>
-              <span className={change > 0 ? 'text-emerald-700' : 'text-neutral-400'}>{bdt(change)}</span>
+            <Field label="Received amount"><TextInput type="number" min="0" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} placeholder={String(Math.round(total))} className={NO_SPINNER} /></Field>
+            <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 space-y-1 text-xs font-bold">
+              <div className="flex justify-between"><span className="text-neutral-600">Received</span><span className="text-neutral-900">{bdt(received)}</span></div>
+              <div className="flex justify-between"><span className="text-neutral-600">Change to return</span><span className={change > 0 ? 'text-emerald-700' : 'text-neutral-400'}>{bdt(change)}</span></div>
             </div>
 
             <div className="flex gap-2">

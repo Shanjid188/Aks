@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Order } from '../types';
-import { Button, Modal, Spinner, StatusBadge, formatDate } from '../components/ui';
+import { Button, Modal, Spinner, StatusBadge, formatDate, PageHeader } from '../components/ui';
 import {
   Package, Clock, PackageCheck, Boxes, Truck, CheckCircle2, XCircle, ShoppingBag, Activity, Undo2, Banknote,
 } from 'lucide-react';
@@ -76,10 +76,12 @@ export function OrderOverviewPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-lg font-black text-neutral-900">Order Overview</h2>
-        <p className="text-xs text-neutral-400">Live order counts by status — click an order to see details.</p>
-      </div>
+      <PageHeader
+        eyebrow="Sales"
+        title="Order Overview"
+        desc="Live order counts by status — click an order to see details."
+        icon={<ShoppingBag className="w-5 h-5" />}
+      />
 
       {error && (
         <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>

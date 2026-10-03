@@ -65,6 +65,127 @@ export const HERO_SLIDES: HeroSlide[] = DIVISIONS.map((d, i) => ({
 }));
 
 /**
+ * Promotional tile for the hero's side column on the homepage.
+ *
+ * The live tiles are the merchant's own rows (Admin → Storefront → Promotions);
+ * the bundled entries below are the fallback the storefront tops the column up
+ * with, so the hero never sits next to an empty panel. They only describe real
+ * store policies (free delivery, cash on delivery) and a real service (custom
+ * printing) — no invented discounts.
+ */
+export interface SideBanner {
+  id: string;
+  /** Small chip above the title, e.g. "Free Delivery". */
+  eyebrow: string;
+  eyebrowBn?: string;
+  title: string;
+  titleBn?: string;
+  subtitle: string;
+  subtitleBn?: string;
+  /** Background artwork — tiles without one render a branded gradient. */
+  image?: string;
+  /** Gradient start colour for tiles without artwork (defaults to brand red). */
+  accentColor?: string;
+  /** Watermark icon (mapped to a lucide component in HeroSideBanners). */
+  icon?: SideBannerIcon;
+  /** Internal SPA route, e.g. "/category/print". */
+  to?: string;
+  /** External URL — opens in a new tab. */
+  href?: string;
+}
+
+export type SideBannerIcon = 'truck' | 'printer' | 'wallet' | 'megaphone';
+
+export const SIDE_BANNERS: SideBanner[] = [
+  {
+    id: 'fallback-custom-printing',
+    eyebrow: 'Print Service',
+    eyebrowBn: 'প্রিন্ট সার্ভিস',
+    title: 'Custom printing',
+    titleBn: 'কাস্টম প্রিন্টিং',
+    subtitle: 'T-shirts, mugs, cards, posters & flyers.',
+    subtitleBn: 'টি-শার্ট, মগ, কার্ড, পোস্টার ও ফ্লায়ার।',
+    image: '/images/hero/Print-2.jpg',
+    icon: 'printer',
+    to: '/category/print',
+  },
+  {
+    id: 'fallback-free-delivery',
+    eyebrow: 'Free Delivery',
+    eyebrowBn: 'ফ্রি ডেলিভারি',
+    title: 'Free delivery over ৳2,500',
+    titleBn: '৳২,৫০০ এর উপরে ফ্রি ডেলিভারি',
+    subtitle: 'Across Bangladesh, straight to your door.',
+    subtitleBn: 'সারা বাংলাদেশে, আপনার দরজায়।',
+    accentColor: '#0F766E',
+    icon: 'truck',
+    to: '/products',
+  },
+  {
+    id: 'fallback-cash-on-delivery',
+    eyebrow: 'Cash on Delivery',
+    eyebrowBn: 'ক্যাশ অন ডেলিভারি',
+    title: 'Pay when it arrives',
+    titleBn: 'পণ্য হাতে পেয়ে টাকা দিন',
+    subtitle: 'bKash, Nagad & cash on delivery.',
+    subtitleBn: 'বিকাশ, নগদ ও ক্যাশ অন ডেলিভারি।',
+    accentColor: '#B45309',
+    icon: 'wallet',
+    to: '/products',
+  },
+];
+
+/**
+ * Tile for the promo gallery that closes the homepage (Admin → Storefront →
+ * Promotions).
+ *
+ * Every tile is pure artwork — no copy is drawn over the merchant's image — so
+ * the gallery shows the active promotions that actually carry a banner, in
+ * promotion order. The bundled entries below are the fallback the storefront
+ * uses until such artwork exists, and they only show real divisions.
+ *
+ * Position matters: tile 1 is the wide banner, tiles 2-3 the squares beside it
+ * and tile 4 the full-height column, which reads best with a portrait image.
+ */
+export interface PromoGalleryItem {
+  id: string;
+  image: string;
+  /** Describes the artwork — rendered as the image alt text. */
+  alt: string;
+  /** Internal SPA route, e.g. "/category/craft". */
+  to?: string;
+  /** External URL — opens in a new tab. */
+  href?: string;
+}
+
+export const PROMO_GALLERY: PromoGalleryItem[] = [
+  {
+    id: 'gallery-craft',
+    image: '/images/hero/aks-craft-hero.jpg',
+    alt: 'AKS CRAFT — handmade crafts by Bangladeshi artisans',
+    to: '/category/craft',
+  },
+  {
+    id: 'gallery-print',
+    image: '/images/hero/aks-print-hero.jpg',
+    alt: 'AKS PRINT — custom printing on mugs, t-shirts and more',
+    to: '/category/print',
+  },
+  {
+    id: 'gallery-home',
+    image: '/images/hero/aks-home-hero.jpg',
+    alt: 'AKS HOME — bedding, cushions and home décor',
+    to: '/category/home',
+  },
+  {
+    id: 'gallery-beauty',
+    image: '/images/hero/aks-beauty-hero.jpg',
+    alt: 'AKS BEAUTY — everyday personal care',
+    to: '/category/beauty',
+  },
+];
+
+/**
  * Offline fallback offers only — the storefront "Active Offers" section reads
  * the live list from `GET /api/coupons` (Admin → Coupons) and falls back to
  * these bundled entries when the API is unreachable.

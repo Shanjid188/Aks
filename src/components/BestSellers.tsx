@@ -3,12 +3,13 @@ import { useStore } from '../context/StoreContext';
 import { useSiteContent } from '../context/SiteContentContext';
 import { HomeProductCard } from './HomeProductCard';
 import { SectionHeader } from './SectionHeader';
+import { SectionAction } from './SectionAction';
 import { useLocalized } from './Localized';
-import { ArrowRight } from 'lucide-react';
 import { navigate } from '../lib/router';
+import { ProductRailSkeleton } from './Skeleton';
 
 export const BestSellers: React.FC = () => {
-  const { products, setFilters } = useStore();
+  const { products, setFilters, catalogLoading } = useStore();
   const { content } = useSiteContent();
   const t = useLocalized();
 
@@ -16,6 +17,17 @@ export const BestSellers: React.FC = () => {
     .filter((p) => p.isBestSeller)
     .sort((a, b) => (a.featuredOrder || 99) - (b.featuredOrder || 99))
     .slice(0, 4);
+
+  // Placeholder cards while the catalog loads — no bundled products flash.
+  if (catalogLoading) {
+    return (
+      <section className="bg-white py-14 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <ProductRailSkeleton count={4} />
+        </div>
+      </section>
+    );
+  }
 
   if (bestSellers.length === 0) return null;
 
@@ -41,13 +53,9 @@ export const BestSellers: React.FC = () => {
           title={t(content.bestSellersTitle, content.bestSellersTitleBn)}
           subtitle={t(content.bestSellersSubtitle, content.bestSellersSubtitleBn)}
           action={
-            <button
-              onClick={handleViewAll}
-              className="flex items-center gap-1.5 text-sm font-bold text-neutral-900 hover:text-[#D8232A] transition-colors group"
-            >
-              <span>{t(content.bestSellersAction, content.bestSellersActionBn)}</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
+            <SectionAction onClick={handleViewAll}>
+              {t(content.bestSellersAction, content.bestSellersActionBn)}
+            </SectionAction>
           }
         />
 

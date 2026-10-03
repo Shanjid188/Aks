@@ -17,20 +17,39 @@ router.get(
   asyncHandler(async (_req, res) => {
     const q = _req.query as Record<string, string | undefined>;
     const range = String(q.range || '7d');
-    const days = range === 'today' ? 1 : range === '30d' ? 30 : range === '3m' ? 90 : range === '1y' ? 365 : 7;
-    const since = daysAgo(days);
+
+    // A custom From/To window (dates AND times) overrides the preset range.
+    const parseDate = (v?: string): Date | null => {
+      if (!v) return null;
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? null : d;
+    };
+    const customFrom = parseDate(q.from);
+    const customTo = parseDate(q.to);
+    const isCustom = customFrom !== null || customTo !== null;
+
+    let since: Date;
+    let until: Date | null = null;
+    if (isCustom) {
+      since = customFrom ?? daysAgo(3650);
+      until = customTo;
+    } else {
+      const days = range === 'today' ? 1 : range === '30d' ? 30 : range === '3m' ? 90 : range === '1y' ? 365 : 7;
+      since = daysAgo(days);
+    }
+    const dateWindow = until ? { gte: since, lte: until } : { gte: since };
 
     const [orders, orderItems, expenses, refunds] = await Promise.all([
       prisma.order.findMany({
-        where: { createdAt: { gte: since }, status: { notIn: ['cancelled', 'returned', 'refunded'] } },
+        where: { createdAt: dateWindow, status: { notIn: ['cancelled', 'returned', 'refunded'] } },
         select: { total: true, source: true, paymentMethod: true, status: true, createdAt: true },
       }),
       prisma.orderItem.findMany({
-        where: { order: { createdAt: { gte: since }, status: { notIn: ['cancelled', 'returned', 'refunded'] } } },
+        where: { order: { createdAt: dateWindow, status: { notIn: ['cancelled', 'returned', 'refunded'] } } },
         select: { productId: true, productName: true, quantity: true, price: true },
       }),
-      prisma.expense.aggregate({ _sum: { amount: true }, where: { expenseDate: { gte: since } } }),
-      prisma.refund.aggregate({ _sum: { amount: true }, where: { createdAt: { gte: since } } }),
+      prisma.expense.aggregate({ _sum: { amount: true }, where: { expenseDate: dateWindow } }),
+      prisma.refund.aggregate({ _sum: { amount: true }, where: { createdAt: dateWindow } }),
     ]);
 
     const revenue = orders.reduce((s, o) => s + o.total, 0);
@@ -62,6 +81,7 @@ router.get(
     res.json({
       range,
       from: since,
+      to: until,
       revenue,
       ordersCount: orders.length,
       totalExpenses,

@@ -1,7 +1,7 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { ReturnRequest, Order } from '../types';
-import { Button, EmptyState, Field, Modal, Select, Spinner, TextInput, formatDate } from '../components/ui';
+import { Button, EmptyState, Field, Modal, Select, Spinner, TextInput, formatDate, PageHeader } from '../components/ui';
 import { Plus, RefreshCw, RotateCcw, Check, X, Banknote } from 'lucide-react';
 
 const STATUS_BADGE: Record<string, string> = {
@@ -56,13 +56,18 @@ export function ReturnsPage() {
   };
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-        <div><h2 className="text-lg font-black text-neutral-900">Returns &amp; Refunds</h2><p className="text-xs text-neutral-500 mt-0.5">Customer returns, approvals and refund ledger.</p></div>
-        <div className="flex items-center gap-2">
-          <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white border border-neutral-200 hover:bg-neutral-50 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
-          <Button onClick={openCreate}><Plus className="w-3.5 h-3.5" /> New Return</Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="After sales"
+        title="Returns & Refunds"
+        desc={`${rows.length} requests · customer returns, approvals and refund ledger`}
+        icon={<RotateCcw className="w-5 h-5" />}
+        actions={
+          <>
+            <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white/10 border border-white/15 text-white hover:bg-white/20 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
+            <Button onClick={openCreate}><Plus className="w-3.5 h-3.5" /> New Return</Button>
+          </>
+        }
+      />
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
       <section className="bg-white rounded-2xl border border-neutral-200">
         <header className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between">

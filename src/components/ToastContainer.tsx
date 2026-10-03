@@ -33,7 +33,7 @@ export const ToastContainer: React.FC = () => {
   };
 
   return (
-    <div id="toast-container" className="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-4 sm:px-0">
+    <div id="toast-container" className="fixed bottom-4 left-4 right-4 sm:bottom-6 sm:right-6 sm:left-auto z-50 flex flex-col gap-2.5 w-auto sm:w-full sm:max-w-sm pointer-events-none">
       <AnimatePresence>
         {toasts.map((toast) => (
           <motion.div

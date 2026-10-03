@@ -3,12 +3,13 @@ import { useStore } from '../context/StoreContext';
 import { useSiteContent } from '../context/SiteContentContext';
 import { HomeProductCard } from './HomeProductCard';
 import { SectionHeader } from './SectionHeader';
+import { SectionAction } from './SectionAction';
 import { useLocalized } from './Localized';
-import { ArrowRight } from 'lucide-react';
 import { navigate } from '../lib/router';
+import { ProductRailSkeleton } from './Skeleton';
 
 export const NewArrivals: React.FC = () => {
-  const { products, setFilters } = useStore();
+  const { products, setFilters, catalogLoading } = useStore();
   const { content } = useSiteContent();
   const t = useLocalized();
 
@@ -16,6 +17,17 @@ export const NewArrivals: React.FC = () => {
     .filter((p) => p.isNewArrival)
     .sort((a, b) => (b.id || '').localeCompare(a.id || ''))
     .slice(0, 4);
+
+  // Placeholder cards while the catalog loads — no bundled products flash.
+  if (catalogLoading) {
+    return (
+      <section className="bg-neutral-50 py-14 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <ProductRailSkeleton count={4} />
+        </div>
+      </section>
+    );
+  }
 
   if (newArrivals.length === 0) return null;
 
@@ -41,13 +53,9 @@ export const NewArrivals: React.FC = () => {
           title={t(content.newArrivalsTitle, content.newArrivalsTitleBn)}
           subtitle={t(content.newArrivalsSubtitle, content.newArrivalsSubtitleBn)}
           action={
-            <button
-              onClick={handleViewAll}
-              className="flex items-center gap-1.5 text-sm font-bold text-neutral-900 hover:text-[#D8232A] transition-colors group"
-            >
-              <span>{t(content.newArrivalsAction, content.newArrivalsActionBn)}</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
+            <SectionAction onClick={handleViewAll}>
+              {t(content.newArrivalsAction, content.newArrivalsActionBn)}
+            </SectionAction>
           }
         />
 
