@@ -7,12 +7,15 @@ export default defineConfig({
   // so bundled asset URLs must be prefixed to avoid clashing with the
   // storefront's own /assets folder. Dev server behaviour is unchanged.
   base: '/admin/',
+
   plugins: [react(), tailwindcss()],
+
   // One pre-bundle pass for the shared packages, so the first dev page load is
   // not a waterfall of individual module requests.
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-dom/client', 'lucide-react'],
   },
+
   build: {
     rollupOptions: {
       output: {
@@ -24,12 +27,19 @@ export default defineConfig({
       },
     },
   },
+
   server: {
     port: 5173,
+
     // Compile the console shell up front so the login screen appears instantly.
     warmup: {
-      clientFiles: ['./src/main.tsx', './src/App.tsx', './src/pages/LoginPage.tsx'],
+      clientFiles: [
+        './src/main.tsx',
+        './src/App.tsx',
+        './src/pages/LoginPage.tsx',
+      ],
     },
+
     proxy: {
       // Admin UI (products/hero slides) shows uploaded-image previews and old
       // /images/... URLs. Dev server must forward those to the API so images
@@ -37,5 +47,11 @@ export default defineConfig({
       '/api': 'http://localhost:4000',
       '/images': 'http://localhost:4000',
     },
+  },
+
+  preview: {
+    host: '127.0.0.1',
+    port: 5173,
+    allowedHosts: ['www.aksmartbd.com', 'aksmartbd.com'],
   },
 });
