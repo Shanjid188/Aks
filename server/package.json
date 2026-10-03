@@ -13,7 +13,8 @@
     "backfill:roles": "node --env-file=.env node_modules/tsx/dist/cli.mjs prisma/backfill-admin-roles.ts",
     "reset:divisions": "node --env-file=.env node_modules/tsx/dist/cli.mjs prisma/reset-divisions.ts",
     "check:images": "node --env-file=.env node_modules/tsx/dist/cli.mjs prisma/check-images.ts",
-    "db:backup": "node --env-file=.env node_modules/tsx/dist/cli.mjs prisma/db-backup.ts"
+    "db:backup": "node --env-file=.env node_modules/tsx/dist/cli.mjs prisma/db-backup.ts",
+    "repair:catalog": "node --env-file=.env node_modules/tsx/dist/cli.mjs prisma/repair-production-catalog.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
