@@ -119,6 +119,59 @@ cd .. && pm2 restart aks-store
              /root/backups/aks-$(date +\%F).db
 ```
 
+Or, on-demand before anything risky:
+
+```bash
+cd server && npm run db:backup   # → prisma/dev.db.backup-<timestamp>
+```
+
+---
+
+## 9. Why production drifts from local (and how to resync)
+
+`server/prisma/dev.db` is **gitignored**. Every environment keeps its own
+database, so `git pull` syncs the **code** and never the **data**. Roles,
+catalog, orders, settings and uploads can therefore differ even when the code
+is identical — which is what makes "it works locally" and "it's broken in
+production" happen at the same time.
+
+Two useful diagnostics, both read-only:
+
+```bash
+npm run check:images --prefix server   # image references with no file on disk
+npm run reset:divisions --prefix server   # preview catalog drift (add --apply to fix)
+```
+
+### Making production match local exactly
+
+The storefront/admin DB is the only thing that has to be copied; images under
+`public/images/` are already in git and arrive with `git pull`.
+
+```bash
+# 1. ON THE SERVER — back up first, then stop the app
+cd /home/aksmartbd/htdocs/www.aksmartbd.com/server
+npm run db:backup
+pm2 stop aks-store
+
+# 2. ON YOUR MACHINE — push the local database to the server
+scp server/prisma/dev.db root@151.158.158.117:/home/aksmartbd/htdocs/www.aksmartbd.com/server/prisma/dev.db
+
+# 3. ON THE SERVER — restart and verify
+cd /home/aksmartbd/htdocs/www.aksmartbd.com/server
+npm run backfill:roles && pm2 restart aks-store && pm2 logs aks-store --lines 30
+```
+
+> Copying `dev.db` overwrites production orders, customers and admin accounts
+> with the local ones. Only do this when local really is the state you want.
+
+### Do NOT use "reset + seed" to resync
+
+`npm run prisma:push --force-reset && npm run seed` produces a *fresh*
+database, not your local one. The four banner tables (`SideBanner`,
+`GalleryBanner`, `OfferBanner`, `LoveBanner`) are **not** seeded — they only
+exist because they were created through the admin panel — so a reset silently
+empties every banner on the homepage.
+
 ---
 
 ### Notes
