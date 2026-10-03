@@ -1,0 +1,63 @@
+name: Deploy AKS Mart
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: aks-mart-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to production server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: 151.158.158.117
+          username: root
+          key: ${{ secrets.AKS_SERVER_SSH_KEY }}
+          port: 22
+          script_stop: true
+          script: |
+            set -e
+
+            cd /home/aksmartbd/htdocs/www.aksmartbd.com
+
+            echo "==> Pulling latest code"
+            git fetch origin main
+            git pull --ff-only origin main
+
+            echo "==> Installing root dependencies"
+            npm ci
+
+            echo "==> Installing server dependencies"
+            cd server
+            npm ci
+            cd ..
+
+            echo "==> Installing admin dependencies"
+            cd admin
+            npm ci
+            cd ..
+
+            echo "==> Building storefront"
+            npm run build
+
+            echo "==> Building admin"
+            npm run build --prefix admin
+
+            echo "==> Restarting PM2 applications"
+            pm2 restart aks-api aks-store aks-admin
+
+            echo "==> Saving PM2 process list"
+            pm2 save
+
+            echo "==> Checking PM2 status"
+            pm2 status
+
+            echo "==> Deployment completed successfully"
