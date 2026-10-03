@@ -30,3 +30,4 @@ server/scripts/_*.ts
 server/scripts/_*.mjs
 
 # Admin panel build output is gitignored via dist/ above
+public/images/uploads/
