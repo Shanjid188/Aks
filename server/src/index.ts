@@ -118,13 +118,28 @@ app.use('/', seoRouter);
    Deep links get the right SPA instead of the JSON 404 below. /api/* paths are
    excluded so unknown API endpoints still return the JSON error. */
 if (ADMIN_DIST) {
-  app.get(['/admin', '/admin/*'], (_req, res) => {
+  app.get(['/admin', '/admin/*'], (req, res, next) => {
+    // Same rule as the storefront fallback: a request with a file extension is
+    // a missing asset, not an admin deep link. Serve a 404 so a broken image
+    // or script is reported as such instead of returning the admin shell HTML.
+    if (/\.[a-z0-9]{2,5}$/i.test(req.path)) {
+      return res.status(404).type('text/plain').send('Not found');
+    }
     res.sendFile(path.join(ADMIN_DIST, 'index.html'));
   });
 }
 if (STOREFRONT_DIST) {
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api/')) return next();
+    // Requests that look like a file (they carry an extension) are assets, not
+    // SPA routes. Falling through to the SPA fallback answered them with
+    // index.html and HTTP 200, so a missing image became an HTML response and
+    // the browser rendered a broken image with nothing in the network tab to
+    // explain why. Answer those with a real 404 instead — deep links such as
+    // /products/food still fall through to the SPA below.
+    if (/\.[a-z0-9]{2,5}$/i.test(req.path)) {
+      return res.status(404).type('text/plain').send('Not found');
+    }
     res.sendFile(path.join(STOREFRONT_DIST, 'index.html'));
   });
 }
