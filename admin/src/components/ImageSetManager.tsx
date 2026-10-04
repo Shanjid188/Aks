@@ -78,6 +78,10 @@ export function ImageSetManager({
   const load = useCallback(() => {
     api
       .get<{ banners: ImageSetRow[] }>(`/admin/${resource}`)
+      // Rows keep the portable '/images/uploads/<file>' reference so any later
+      // edit writes that same portable form back to the DB. The live
+      // '/api/uploads/<file>' rewrite happens at render time (adminImageUrl)
+      // so a file uploaded after the last build is still actually served.
       .then((r) => setRows([...r.banners].sort((a, b) => a.sortOrder - b.sortOrder)))
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
