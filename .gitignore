@@ -38,6 +38,3 @@ server/scripts/_*.mjs
 # storefront, and committing it would add ~6 MB of PNGs to the history.
 _shots/
 _cdp*/
-
-# Admin panel build output is gitignored via dist/ above
-public/images/uploads/
