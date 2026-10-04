@@ -109,12 +109,21 @@ export const PromoCampaign: React.FC = () => {
 
   // Nothing to advertise yet — hide the section instead of flashing placeholders.
   if (offers === null || artwork === null) return null;
-  // Uploaded artwork wins over the coupon tickets; the tickets keep working for
-  // merchants who run code-based offers only.
+  // Merchant offer artwork (Admin → Offer Images) is shown above the coupon
+  // tickets. It used to *replace* them entirely, which meant a coupon the
+  // merchant had uploaded artwork for was never rendered at all whenever any
+  // banner existed — the upload appeared to be ignored. The banners are the
+  // decoration and the coupons are the actual offer, so both are shown.
   const tiles = artwork.slice(0, MAX_OFFER_TILES);
   const useArtwork = tiles.length > 0;
+  // A coupon carrying its own artwork is not satisfied by the generic banners,
+  // so those tickets always keep a place in the layout.
+  const illustratedOffers = offers.filter((c) => Boolean(c.image));
+  const plainOffers = offers.filter((c) => !c.image);
+  // Only fall back to the plain offers when no coupon has artwork of its own.
+  const ticketOffers = illustratedOffers.length > 0 ? offers : plainOffers;
   if (!useArtwork && offers.length === 0) return null;
-  const [anchor, ...rest] = offers;
+  const [anchor, ...rest] = ticketOffers;
 
   const copyCode = async (code: string) => {
     try {
@@ -168,13 +177,17 @@ export const PromoCampaign: React.FC = () => {
           centered
         />
 
-        {useArtwork ? (
-          <OfferArtwork tiles={tiles} />
-        ) : (
+        {/* Merchant offer artwork (Admin → Offer Images) — decorative banner grid.
+          Shown above the coupon tickets when the merchant has added any. */}
+        {useArtwork && <OfferArtwork tiles={tiles} />}
+
+        {/* Coupon tickets — every real offer keeps a place even when the banners
+            above exist. A coupon with its own uploaded picture shows it as the
+            ticket artwork; code-based offers render as plain tickets. */}
+        {offers.length > 0 && (
           <>
             {/* Anchor offer — the strongest coupon gets a hero ticket with a
-                background image. Coupon tickets stay for code-based offers; the
-                artwork branch above is what Admin → Offer Images fills. */}
+                background image. */}
         <motion.button
           type="button"
           whileHover={{ y: -3 }}
@@ -190,7 +203,14 @@ export const PromoCampaign: React.FC = () => {
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#D8232A]/95 via-[#c41d24]/90 to-[#8f1219]/85" />
+          {/* Legibility scrim. A merchant-uploaded ticket image must stay
+              visible, so the wash is far lighter than the plain gradient it
+              replaced — a dark band behind the text only, not the whole tile. */}
+          {anchor.image ? (
+            <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/55 to-black/35" />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-[#D8232A]/95 via-[#c41d24]/90 to-[#8f1219]/85" />
+          )}
           <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-white/10 group-hover:scale-125 transition-transform duration-500" />
           <div className="absolute -right-6 bottom-0 w-24 h-24 rounded-full bg-white/10" />
 
@@ -275,20 +295,26 @@ export const PromoCampaign: React.FC = () => {
               <motion.div
                 key={c.code}
                 whileHover={{ y: -4 }}
-                className="relative rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+                className="relative flex flex-col rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer group bg-white"
                 onClick={() => navigate('/products')}
               >
-                {/* Background image */}
+                {/* Uploaded artwork IS the picture of the ticket. No overlay sits
+                    on top of it: a light wash made the copy illegible and a
+                    heavy wash hid the picture entirely, which is why a freshly
+                    uploaded image looked like it was "not showing". */}
                 {c.image && (
-                  <img
-                    src={c.image}
-                    alt=""
-                    aria-hidden="true"
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
+                  <div className="relative h-32 sm:h-40 overflow-hidden bg-neutral-100 shrink-0">
+                    <img
+                      src={c.image}
+                      alt=""
+                      aria-hidden="true"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  </div>
                 )}
-                <div className="absolute inset-0 bg-white/80 group-hover:bg-white/75 transition-colors" />
-                <div className="relative h-full rounded-2xl border-2 border-dashed border-neutral-200 group-hover:border-[#D8232A]/40 p-5 sm:p-6 transition-colors">
+                {/* Copy always sits on an opaque white panel, so the ticket
+                    reads cleanly whether or not artwork was uploaded. */}
+                <div className="relative flex-1 rounded-2xl border-2 border-dashed border-neutral-200 group-hover:border-[#D8232A]/40 p-5 sm:p-6 transition-colors">
                   {/* Ticket punch holes */}
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white border border-neutral-200" />
                   <span className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 rounded-full bg-white border border-neutral-200" />
