@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, ImagePlus, Link2, Loader2, Trash2 } from 'lucide-react';
 import { api } from '../api';
 import { Badge, Button, EmptyState, Spinner, TextInput, PageHeader } from '../components/ui';
+import { adminImageUrl } from '../lib/imageUrl';
 
 /** Row shape shared by every image-only banner set (gallery, offer …). */
 export interface ImageSetRow {
@@ -333,7 +334,7 @@ export function ImageSetManager({
                 className={`overflow-hidden rounded-2xl border bg-white ${over ? 'border-amber-200' : 'border-neutral-200'}`}
               >
                 <div className="relative aspect-[16/10] bg-neutral-100">
-                  <img src={row.image} alt="" className="h-full w-full object-cover" />
+                  <img src={adminImageUrl(row.image)} alt="" className="h-full w-full object-cover" />
                   <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-neutral-900 backdrop-blur">
                     #{i + 1}
                     {slotLabels ? ` · ${slotLabels[i] ?? 'Over the limit'}` : ''}

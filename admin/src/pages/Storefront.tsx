@@ -4,6 +4,7 @@ import type { Announcement, Promotion } from '../types';
 import { Button, EmptyState, Field, Modal, Spinner, TextArea, TextInput, PageHeader } from '../components/ui';
 import { Plus, RefreshCw, Megaphone, Tag, Trash2, Pencil } from 'lucide-react';
 import { UploadImageButton } from '../components/ImageUpload';
+import { adminImageUrl } from '../lib/imageUrl';
 import { DEFAULT_SITE_CONTENT, SITE_CONTENT_KEYS } from '../../../src/data/siteContent';
 
 /* Announcements manager � real DB-backed CRUD. */
@@ -142,7 +143,7 @@ function PromoManager() {
               </div>
             </Field>
             {form.image && (
-              <img src={form.image} alt="" className="h-24 w-full rounded-xl border border-neutral-200 object-cover" />
+              <img src={adminImageUrl(form.image)} alt="" className="h-24 w-full rounded-xl border border-neutral-200 object-cover" />
             )}
             <Field label="Link (product, category or full URL)"><TextInput value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} />
             </Field>

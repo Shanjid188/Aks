@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import type { Order } from '../types';
 import { Button, Modal, Spinner, StatusBadge, formatDate, PageHeader } from '../components/ui';
+import { adminImageUrl } from '../lib/imageUrl';
 import {
   Package, Clock, PackageCheck, Boxes, Truck, CheckCircle2, XCircle, ShoppingBag, Activity, Undo2, Banknote,
 } from 'lucide-react';
@@ -207,7 +208,7 @@ export function OrderOverviewPage() {
               <div className="space-y-2">
                 {detail.items.map((it) => {
                   const imgs = parseJsonArr((it.product as { images?: unknown } | null)?.images) as string[];
-                  const img = imgs[0];
+                  const img = imgs[0] ? adminImageUrl(imgs[0]) : '';
                   return (
                     <div key={it.id} className="flex items-center gap-3 rounded-xl border border-neutral-100 p-2.5">
                       {img ? <img src={img} alt={it.productName} className="w-10 h-10 rounded-lg object-cover shrink-0" /> : <span className="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center text-[10px] font-black text-neutral-500 shrink-0">{it.productName.slice(0, 2).toUpperCase()}</span>}

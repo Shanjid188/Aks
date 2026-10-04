@@ -209,11 +209,18 @@ function SideBannersSection() {
           {form.image && (
             <div className="rounded-xl overflow-hidden border border-neutral-200 bg-neutral-50">
               <img
-                src={form.image}
+                src={adminImageUrl(form.image)}
                 alt="Banner preview"
                 className="w-full h-40 object-cover"
+                /* If the file really is missing, say so instead of silently
+                   hiding the image and leaving an empty grey box. */
                 onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                  const box = e.currentTarget.parentElement;
+                  if (box) {
+                    box.innerHTML =
+                      '<p class="px-3 py-6 text-center text-xs font-semibold text-red-600">' +
+                      'Preview unavailable — the saved file could not be loaded from the API.</p>';
+                  }
                 }}
               />
             </div>
@@ -408,7 +415,12 @@ export function HeroSlidesPage() {
                 alt="Slide preview"
                 className="w-full h-40 object-cover"
                 onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                  const box = e.currentTarget.parentElement;
+                  if (box) {
+                    box.innerHTML =
+                      '<p class="px-3 py-6 text-center text-xs font-semibold text-red-600">' +
+                      'Preview unavailable — the saved file could not be loaded from the API.</p>';
+                  }
                 }}
               />
             </div>

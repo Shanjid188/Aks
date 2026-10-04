@@ -611,7 +611,7 @@ function ImageManager({ images, onUploadedUrl, onChange }: { images: string; onU
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           {list.map((src, i) => (
             <div key={src + i} className="relative group rounded-lg overflow-hidden border border-neutral-200 bg-neutral-50">
-              <img src={src} alt="" className="w-full h-20 object-cover" />
+              <img src={adminImageUrl(src)} alt="" className="w-full h-20 object-cover" />
               {i === 0 && (
                 <span className="absolute top-1 left-1 bg-[#D8232A] text-white text-[9px] font-black uppercase px-1.5 py-0.5 rounded shadow">Card</span>
               )}
@@ -654,7 +654,7 @@ function ProductPreview({ form }: { form: FormState }) {
   return (
     <div className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
       <div className="bg-neutral-100 flex items-center justify-center h-36">
-        {imgs[0] ? <img src={imgs[0]} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-neutral-300" />}
+        {imgs[0] ? <img src={adminImageUrl(imgs[0])} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-neutral-300" />}
       </div>
       <div className="p-3 space-y-2">
         <p className="text-xs font-bold text-neutral-900 leading-snug break-words">{form.name.trim() || 'Product name'}</p>

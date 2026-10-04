@@ -17,6 +17,7 @@ import {
 import { Package, Search, Plus, Minus, Trash2, Loader2, ClipboardList, PackageCheck, Activity, Printer, Eye, ShoppingCart } from 'lucide-react';
 import { ManageOrder } from './ManageOrder';
 import { openPosReceiptById } from '../lib/posReceipt';
+import { adminImageUrl } from '../lib/imageUrl';
 
 const bdt = (n: number) => `BDT ${n.toLocaleString('en-IN')}`;
 const addr = (o: Order, key: string) => (o.customerAddress as Record<string, string>)?.[key] || '';
@@ -598,7 +599,7 @@ return (
                         if (typeof raw === 'string') { try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; } }
                         return [];
                       })();
-                      const img = imgs[0];
+                      const img = imgs[0] ? adminImageUrl(imgs[0]) : '';
                       return img
                         ? <img src={img} alt={it.productName} className="w-10 h-10 rounded-lg object-cover shrink-0" />
                         : <span className="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center text-[10px] font-black text-neutral-500 shrink-0">{it.productName.slice(0, 2).toUpperCase()}</span>;

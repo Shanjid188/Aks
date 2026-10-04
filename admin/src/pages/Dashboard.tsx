@@ -802,7 +802,7 @@ export function Dashboard() {
               {stats.lowStockProducts.map((p) => (
                 <li key={p.id} className="px-5 py-3 flex items-center gap-3 transition-colors hover:bg-neutral-50/70">
                   {p.image ? (
-                    <img src={p.image} alt="" className="w-10 h-10 rounded-lg object-cover bg-neutral-100 shrink-0" />
+                    <img src={adminImageUrl(p.image)} alt="" className="w-10 h-10 rounded-lg object-cover bg-neutral-100 shrink-0" />
                   ) : (
                     <div className="w-10 h-10 rounded-lg bg-neutral-100 shrink-0" />
                   )}
