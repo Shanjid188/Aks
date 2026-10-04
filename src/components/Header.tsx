@@ -476,6 +476,7 @@ export const Header: React.FC = () => {
                 onClick={() => setIsWishlistDrawerOpen(true)}
                 className="relative p-2.5 rounded-lg text-neutral-700 hover:bg-neutral-100 transition-colors cursor-pointer"
                 title="Saved Wishlist"
+                aria-label={`Open wishlist${wishlist.length > 0 ? `, ${wishlist.length} saved` : ''}`}
               >
                 <Heart className="w-5 h-5" />
                 {wishlist.length > 0 && (
@@ -488,6 +489,7 @@ export const Header: React.FC = () => {
               {/* Cart Drawer Trigger */}
               <button
                 onClick={() => setIsCartDrawerOpen(true)}
+                aria-label={`Open shopping bag${totalCartCount > 0 ? `, ${totalCartCount} item${totalCartCount === 1 ? '' : 's'}` : ''}`}
                 className="flex items-center gap-2 bg-[#D8232A] hover:bg-[#b51c22] text-white pl-3.5 pr-4 py-2 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
               >
                 <div className="relative">
