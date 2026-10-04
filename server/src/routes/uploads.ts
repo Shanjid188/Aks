@@ -4,6 +4,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { asyncHandler, requirePermission } from '../lib/auth.ts';
 import { PERM } from '../lib/permissions.ts';
+import { optimizeImage } from '../lib/imageOptimize.ts';
 
 const router = Router();
 
@@ -98,6 +99,11 @@ router.post(
       return res.status(400).json({ error: 'File content does not match its declared type' });
     }
 
+    /* Re-encode for the web before it is stored. Keeps the exact aspect ratio
+       and any transparency; falls back to the original bytes on any failure, so
+       this never turns a valid upload into an error. */
+    const result = await optimizeImage(buf, sniffedExt);
+
     const base = (body.name || 'image')
       .replace(/\.[^.]*$/, '')
       .toLowerCase()
@@ -105,11 +111,27 @@ router.post(
       .replace(/(^-|-$)/g, '')
       .slice(0, 40) || 'image';
 
-    const filename = `${base}-${Date.now()}-${crypto.randomBytes(3).toString('hex')}.${sniffedExt}`;
-    fs.writeFileSync(path.join(UPLOAD_DIR, filename), buf);
+    /* The timestamp + random suffix keeps every filename unique, which is what
+       makes the long-lived immutable cache header on /api/uploads safe: a
+       replaced image is always a new URL, so no browser can serve a stale one. */
+    const filename = `${base}-${Date.now()}-${crypto.randomBytes(3).toString('hex')}.${result.ext}`;
+    fs.writeFileSync(path.join(UPLOAD_DIR, filename), result.buffer);
 
-    console.log(`[upload] saved ${filename} (${Math.round(buf.length / 1024)} KB)`);
-    return res.status(201).json({ url: `/images/uploads/${filename}`, size: buf.length });
+    console.log(
+      `[upload] saved ${filename} (${Math.round(result.buffer.length / 1024)} KB` +
+        (result.optimized
+          ? `, optimized from ${Math.round(buf.length / 1024)} KB${result.width ? `, ${result.width}x${result.height}` : ''})`
+          : ')')
+    );
+    /* Store the portable, root-relative reference. It is deliberately NOT an
+       absolute URL, so the same row is valid on localhost and in production. */
+    return res.status(201).json({
+      url: `/images/uploads/${filename}`,
+      size: result.buffer.length,
+      originalSize: buf.length,
+      optimized: result.optimized,
+      contentType: result.contentType,
+    });
   })
 );
 

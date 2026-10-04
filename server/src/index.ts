@@ -60,7 +60,9 @@ if (PUBLIC_IMAGES_DIR) {
       lastModified: true,
       setHeaders(res, filePath) {
         if (filePath.includes(`${path.sep}uploads${path.sep}`)) {
-          res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+          // Upload filenames are unique (timestamp + random), so each URL is a
+          // distinct immutable file. Cache hard: a replaced upload is a new URL.
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
         }
       },
     })
@@ -71,12 +73,19 @@ if (PUBLIC_IMAGES_DIR) {
      proxied, a freshly uploaded file would 404 even though it saved correctly.
      Serving the same folder under /api keeps uploads reachable in that setup
      without changing any stored URL. */
+  /* Uploaded artwork is served long-lived. Every stored filename embeds a
+       timestamp plus random bytes, so a URL always maps to exactly one immutable
+       file: replacing an image produces a NEW filename, never a mutated one.
+       That is what makes `immutable` safe — no browser can pin a stale file,
+       and repeat visits skip revalidation entirely. */
   app.use(
     '/api/uploads',
     express.static(path.join(PUBLIC_IMAGES_DIR, 'uploads'), {
       etag: true,
       lastModified: true,
-      setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache, must-revalidate'),
+      immutable: true,
+      maxAge: '365d',
+      setHeaders: (res) => res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'),
     })
   );
 }
