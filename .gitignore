@@ -33,5 +33,11 @@ _fix_toasts.ps1
 server/scripts/_*.ts
 server/scripts/_*.mjs
 
+# Local audit/QA screenshots and the throwaway CDP profiles they were taken
+# with (_shots/, _cdp*/). Debugging output only — nothing here is part of the
+# storefront, and committing it would add ~6 MB of PNGs to the history.
+_shots/
+_cdp*/
+
 # Admin panel build output is gitignored via dist/ above
 public/images/uploads/
