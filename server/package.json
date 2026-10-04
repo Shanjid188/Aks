@@ -17,7 +17,8 @@
     "repair:catalog": "node --env-file=.env node_modules/tsx/dist/cli.mjs prisma/repair-production-catalog.ts",
     "export:catalog": "node --env-file=.env node_modules/tsx/dist/cli.mjs prisma/export-catalog.ts",
     "sync:catalog": "node --env-file=.env node_modules/tsx/dist/cli.mjs prisma/sync-catalog.ts",
-    "diag:images": "node --env-file=.env node_modules/tsx/dist/cli.mjs scripts/diagnose-images.ts"
+    "diag:images": "node --env-file=.env node_modules/tsx/dist/cli.mjs scripts/diagnose-images.ts",
+    "check:image-files": "node --env-file=.env node_modules/tsx/dist/cli.mjs scripts/audit-missing-images.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

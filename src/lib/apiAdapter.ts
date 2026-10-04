@@ -1,10 +1,14 @@
 // Adapters: convert API response shapes ↔ storefront types
 import { ApiOrder, ApiProduct } from '../api';
 import { CartItem, Order, Product, ShippingAddress } from '../types';
+import { resolveImageUrls } from './imageUrl';
 
 export const adaptProduct = (p: ApiProduct): Product =>
   ({
     ...p,
+    // Product artwork lives in an `images` array; rewrite each entry to the
+    // live API upload path so a file uploaded after the last build still paints.
+    images: resolveImageUrls(p.images),
     originalPrice: p.originalPrice ?? undefined,
     discountPercent: p.discountPercent ?? undefined,
     isNewArrival: p.isNewArrival || undefined,

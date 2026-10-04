@@ -26,6 +26,7 @@ import { DEFAULT_CHECKOUT_CONFIG, checkoutConfigFromSettings } from '../data/che
 import type { CheckoutConfig } from '../data/checkout';
 import { Category, Coupon, Product, Review } from '../types';
 import { writeCache } from './apiCache';
+import { resolveImageUrl, resolveImageUrls } from './imageUrl';
 
 const USE_API = import.meta.env.VITE_USE_API !== 'false';
 
@@ -40,6 +41,12 @@ export const CACHE_KEYS = {
   commerce: 'store/commerce',
   siteContent: 'store/siteContent',
 } as const;
+
+/** Rewrite upload references to the live API path (see lib/imageUrl). */
+const withResolvedImage = <T extends { image?: string | null }>(b: T): T => ({
+  ...b,
+  image: resolveImageUrl(b.image),
+});
 
 /** Normalise an API content page into the storefront shape (nulls → ''). */
 const mapContentPage = (p: API.ApiContentPage): ContentPageData => ({
@@ -86,7 +93,7 @@ export const dataLoader = {
         ctaCategory: s.ctaCategory,
         ctaSubcategory: s.ctaSubcategory ?? undefined,
         ctaBrand: s.ctaBrand ?? undefined,
-        image: s.image,
+        image: resolveImageUrl(s.image),
         accentColor: s.accentColor,
         tagline: s.tagline,
       }));
@@ -105,7 +112,7 @@ export const dataLoader = {
       const { banners } = await API.fetchSideBanners();
       if (banners.length === 0) return SIDE_BANNERS;
       // The uploaded artwork IS the tile — no copy is laid over it.
-      return banners.map((b) => ({ id: b.id, eyebrow: '', title: '', subtitle: '', image: b.image }));
+      return banners.map((b) => ({ id: b.id, eyebrow: '', title: '', subtitle: '', image: resolveImageUrl(b.image) }));
     } catch (e) {
       console.warn('[dataLoader] API side banners failed, falling back to bundled promo tiles:', e);
       return SIDE_BANNERS;
@@ -221,7 +228,7 @@ export const dataLoader = {
     if (!USE_API) return null;
     try {
       const { banners } = await API.fetchGalleryBanners();
-      return banners.length > 0 ? banners : null;
+      return banners.length > 0 ? banners.map(withResolvedImage) : null;
     } catch (e) {
       console.warn('[dataLoader] API gallery banners failed, falling back:', e);
       return null;
@@ -234,7 +241,7 @@ export const dataLoader = {
     if (!USE_API) return [];
     try {
       const { banners } = await API.fetchOfferBanners();
-      return banners;
+      return banners.map(withResolvedImage);
     } catch (e) {
       console.warn('[dataLoader] API offer banners failed, falling back to coupons:', e);
       return [];
@@ -247,7 +254,7 @@ export const dataLoader = {
     if (!USE_API) return [];
     try {
       const { banners } = await API.fetchLoveBanners();
-      return banners;
+      return banners.map(withResolvedImage);
     } catch (e) {
       console.warn('[dataLoader] API love banners failed, hiding the customer wall:', e);
       return [];
@@ -260,7 +267,7 @@ export const dataLoader = {
     if (!USE_API) return [];
     try {
       const { promotions } = await API.fetchPromotions();
-      return promotions;
+      return promotions.map(withResolvedImage);
     } catch (e) {
       console.warn('[dataLoader] API promotions failed (no bundled fallback — hiding banner):', e);
       return [];
@@ -275,9 +282,17 @@ export const dataLoader = {
     try {
       const { categories } = await API.fetchCategories();
       if (categories.length === 0) return FALLBACK_CATEGORIES;
+      // Division artwork (image / heroImage / gridImage) is uploaded through the
+      // admin too, so it needs the same live-path rewrite as everything else.
+      const resolved = categories.map((c) => ({
+        ...c,
+        image: resolveImageUrl(c.image),
+        heroImage: resolveImageUrl(c.heroImage),
+        gridImage: resolveImageUrl(c.gridImage),
+      })) as Category[];
       // Remembered so the division rail paints instantly on the next visit.
-      writeCache(CACHE_KEYS.categories, categories);
-      return categories as Category[];
+      writeCache(CACHE_KEYS.categories, resolved);
+      return resolved;
     } catch (e) {
       console.warn('[dataLoader] API categories failed, falling back to bundled divisions:', e);
       return FALLBACK_CATEGORIES;
