@@ -27,6 +27,14 @@ import { applySeo, claimSeo } from '../lib/seo';
 import { useSiteContent } from '../context/SiteContentContext';
 import { useLocalized, fillTokens } from './Localized';
 
+/** Default colour/size selection for a product — see the reset effect below. */
+const defaultColorFor = (p: Product): ProductColor =>
+  p.colors[0] || { name: 'Default', hex: '#000', image: p.images[0] };
+
+const defaultSizeFor = (p: Product): ProductSize =>
+  p.sizes.find((s) => s.inStock) ||
+  p.sizes[0] || { size: 'One Size', inStock: true, stockCount: 0 };
+
 export const ProductDetailPage: React.FC = () => {
   const {
     activeProductPage: product,
@@ -50,16 +58,8 @@ export const ProductDetailPage: React.FC = () => {
 
   if (!product) return null;
 
-  const [selectedColor, setSelectedColor] = useState<ProductColor>(
-    product.colors[0] || { name: 'Default', hex: '#000', image: product.images[0] }
-  );
-  const [selectedSize, setSelectedSize] = useState<ProductSize>(
-    product.sizes.find((s) => s.inStock) || product.sizes[0] || {
-      size: 'One Size',
-      inStock: true,
-      stockCount: 0,
-    }
-  );
+  const [selectedColor, setSelectedColor] = useState<ProductColor>(defaultColorFor(product));
+  const [selectedSize, setSelectedSize] = useState<ProductSize>(defaultSizeFor(product));
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'details' | 'reviews' | 'care'>('details');
@@ -86,6 +86,28 @@ export const ProductDetailPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
+  }, [product.slug]);
+
+  // Every /products/:slug route renders this component at the same position in
+  // the tree, so moving from one product to another (a related card further
+  // down this page, for instance) reuses the instance instead of remounting
+  // it. Each per-product value below therefore has to be re-derived whenever
+  // the slug changes — otherwise the previous product's selected colour and
+  // image index carry over and the new product opens on the old product's
+  // image instead of its own first one.
+  useEffect(() => {
+    setSelectedColor(defaultColorFor(product));
+    setSelectedSize(defaultSizeFor(product));
+    setActiveImageIndex(0);
+    setQuantity(1);
+    setActiveTab('details');
+    setShowReviewForm(false);
+    setNewReviewAuthor('');
+    setNewReviewCity('');
+    setNewReviewTitle('');
+    setNewReviewComment('');
+    setNewReviewRating(5);
+    setNewReviewFit('true_to_size');
   }, [product.slug]);
 
   // This route owns its meta tags — see src/lib/seo.ts.

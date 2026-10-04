@@ -165,7 +165,7 @@ export const CategoryVisualGrid: React.FC = () => {
         </div>
 
         {positions > 1 && (
-          <div className="mt-6 flex items-center justify-center gap-2">
+          <div className="mt-6 flex items-center justify-center">
             {Array.from({ length: positions }).map((_, i) => (
               <button
                 key={i}
@@ -173,10 +173,19 @@ export const CategoryVisualGrid: React.FC = () => {
                 onClick={() => goTo(i)}
                 aria-label={`Go to slide ${i + 1}`}
                 aria-current={active === i ? 'true' : undefined}
-                className={`h-2 cursor-pointer rounded-full transition-all duration-300 ${
-                  active === i ? 'w-7 bg-[#D8232A]' : 'w-2 bg-neutral-300 hover:bg-neutral-400'
-                }`}
-              />
+                /* The visible dot is 8px tall, far too small to tap reliably.
+                   Padding grows the target to 32px tall and the matching -mx-2
+                   returns that width to the layout, preserving the original
+                   8px visual gap between dots. */
+                className="px-2 -mx-2 py-3 flex items-center cursor-pointer"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`h-2 rounded-full transition-all duration-300 block ${
+                    active === i ? 'w-7 bg-[#D8232A]' : 'w-2 bg-neutral-300 hover:bg-neutral-400'
+                  }`}
+                />
+              </button>
             ))}
           </div>
         )}

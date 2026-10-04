@@ -229,16 +229,26 @@ export const HeroSlider: React.FC = () => {
           </div>
 
           {/* Slide Indicators */}
-          <div className="absolute left-1/2 -translate-x-1/2 bottom-6 z-20 flex items-center gap-2">
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-6 z-20 flex items-center">
             {slides.map((s, idx) => (
               <button
                 key={s.id}
                 onClick={() => setCurrentSlide(idx)}
-                className={`h-2 rounded-full transition-all cursor-pointer ${
-                  currentSlide === idx ? 'w-8 bg-[#D8232A]' : 'w-2 bg-white/40 hover:bg-white/70'
-                }`}
-                              aria-label={`Go to slide ${idx + 1}`}
-              />
+                aria-label={`Go to slide ${idx + 1}`}
+                aria-current={currentSlide === idx ? 'true' : undefined}
+                className="px-2 -mx-2 py-3 flex items-center cursor-pointer"
+              >
+                {/* The visible bar is only 8px tall, which is far too small to hit
+                    with a finger. Padding grows the tap area to 32px tall while the
+                    matching -mx-2 hands that space back to the layout, so the dots
+                    keep their original 8px visual gap. */}
+                <span
+                  aria-hidden="true"
+                  className={`h-2 rounded-full transition-all block ${
+                    currentSlide === idx ? 'w-8 bg-[#D8232A]' : 'w-2 bg-white/40 hover:bg-white/70'
+                  }`}
+                />
+              </button>
             ))}
           </div>
         </div>

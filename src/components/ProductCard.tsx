@@ -235,7 +235,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
           )}
         </div>
 
-        {/* Floating Quick Action Buttons */}
+        {/* Floating Quick Action Buttons.
+            The circles stay 32px so the card visuals are unchanged; the
+            ::after pseudo-element extends the tappable area to 44px without
+            affecting layout. Quick View / Compare were hover-only, which on
+            touch devices left invisible (yet still clickable) buttons, so
+            they now stay visible below the `sm` breakpoint. */}
         <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 z-10">
           <button
             type="button"
@@ -243,7 +248,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
               e.stopPropagation();
               toggleWishlist(product);
             }}
-            className={`w-8 h-8 rounded-full shadow-md flex items-center justify-center transition-all ${
+            aria-label={`Save ${product.name} to wishlist`}
+            aria-pressed={isFav}
+            className={`relative w-8 h-8 rounded-full shadow-md flex items-center justify-center transition-all after:absolute after:-inset-1.5 after:content-[''] ${
               isFav
                 ? 'bg-[#D8232A] text-white'
                 : 'bg-white/90 backdrop-blur-md text-neutral-700 hover:text-[#D8232A] hover:bg-white'
@@ -259,7 +266,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
               e.stopPropagation();
               openQuickView(product);
             }}
-            className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-md text-neutral-700 hover:text-neutral-900 hover:bg-white shadow-md flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+            aria-label={`Quick view ${product.name}`}
+            className="relative w-8 h-8 rounded-full bg-white/90 backdrop-blur-md text-neutral-700 hover:text-neutral-900 hover:bg-white shadow-md flex items-center justify-center transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 after:absolute after:-inset-1.5 after:content-['']"
             title="Quick View"
           >
             <Eye className="w-4 h-4" />
@@ -271,7 +279,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
               e.stopPropagation();
               toggleCompare(product);
             }}
-            className={`w-8 h-8 rounded-full shadow-md flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 ${
+            aria-label={`Compare specs for ${product.name}`}
+            aria-pressed={isCompared}
+            className={`relative w-8 h-8 rounded-full shadow-md flex items-center justify-center transition-all sm:opacity-0 sm:group-hover:opacity-100 after:absolute after:-inset-1.5 after:content-[''] ${
               isCompared
                 ? 'bg-sky-600 text-white opacity-100'
                 : 'bg-white/90 backdrop-blur-md text-neutral-700 hover:text-sky-600'
@@ -291,7 +301,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
                 e.stopPropagation();
                 setShowQuickSize(true);
               }}
-              className="w-full py-2 px-3 bg-neutral-900/90 hover:bg-[#D8232A] text-white backdrop-blur-md rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0"
+              className="w-full py-2.5 px-3 bg-neutral-900/90 hover:bg-[#D8232A] text-white backdrop-blur-md rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:translate-y-2 sm:group-hover:translate-y-0"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
               <span>+ Quick Add</span>
@@ -377,8 +387,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
         </div>
 
         {/* Price Row */}
-        <div className="mt-3 pt-3 border-t border-neutral-100 flex items-baseline justify-between">
-          <div className="flex items-baseline gap-2">
+        <div className="mt-3 pt-3 border-t border-neutral-100 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+          <div className="flex items-baseline gap-2 shrink-0">
             <span className="text-base font-black text-neutral-900">
               {formatPrice(product.price, currency)}
             </span>
@@ -389,7 +399,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
             )}
           </div>
 
-          <span className="text-[11px] text-neutral-400 font-medium capitalize">
+          <span className="text-[11px] text-neutral-400 font-medium capitalize truncate min-w-0">
             {product.subcategory}
           </span>
         </div>

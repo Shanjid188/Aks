@@ -218,7 +218,7 @@ export const Header: React.FC = () => {
 
               <button
                       onClick={() => setIsAksMartClubOpen(true)}
-                className="flex items-center gap-1 hover:text-white transition-colors text-amber-400 font-semibold cursor-pointer"
+                className="flex items-center gap-1 hover:text-white transition-colors text-amber-400 font-semibold cursor-pointer py-2 -my-2"
               >
                 <Award className="w-3 h-3" />
                 <span>{t(content.headerQuickClub, content.headerQuickClubBn)}</span>
@@ -229,7 +229,7 @@ export const Header: React.FC = () => {
                <div className="flex items-center gap-2">
                  <button
                    onClick={() => setCurrency(currency === 'BDT' ? 'USD' : 'BDT')}
-                   className={`flex items-center rounded-lg px-2.5 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
+                   className={`flex items-center rounded-lg px-2.5 py-2 -my-1 text-[11px] font-bold transition-colors cursor-pointer ${
                      currency === 'BDT'
                        ? 'bg-[#D8232A] text-white'
                        : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
@@ -243,7 +243,7 @@ export const Header: React.FC = () => {
                      const next = language === 'en' ? 'bn' : 'en';
                      setLanguage(next);
                    }}
-                   className={`flex items-center rounded-lg px-2.5 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
+                   className={`flex items-center rounded-lg px-2.5 py-2 -my-1 text-[11px] font-bold transition-colors cursor-pointer ${
                      language === 'bn'
                        ? 'bg-[#D8232A] text-white'
                        : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'

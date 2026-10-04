@@ -277,7 +277,7 @@ export const Footer: React.FC = () => {
               <li key={p.slug}>
                 <button
                   onClick={() => navigate('/' + p.slug)}
-                  className="hover:text-white transition-colors cursor-pointer text-left"
+                  className="py-2 hover:text-white transition-colors cursor-pointer text-left"
                 >
                   <Bi en={p.title} bn={p.titleBn || p.title} />
                 </button>
@@ -289,13 +289,13 @@ export const Footer: React.FC = () => {
           <FooterColumn title={content.footerDivisionsHeading} titleBn={content.footerDivisionsHeadingBn}>
             {categories.map((c) => (
               <li key={c.id}>
-                <button onClick={() => handleCategoryClick(c.slug as CategoryType)} className="hover:text-white transition-colors cursor-pointer">
+                <button onClick={() => handleCategoryClick(c.slug as CategoryType)} className="py-2 hover:text-white transition-colors cursor-pointer">
                   {c.name}
                 </button>
               </li>
             ))}
             <li>
-              <button onClick={() => handleCategoryClick('all')} className="hover:text-white transition-colors cursor-pointer">
+              <button onClick={() => handleCategoryClick('all')} className="py-2 hover:text-white transition-colors cursor-pointer">
                 <Bi en={content.headerAllDepartments} bn={content.headerAllDepartmentsBn} />
               </button>
             </li>
@@ -304,17 +304,17 @@ export const Footer: React.FC = () => {
           {/* Support — help links, reference: "Support" column */}
           <FooterColumn title={content.footerCareHeading} titleBn={content.footerCareHeadingBn}>
             <li>
-              <button onClick={() => navigate('/track-order')} className="hover:text-white transition-colors cursor-pointer">
+              <button onClick={() => navigate('/track-order')} className="py-2 hover:text-white transition-colors cursor-pointer">
                 <Bi en={content.footerTrack} bn={content.footerTrackBn} />
               </button>
             </li>
             <li>
-              <button onClick={() => setIsSizeGuideOpen(true)} className="hover:text-white transition-colors cursor-pointer">
+              <button onClick={() => setIsSizeGuideOpen(true)} className="py-2 hover:text-white transition-colors cursor-pointer">
                 <Bi en={content.footerGuides} bn={content.footerGuidesBn} />
               </button>
             </li>
             <li>
-              <button onClick={() => setIsAksMartClubOpen(true)} className="hover:text-white transition-colors cursor-pointer">
+              <button onClick={() => setIsAksMartClubOpen(true)} className="py-2 hover:text-white transition-colors cursor-pointer">
                 <Bi en={content.footerClub} bn={content.footerClubBn} />
               </button>
             </li>
@@ -330,7 +330,7 @@ export const Footer: React.FC = () => {
               <li key={p.slug}>
                 <button
                   onClick={() => navigate('/' + p.slug)}
-                  className="hover:text-white transition-colors cursor-pointer text-left"
+                  className="py-2 hover:text-white transition-colors cursor-pointer text-left"
                 >
                   <Bi en={p.title} bn={p.titleBn || p.title} />
                 </button>
