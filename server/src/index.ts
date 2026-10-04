@@ -49,7 +49,36 @@ const PUBLIC_IMAGES_CANDIDATES = [
 ];
 const PUBLIC_IMAGES_DIR = PUBLIC_IMAGES_CANDIDATES.find((dir) => fs.existsSync(dir));
 if (PUBLIC_IMAGES_DIR) {
-  app.use('/images', express.static(PUBLIC_IMAGES_DIR));
+  // Uploaded artwork changes as the merchant edits the catalog, so it must never
+  // be cached long by a proxy sitting in front of us. etag/lastModified still
+  // let the browser revalidate cheaply; immutable caching is only safe for the
+  // hashed /assets bundle that Vite emits.
+  app.use(
+    '/images',
+    express.static(PUBLIC_IMAGES_DIR, {
+      etag: true,
+      lastModified: true,
+      setHeaders(res, filePath) {
+        if (filePath.includes(`${path.sep}uploads${path.sep}`)) {
+          res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+        }
+      },
+    })
+  );
+
+  /* Second route for uploaded artwork. /images/* has to be proxied by the web
+     server (nginx/LiteSpeed) to reach Node at all; on hosts where only /api is
+     proxied, a freshly uploaded file would 404 even though it saved correctly.
+     Serving the same folder under /api keeps uploads reachable in that setup
+     without changing any stored URL. */
+  app.use(
+    '/api/uploads',
+    express.static(path.join(PUBLIC_IMAGES_DIR, 'uploads'), {
+      etag: true,
+      lastModified: true,
+      setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache, must-revalidate'),
+    })
+  );
 }
 
 /* ── Production: serve the built storefront & admin SPAs from this process ──
