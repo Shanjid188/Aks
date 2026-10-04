@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Upload, Loader2 } from 'lucide-react';
 import { api } from '../api';
+import { adminImageUrl } from '../lib/imageUrl';
 import { Button } from './ui';
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -89,10 +90,12 @@ export function UploadImageButton({ onUploaded, label = 'Upload from PC', classN
         {busy ? 'Uploading…' : label}
       </Button>
       {error && <p className="mt-1 text-[10px] font-semibold text-red-600">{error}</p>}
-      {/* Live preview thumbnail: local blob while uploading, server URL once saved. */}
+      {/* Live preview thumbnail: local blob while uploading, server URL once saved.
+          The server URL is rewritten to the live /api/uploads route so the preview
+          shows the file that is actually on disk, not a stale /images/ path. */}
       {preview && (
         <img
-          src={preview}
+          src={adminImageUrl(preview)}
           alt="Selected image preview"
           className="mt-2 h-16 w-16 rounded-lg object-cover border border-neutral-200 bg-neutral-50"
         />

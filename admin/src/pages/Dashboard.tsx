@@ -4,6 +4,7 @@ import type { Customer, SalesOverview, Stats } from '../types';
 import { EmptyState, Spinner, StatusBadge, formatDate } from '../components/ui';
 import { PERM } from '../lib/permissions';
 import { useCan } from '../lib/permission-context';
+import { adminImageUrl } from '../lib/imageUrl';
 import {
   AlertTriangle,
   ArrowDownRight,
@@ -764,7 +765,7 @@ export function Dashboard() {
                     {i + 1}
                   </span>
                   {p.image ? (
-                    <img src={p.image} alt="" className="w-10 h-10 rounded-lg object-cover bg-neutral-100 shrink-0" />
+                    <img src={adminImageUrl(p.image)} alt="" className="w-10 h-10 rounded-lg object-cover bg-neutral-100 shrink-0" />
                   ) : (
                     <div className="w-10 h-10 rounded-lg bg-neutral-100 shrink-0" />
                   )}

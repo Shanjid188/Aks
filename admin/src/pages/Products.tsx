@@ -3,6 +3,7 @@ import { api } from '../api';
 import type { Product } from '../types';
 import { Badge, Button, EmptyState, Field, Modal, PageHeader, Select, Spinner, TextArea, TextInput, Toggle } from '../components/ui';
 import { UploadImageButton } from '../components/ImageUpload';
+import { adminImageUrl } from '../lib/imageUrl';
 import {
   Plus, Search, AlertTriangle, Package, Pencil, Trash2, Image as ImageIcon, Info, Percent,
   ChevronDown, ChevronLeft, ChevronRight, ChevronUp, X, Ruler, Palette, ListTree, Sparkles,
@@ -891,7 +892,7 @@ export function ProductsPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3 min-w-0">
                       {p.images[0] && (
-                        <img src={p.images[0]} alt="" className="w-10 h-10 rounded-lg object-cover bg-neutral-100 shrink-0" />
+                        <img src={adminImageUrl(p.images[0])} alt="" className="w-10 h-10 rounded-lg object-cover bg-neutral-100 shrink-0" />
                       )}
                       <div className="min-w-0">
                         <p className="font-bold text-neutral-900 truncate max-w-xs">{p.name}</p>

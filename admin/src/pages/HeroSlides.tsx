@@ -3,6 +3,7 @@ import { api } from '../api';
 import type { HeroSlide, SideBanner } from '../types';
 import { Badge, Button, EmptyState, Field, Modal, Spinner, TextInput, Toggle, PageHeader } from '../components/ui';
 import { UploadImageButton } from '../components/ImageUpload';
+import { adminImageUrl } from '../lib/imageUrl';
 import { Plus, Images, Pencil, Trash2 } from 'lucide-react';
 
 /** Slides and side banners are both image-only: the storefront renders the
@@ -143,7 +144,7 @@ function SideBannersSection() {
             .map((b) => (
               <div key={b.id} className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
                 <div className="relative aspect-[16/10] bg-neutral-100">
-                  {b.image && <img src={b.image} alt="" className="w-full h-full object-cover" />}
+                  {b.image && <img src={adminImageUrl(b.image)} alt="" className="w-full h-full object-cover" />}
                   <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-neutral-900 backdrop-blur">
                     #{b.sortOrder}
                   </span>
@@ -343,7 +344,7 @@ export function HeroSlidesPage() {
                   <tr key={s.id} className="hover:bg-neutral-50/60">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        {s.image && <img src={s.image} alt="" className="w-16 h-10 rounded-lg object-cover bg-neutral-100 shrink-0" />}
+                        {s.image && <img src={adminImageUrl(s.image)} alt="" className="w-16 h-10 rounded-lg object-cover bg-neutral-100 shrink-0" />}
                         <div className="min-w-0">
                           <p className="font-bold text-neutral-900 truncate max-w-56">
                             {s.title || 'Banner image'}
@@ -403,7 +404,7 @@ export function HeroSlidesPage() {
           {form.image && (
             <div className="rounded-xl overflow-hidden border border-neutral-200 bg-neutral-50">
               <img
-                src={form.image}
+                src={adminImageUrl(form.image)}
                 alt="Slide preview"
                 className="w-full h-40 object-cover"
                 onError={(e) => {

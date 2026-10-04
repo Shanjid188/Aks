@@ -5,6 +5,7 @@ import { Badge, Button, EmptyState, Field, Modal, PageHeader, Spinner, TextArea,
 import { UploadImageButton } from '../components/ImageUpload';
 import { PERM } from '../lib/permissions';
 import { useCan } from '../lib/permission-context';
+import { adminImageUrl } from '../lib/imageUrl';
 import { Plus, LayoutGrid, Pencil, Trash2, ChevronUp, ChevronDown, Layers } from 'lucide-react';
 
 interface CategoryForm {
@@ -299,7 +300,7 @@ export function CategoriesPage() {
             <div key={c.id} className="bg-white rounded-2xl border border-neutral-200">
               <div className="flex items-start gap-4 p-5 border-b border-neutral-100">
                 {c.gridImage || c.image ? (
-                  <img src={c.gridImage || c.image || ''} alt="" className="w-14 h-14 rounded-xl object-cover bg-neutral-100 shrink-0" />
+                  <img src={adminImageUrl(c.gridImage || c.image || '')} alt="" className="w-14 h-14 rounded-xl object-cover bg-neutral-100 shrink-0" />
                 ) : (
                   <div
                     className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0"

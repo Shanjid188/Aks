@@ -3,6 +3,7 @@ import { api } from '../api';
 import { Button, EmptyState, Field, Spinner, TextInput, formatDate, PageHeader } from '../components/ui';
 import { Calculator, CheckCircle2, Minus, Pause, Plus, Printer, RefreshCw, Search, ShoppingCart, Trash2 } from 'lucide-react';
 import { openPosReceipt } from '../lib/posReceipt';
+import { adminImageUrl } from '../lib/imageUrl';
 import type { PosReceiptData } from '../lib/posReceiptTemplate';
 
 const bdt = (n: number) => `BDT ${Number(n || 0).toLocaleString('en-IN')}`;
@@ -336,7 +337,7 @@ export function PosPage() {
                       </span>
                     )}
                     <div className="relative">
-                      {p.image ? <img src={p.image} alt="" className="w-full h-20 object-cover rounded-lg bg-neutral-100 mb-2" /> : <div className="w-full h-20 rounded-lg bg-neutral-100 mb-2 flex items-center justify-center text-neutral-300 text-[10px] font-bold">NO IMAGE</div>}
+                      {p.image ? <img src={adminImageUrl(p.image)} alt="" className="w-full h-20 object-cover rounded-lg bg-neutral-100 mb-2" /> : <div className="w-full h-20 rounded-lg bg-neutral-100 mb-2 flex items-center justify-center text-neutral-300 text-[10px] font-bold">NO IMAGE</div>}
                       {selected && (
                         <span className="absolute inset-x-0 bottom-2 flex items-center justify-center gap-1 rounded-b-lg bg-[#D8232A]/90 text-white text-[10px] font-black py-0.5">
                           <CheckCircle2 className="w-3 h-3" /> Added · {qtyInCart} in cart

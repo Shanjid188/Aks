@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { openInvoice } from '../lib/invoice';
 import { openPackingSlip } from '../lib/packingSlip';
+import { adminImageUrl } from '../lib/imageUrl';
 
 const bdt = (n: number) => `BDT ${Number(n || 0).toLocaleString('en-IN')}`;
 
@@ -458,7 +459,7 @@ export function ManageOrder({
             {draft.map((d) => (
               <div key={d.key} className="flex items-center gap-3 rounded-xl border border-neutral-100 p-2.5">
                 {d.image ? (
-                  <img src={d.image} alt={d.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                  <img src={adminImageUrl(d.image)} alt={d.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
                 ) : (
                   <span className="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center text-[10px] font-black text-neutral-500 shrink-0">
                     {d.name.slice(0, 2).toUpperCase()}
