@@ -26,60 +26,169 @@ export function LoginPage({ onSuccess }: { onSuccess: (admin: AdminUser) => void
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1d0609] via-[#5c1017] to-[#7f1d1d] px-4 relative overflow-hidden">
-      {/* Ambient red glow decorations */}
-      <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#D8232A]/30 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-rose-500/20 blur-3xl" />
+    <div className="min-h-screen bg-white lg:grid lg:grid-cols-2">
+      {/* LEFT — branding panel (hidden on mobile, compact strip below lg) */}
+      <section className="relative hidden lg:flex flex-col justify-center overflow-hidden bg-gradient-to-br from-[#F7FBFA] via-white to-[#EFF7F5] px-12 xl:px-16">
+        {/* Decorative background — soft curves and circles, brand + teal tints */}
+        <div aria-hidden="true" className="pointer-events-none absolute -top-24 -left-24 w-[26rem] h-[26rem] rounded-full bg-[#D8232A]/[0.07] blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute bottom-0 -right-20 w-[24rem] h-[24rem] rounded-full bg-teal-400/[0.12] blur-3xl" />
+        <svg aria-hidden="true" className="pointer-events-none absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid slice" viewBox="0 0 600 800" fill="none">
+          <path d="M-40 250 C 140 190, 240 330, 420 280 S 640 200, 700 260" stroke="#D8232A" strokeOpacity="0.08" strokeWidth="1.5" />
+          <path d="M-40 620 C 160 560, 300 700, 460 640 S 660 570, 700 600" stroke="#14B8A6" strokeOpacity="0.12" strokeWidth="1.5" />
+          <circle cx="520" cy="120" r="70" stroke="#D8232A" strokeOpacity="0.07" strokeWidth="1.5" />
+          <circle cx="80" cy="700" r="46" stroke="#14B8A6" strokeOpacity="0.12" strokeWidth="1.5" />
+        </svg>
 
-      <form
-        onSubmit={submit}
-        className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8 space-y-5 border border-neutral-200"
-      >
-        <div className="text-center space-y-1">
-                    <img src={aksLogo} alt="AKS Mart" className="w-14 h-14 rounded-xl object-cover mx-auto shrink-0 ring-2 ring-[#D8232A]/40" />
-          <h1 className="text-lg font-black text-neutral-900 tracking-tight">AKS Mart Admin</h1>
-          <p className="text-xs text-neutral-400">Management console</p>
-          <span className="inline-block mt-1 text-[9px] font-black uppercase tracking-widest bg-gradient-to-r from-[#D8232A] to-rose-500 text-white px-2.5 py-1 rounded-full">
-            Control Panel
-          </span>
-        </div>
+        <div className="relative max-w-lg mx-auto w-full">
+          <div className="flex items-center gap-3">
+            <img src={aksLogo} alt="AKS Mart" className="w-12 h-12 rounded-xl object-cover shrink-0 ring-1 ring-black/5 shadow-sm" />
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Admin Portal</p>
+              <p className="text-xl font-black tracking-tight text-neutral-900 leading-tight">AKS MART</p>
+            </div>
+          </div>
 
-        {error && (
-          <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-            {error}
+          <h2 className="mt-10 text-4xl xl:text-[2.75rem] font-black leading-[1.1] tracking-tight text-neutral-900">
+            Manage Smarter.<br />
+            <span className="text-[#D8232A]">Grow Faster.</span>
+          </h2>
+
+          <p className="mt-5 text-[15px] leading-relaxed text-neutral-500 max-w-md">
+            Manage your products, orders, sales and business operations from one powerful platform.
           </p>
-        )}
+          {/* Original AKS illustration — abstract dashboard scene drawn in SVG.
+              Deliberately generic (nothing copied) and fully decorative. */}
+          <svg aria-hidden="true" viewBox="0 0 520 300" className="mt-12 w-full max-w-lg" fill="none">
+            <defs>
+              <linearGradient id="aksBar" x1="0" y1="1" x2="0" y2="0">
+                <stop stopColor="#D8232A" stopOpacity="0.25" />
+                <stop offset="1" stopColor="#D8232A" stopOpacity="0.95" />
+              </linearGradient>
+              <linearGradient id="aksTeal" x1="0" y1="1" x2="0" y2="0">
+                <stop stopColor="#14B8A6" stopOpacity="0.2" />
+                <stop offset="1" stopColor="#14B8A6" stopOpacity="0.85" />
+              </linearGradient>
+              <linearGradient id="aksSurface" x1="0" y1="0" x2="1" y2="1">
+                <stop stopColor="#FFFFFF" />
+                <stop offset="1" stopColor="#F8FBFA" />
+              </linearGradient>
+              <filter id="aksSoft" x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0" dy="6" stdDeviation="10" floodColor="#0F172A" floodOpacity="0.07" />
+              </filter>
+            </defs>
 
-        <div className="space-y-4">
-          <Field label="Email address">
-            <TextInput
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@aksgarments.com.bd"
-            />
-          </Field>
-          <Field label="Password">
-            <PasswordInput
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-            />
-          </Field>
+            {/* Main dashboard card */}
+            <rect x="58" y="42" width="300" height="196" rx="14" fill="url(#aksSurface)" stroke="#E2E8F0" filter="url(#aksSoft)" />
+            <path d="M58 76 H358" stroke="#E2E8F0" />
+            <circle cx="78" cy="59" r="4" fill="#D8232A" fillOpacity="0.5" />
+            <circle cx="92" cy="59" r="4" fill="#14B8A6" fillOpacity="0.45" />
+            <rect x="108" y="55" width="62" height="8" rx="4" fill="#E2E8F0" />
+
+            {/* Analytics bars */}
+            <rect x="78" y="150" width="16" height="66" rx="5" fill="url(#aksBar)" />
+            <rect x="104" y="126" width="16" height="90" rx="5" fill="url(#aksBar)" />
+            <rect x="130" y="162" width="16" height="54" rx="5" fill="url(#aksBar)" />
+            <rect x="156" y="106" width="16" height="110" rx="5" fill="url(#aksTeal)" />
+            <rect x="182" y="142" width="16" height="74" rx="5" fill="url(#aksBar)" />
+            <rect x="208" y="94" width="16" height="122" rx="5" fill="url(#aksTeal)" />
+            <path d="M78 224 H236" stroke="#E2E8F0" strokeLinecap="round" />
+            <rect x="262" y="104" width="76" height="10" rx="5" fill="#0F172A" fillOpacity="0.08" />
+            <rect x="262" y="124" width="54" height="8" rx="4" fill="#D8232A" fillOpacity="0.75" />
+            <rect x="262" y="148" width="76" height="34" rx="8" fill="#14B8A6" fillOpacity="0.08" />
+            <rect x="270" y="162" width="42" height="7" rx="3.5" fill="#14B8A6" fillOpacity="0.5" />
+
+            {/* Orders card */}
+            <rect x="296" y="196" width="196" height="80" rx="12" fill="#FFFFFF" stroke="#E2E8F0" filter="url(#aksSoft)" />
+            <circle cx="320" cy="220" r="9" fill="#D8232A" fillOpacity="0.12" />
+            <path d="M316 220.5 L319 223.5 L324.5 217.5" stroke="#D8232A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <rect x="338" y="214" width="52" height="7" rx="3.5" fill="#0F172A" fillOpacity="0.12" />
+            <rect x="338" y="227" width="34" height="6" rx="3" fill="#CBD5E1" />
+            <rect x="400" y="212" width="44" height="16" rx="8" fill="#D8232A" fillOpacity="0.12" />
+            <rect x="412" y="218" width="20" height="5" rx="2.5" fill="#D8232A" fillOpacity="0.7" />
+            <circle cx="446" cy="252" r="7" fill="#14B8A6" fillOpacity="0.35" />
+            <circle cx="466" cy="252" r="7" fill="#CBD5E1" />
+            <circle cx="486" cy="252" r="7" fill="#CBD5E1" />
+
+            {/* Product tile */}
+            <rect x="24" y="204" width="132" height="86" rx="12" fill="#FFFFFF" stroke="#E2E8F0" filter="url(#aksSoft)" />
+            <rect x="38" y="218" width="30" height="30" rx="8" fill="#D8232A" fillOpacity="0.1" />
+            <path d="M45 226 H61 V238 H45 Z" stroke="#D8232A" strokeOpacity="0.55" strokeWidth="1.6" strokeLinejoin="round" />
+            <path d="M45 226 L48 222 H58 L61 226" stroke="#D8232A" strokeOpacity="0.55" strokeWidth="1.6" strokeLinejoin="round" />
+            <rect x="78" y="222" width="58" height="7" rx="3.5" fill="#0F172A" fillOpacity="0.1" />
+            <rect x="78" y="235" width="40" height="6" rx="3" fill="#CBD5E1" />
+            <rect x="38" y="260" width="98" height="7" rx="3.5" fill="#F1F5F9" />
+            <rect x="38" y="260" width="64" height="7" rx="3.5" fill="#14B8A6" fillOpacity="0.5" />
+          </svg>
+
+          <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-2 text-[11px] font-semibold text-neutral-400">
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#D8232A]" /> Real-time inventory
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400" /> Sales analytics
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-neutral-300" /> Order management
+            </span>
+          </div>
         </div>
+      </section>
+      {/* RIGHT — the login form (existing fields and logic, unchanged) */}
+      <section className="flex flex-col justify-center bg-white px-6 py-10 sm:px-10 lg:px-12 xl:px-20">
+        <div className="w-full max-w-[26rem] mx-auto">
+          {/* Compact brand strip — only visible below lg, where the left panel is hidden */}
+          <div className="lg:hidden flex items-center gap-3 mb-10">
+            <img src={aksLogo} alt="AKS Mart" className="w-11 h-11 rounded-xl object-cover shrink-0 ring-1 ring-black/5 shadow-sm" />
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Admin Portal</p>
+              <p className="text-base font-black tracking-tight text-neutral-900 leading-tight">AKS MART</p>
+            </div>
+          </div>
 
-        <Button type="submit" disabled={loading} className="w-full py-3 text-sm">
-          {loading ? 'Signing in…' : 'Sign in'}
-        </Button>
+          <div className="mb-8">
+            <h1 className="text-2xl sm:text-[1.75rem] font-black tracking-tight text-neutral-900">Welcome Back</h1>
+            <p className="mt-1.5 text-sm text-neutral-500">Sign in to your AKS Mart Admin Panel</p>
+          </div>
 
-        <p className="text-[11px] text-center text-neutral-400 leading-relaxed">
-          Authorised staff only. Credentials are issued by the store owner —{' '}
-          <span className="font-semibold text-neutral-500">see docs/DEPLOY_VPS.md</span>.
-        </p>
-      </form>
+          <form onSubmit={submit} className="space-y-5">
+            {error && (
+              <p role="alert" className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
+                {error}
+              </p>
+            )}
+
+            <div className="space-y-4">
+              <Field label="Email address">
+                <TextInput
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@aksgarments.com.bd"
+                />
+              </Field>
+              <Field label="Password">
+                <PasswordInput
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
+              </Field>
+            </div>
+
+            <Button type="submit" disabled={loading} className="w-full py-3 text-sm">
+              {loading ? 'Signing in…' : 'Sign in'}
+            </Button>
+
+            <p className="text-[11px] text-center text-neutral-400 leading-relaxed pt-1">
+              Authorised staff only. Credentials are issued by the store owner —{' '}
+              <span className="font-semibold text-neutral-500">see docs/DEPLOY_VPS.md</span>.
+            </p>
+          </form>
+        </div>
+      </section>
     </div>
   );
 }
