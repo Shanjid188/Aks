@@ -5,6 +5,8 @@ import { formatPrice } from '../utils/format';
 import { Heart, ShoppingBag, Star } from 'lucide-react';
 import { motion } from 'motion/react';
 import { navigate } from '../lib/router';
+import { flyToCart } from '../lib/flyToCart';
+import { useLocalized } from './Localized';
 
 interface HomeProductCardProps {
   product: Product;
@@ -15,12 +17,16 @@ export const HomeProductCard: React.FC<HomeProductCardProps> = ({ product }) => 
   const [isHovered, setIsHovered] = useState(false);
 
   const isFav = isInWishlist(product.id);
+  const t = useLocalized();
 
+  // One tap adds the default in-stock size and the product image flies into
+  // the bag on the right edge (same feel as ProductCard's hover "Add to Bag").
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     const defaultSize = product.sizes.find((s) => s.inStock) || product.sizes[0] || { size: 'One Size', inStock: true, stockCount: 0 };
     const defaultColor = product.colors[0] || { name: 'Default', hex: '#000000', image: product.images[0] };
     addToCart(product, defaultColor, defaultSize, 1);
+    flyToCart(e.currentTarget, defaultColor.image || product.images[0]);
   };
 
   const handleCardClick = () => {
@@ -43,6 +49,21 @@ export const HomeProductCard: React.FC<HomeProductCardProps> = ({ product }) => 
           decoding="async"
           className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
         />
+
+        {/* Hover "Add to Bag" — direct add (default in-stock size) that flies
+            into the bag on the right edge. Desktop hover reveal; phones keep
+            using the compact bag button in the price row below. */}
+        <div className="absolute inset-x-2.5 bottom-2.5 z-10">
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            title="Add to Bag"
+            className="w-full py-2.5 bg-neutral-900/90 hover:bg-[#D8232A] text-white backdrop-blur-md rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0"
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>{t('Add to Bag', 'ব্যাগে যোগ করুন')}</span>
+          </button>
+        </div>
 
         <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-10">
           {product.discountPercent && (

@@ -33,7 +33,10 @@ export const ToastContainer: React.FC = () => {
   };
 
   return (
-    <div id="toast-container" className="fixed bottom-4 left-4 right-4 sm:bottom-6 sm:right-6 sm:left-auto z-50 flex flex-col gap-2.5 w-auto sm:w-full sm:max-w-sm pointer-events-none">
+    // Right rail (floating cart 54–66px + whatsapp) owns the bottom-right corner,
+    // so the stack is pinned at right-24 — LEFT of the rail — and can never cover
+    // it. Growth is upward; drawers (z-50) still slide under freely.
+    <div id="toast-container" className="fixed bottom-4 left-4 right-24 sm:bottom-6 sm:right-24 sm:left-auto z-50 flex flex-col gap-2.5 w-auto sm:w-full sm:max-w-sm pointer-events-none">
       <AnimatePresence>
         {toasts.map((toast) => (
           <motion.div

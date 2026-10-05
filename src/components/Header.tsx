@@ -488,6 +488,7 @@ export const Header: React.FC = () => {
 
               {/* Cart Drawer Trigger */}
               <button
+                data-header-cart=""
                 onClick={() => setIsCartDrawerOpen(true)}
                 aria-label={`Open shopping bag${totalCartCount > 0 ? `, ${totalCartCount} item${totalCartCount === 1 ? '' : 's'}` : ''}`}
                 className="flex items-center gap-2 bg-[#D8232A] hover:bg-[#b51c22] text-white pl-3.5 pr-4 py-2 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"

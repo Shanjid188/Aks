@@ -16,6 +16,12 @@ import { HomePage } from './pages/HomePage';
  * tracking, modals …) to arrive first.
  */
 const CartDrawer = lazy(() => import('./components/CartDrawer').then((m) => ({ default: m.CartDrawer })));
+// Edge-pinned floating cart. Only appears once the cart has items, so it stays out
+// of the way (and out of the bundle path) for shoppers who never add anything.
+const FloatingCart = lazy(() => import('./components/FloatingCart').then((m) => ({ default: m.FloatingCart })));
+// WhatsApp chat bubble — same right-edge rail, mounted directly (no lazy) so the
+// help channel is never delayed by the drawer/modals chunk or an empty cart.
+import { FloatingWhatsApp } from './components/FloatingWhatsApp';
 const WishlistDrawer = lazy(() => import('./components/WishlistDrawer').then((m) => ({ default: m.WishlistDrawer })));
 const ProductDetailModal = lazy(() => import('./components/ProductDetailModal').then((m) => ({ default: m.ProductDetailModal })));
 const SizeGuideModal = lazy(() => import('./components/SizeGuideModal').then((m) => ({ default: m.SizeGuideModal })));
@@ -91,6 +97,12 @@ function MainAppContent() {
         <ShoeFinderModal />
         <CompareModal />
       </Suspense>
+      {/* Floating cart — own Suspense so it never waits on the drawer/modals chunk. */}
+      <Suspense fallback={null}>
+        <FloatingCart />
+      </Suspense>
+      {/* WhatsApp bubble — same right-edge rail, stacked just below the cart. */}
+      <FloatingWhatsApp />
       <ToastContainer />
     </div>
   );

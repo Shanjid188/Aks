@@ -4,8 +4,9 @@ import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
 import { isOutOfStock } from '../utils/stock';
 import { Heart, Eye, ShoppingBag, Star, Check, SlidersHorizontal, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { navigate } from '../lib/router';
+import { flyToCart } from '../lib/flyToCart';
+import { useLocalized } from './Localized';
 
 interface ProductCardProps {
   product: Product;
@@ -33,21 +34,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
     product.colors[0] || { name: 'Default', hex: '#000', image: product.images[0] }
   );
   const [isHovered, setIsHovered] = useState(false);
-  const [showQuickSize, setShowQuickSize] = useState(false);
-
   const isFav = isInWishlist(product.id);
   const isCompared = isInCompare(product.id);
   /** Admin → Products stock tracking: a tracked product with no units left is
    *  unbuyable (the API refuses the order), so the card says so up front. */
   const outOfStock = isOutOfStock(product);
-
-  // Handle Quick Add to Cart
-  const handleQuickAdd = (sizeObj: (typeof product.sizes)[0], e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!sizeObj.inStock) return;
-    addToCart(product, selectedColor, sizeObj, 1);
-    setShowQuickSize(false);
-  };
+  // Single-line bilingual copy (EN / BN) for the hover CTA.
+  const t = useLocalized();
 
   const handleCardClick = () => {
     navigate(`/products/${product.slug}`);
@@ -56,6 +49,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
   // Determine current display image (never blank — always fall back to the first image)
   const displayImage =
     (isHovered && product.images[1]) || selectedColor.image || product.images[0] || '';
+
+  // Hover CTA — replaces the old quick-add size overlay. One tap adds the
+  // default in-stock size (same rule as HomeProductCard) and the product
+  // image flies into the bag on the right edge, so the card never asks
+  // for a size.
+  const handleAddToBag = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (outOfStock) return;
+    const defaultSize =
+      product.sizes.find((s) => s.inStock) ||
+      product.sizes[0] ||
+      { size: 'One Size', inStock: true, stockCount: 0 };
+    addToCart(product, selectedColor, defaultSize, 1);
+    flyToCart(e.currentTarget, displayImage);
+  };
 
   if (layout === 'list') {
     return (
@@ -194,10 +202,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
     <div
       onClick={handleCardClick}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setShowQuickSize(false);
-      }}
+      onMouseLeave={() => setIsHovered(false)}
       className="group bg-white rounded-2xl border border-neutral-200/90 hover:border-neutral-300 hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden cursor-pointer relative"
     >
       {/* Product Image Area */}
@@ -292,49 +297,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
           </button>
         </div>
 
-        {/* Quick Add Size Overlay on Hover */}
+        {/* Hover "Add to Bag" — replaces the old quick-add size overlay: one
+            tap adds the default in-stock size and the product image flies into
+            the bag on the right edge. Always visible on phones (no hover
+            there); hover-revealed on sm+ so the card art stays clean. */}
         <div className="absolute bottom-2 left-2 right-2 z-20">
-          {!showQuickSize ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowQuickSize(true);
-              }}
-              className="w-full py-2.5 px-3 bg-neutral-900/90 hover:bg-[#D8232A] text-white backdrop-blur-md rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:translate-y-2 sm:group-hover:translate-y-0"
-            >
-              <ShoppingBag className="w-3.5 h-3.5" />
-              <span>+ Quick Add</span>
-            </button>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white/95 backdrop-blur-md p-2 rounded-xl shadow-xl border border-neutral-200 text-center"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1.5">
-                Select Size:
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-1">
-                {product.sizes.map((s) => (
-                  <button
-                    key={s.size}
-                    type="button"
-                    disabled={!s.inStock}
-                    onClick={(e) => handleQuickAdd(s, e)}
-                    className={`px-2 py-1 rounded text-xs font-extrabold transition-all cursor-pointer ${
-                      s.inStock
-                        ? 'bg-neutral-100 hover:bg-[#D8232A] hover:text-white text-neutral-800'
-                        : 'bg-neutral-50 text-neutral-300 line-through cursor-not-allowed'
-                    }`}
-                  >
-                    {s.size}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
+          <button
+            type="button"
+            onClick={handleAddToBag}
+            disabled={outOfStock}
+            className="w-full py-2.5 px-3 bg-neutral-900/90 hover:bg-[#D8232A] text-white backdrop-blur-md rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:translate-y-2 sm:group-hover:translate-y-0 disabled:cursor-not-allowed disabled:bg-neutral-500/90"
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>{outOfStock ? 'Out of stock' : t('Add to Bag', 'ব্যাগে যোগ করুন')}</span>
+          </button>
         </div>
       </div>
 
