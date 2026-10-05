@@ -26,9 +26,9 @@ export function LoginPage({ onSuccess }: { onSuccess: (admin: AdminUser) => void
   };
 
   return (
-    <div className="min-h-screen bg-white lg:grid lg:grid-cols-2">
-      {/* LEFT — branding panel (hidden on mobile, compact strip below lg) */}
-      <section className="relative hidden lg:flex flex-col justify-center overflow-hidden bg-gradient-to-br from-[#F7FBFA] via-white to-[#EFF7F5] px-12 xl:px-16">
+    <div className="min-h-svh bg-white lg:grid lg:grid-cols-2">
+      {/* LEFT — branding panel (hidden below lg, compact strip shows instead) */}
+      <section className="relative hidden lg:flex flex-col justify-center overflow-hidden bg-gradient-to-br from-[#F7FBFA] via-white to-[#EFF7F5] px-10 py-14 xl:px-16">
         {/* Decorative background — soft curves and circles, brand + teal tints */}
         <div aria-hidden="true" className="pointer-events-none absolute -top-24 -left-24 w-[26rem] h-[26rem] rounded-full bg-[#D8232A]/[0.07] blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute bottom-0 -right-20 w-[24rem] h-[24rem] rounded-full bg-teal-400/[0.12] blur-3xl" />
@@ -48,12 +48,14 @@ export function LoginPage({ onSuccess }: { onSuccess: (admin: AdminUser) => void
             </div>
           </div>
 
-          <h2 className="mt-10 text-4xl xl:text-[2.75rem] font-black leading-[1.1] tracking-tight text-neutral-900">
+          <h2 className="mt-9 text-[2.6rem] leading-[1.08] font-black tracking-tight text-neutral-900 xl:text-[3.1rem]">
             Manage Smarter.<br />
-            <span className="text-[#D8232A]">Grow Faster.</span>
+            <span className="bg-gradient-to-r from-[#D8232A] to-[#F0563D] bg-clip-text text-transparent">
+              Grow Faster.
+            </span>
           </h2>
 
-          <p className="mt-5 text-[15px] leading-relaxed text-neutral-500 max-w-md">
+          <p className="mt-5 max-w-md text-[15px] leading-relaxed text-neutral-500">
             Manage your products, orders, sales and business operations from one powerful platform.
           </p>
           {/* Original AKS illustration — abstract dashboard scene drawn in SVG.
@@ -94,8 +96,11 @@ export function LoginPage({ onSuccess }: { onSuccess: (admin: AdminUser) => void
             <path d="M78 224 H236" stroke="#E2E8F0" strokeLinecap="round" />
             <rect x="262" y="104" width="76" height="10" rx="5" fill="#0F172A" fillOpacity="0.08" />
             <rect x="262" y="124" width="54" height="8" rx="4" fill="#D8232A" fillOpacity="0.75" />
-            <rect x="262" y="148" width="76" height="34" rx="8" fill="#14B8A6" fillOpacity="0.08" />
-            <rect x="270" y="162" width="42" height="7" rx="3.5" fill="#14B8A6" fillOpacity="0.5" />
+            {/* Donut chart */}
+            <circle cx="284" cy="168" r="16" stroke="#14B8A6" strokeOpacity="0.2" strokeWidth="6" />
+            <path d="M284 152 a16 16 0 0 1 11.4 27.3" stroke="#14B8A6" strokeOpacity="0.8" strokeWidth="6" strokeLinecap="round" />
+            <rect x="312" y="160" width="26" height="7" rx="3.5" fill="#0F172A" fillOpacity="0.1" />
+            <rect x="312" y="172" width="18" height="6" rx="3" fill="#CBD5E1" />
 
             {/* Orders card */}
             <rect x="296" y="196" width="196" height="80" rx="12" fill="#FFFFFF" stroke="#E2E8F0" filter="url(#aksSoft)" />
@@ -134,18 +139,29 @@ export function LoginPage({ onSuccess }: { onSuccess: (admin: AdminUser) => void
         </div>
       </section>
       {/* RIGHT — the login form (existing fields and logic, unchanged) */}
-      <section className="flex flex-col justify-center bg-white px-6 py-10 sm:px-10 lg:px-12 xl:px-20">
-        <div className="w-full max-w-[26rem] mx-auto">
-          {/* Compact brand strip — only visible below lg, where the left panel is hidden */}
-          <div className="lg:hidden flex items-center gap-3 mb-10">
-            <img src={aksLogo} alt="AKS Mart" className="w-11 h-11 rounded-xl object-cover shrink-0 ring-1 ring-black/5 shadow-sm" />
+      <section className="relative flex flex-col justify-center bg-white px-6 py-10 sm:px-10 lg:px-12 xl:px-20">
+        {/* Soft corner tint so the white panel isn't flat */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_90%_at_100%_0%,rgba(20,184,166,0.07),transparent_60%),radial-gradient(100%_80%_at_0%_100%,rgba(216,35,42,0.05),transparent_60%)]" />
+
+        <div className="relative w-full max-w-[26rem] mx-auto">
+          {/* Company identity — shown above the heading on every device */}
+          <div className="mb-8 flex items-center gap-3.5 sm:mb-9">
+            <img
+              src={aksLogo}
+              alt="AKS Mart"
+              className="w-14 h-14 rounded-2xl object-cover shrink-0 ring-1 ring-black/5 shadow-sm"
+            />
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Admin Portal</p>
-              <p className="text-base font-black tracking-tight text-neutral-900 leading-tight">AKS MART</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-400">
+                Admin Portal
+              </p>
+              <p className="mt-0.5 text-2xl font-black tracking-tight text-neutral-900 leading-none">
+                AKS MART
+              </p>
             </div>
           </div>
 
-          <div className="mb-8">
+          <div className="mb-7">
             <h1 className="text-2xl sm:text-[1.75rem] font-black tracking-tight text-neutral-900">Welcome Back</h1>
             <p className="mt-1.5 text-sm text-neutral-500">Sign in to your AKS Mart Admin Panel</p>
           </div>
