@@ -274,10 +274,6 @@ export default function App() {
     if (current && !hasPerm(admin, current.permission)) setPage('dashboard');
   }, [admin, page]);
 
-  if (!admin) {
-    return <LoginPage onSuccess={(a) => setAdmin(a)} />;
-  }
-
   const logout = () => {
     setToken(null);
     setStoredAdmin(null);
@@ -350,6 +346,16 @@ export default function App() {
       )
       .slice(0, 8);
   }, [searchQuery, allowedNav]);
+
+  // The signed-out check lives BELOW every hook on purpose. An early return
+  // placed above them made the login screen run a shorter hook list than the
+  // console does, so the moment login succeeded React threw "Rendered more
+  // hooks than during the previous render" and unmounted the whole tree —
+  // which is the blank white page customers saw. Reaching here means the hook
+  // order is identical for both states, so the gate is safe to take.
+  if (!admin) {
+    return <LoginPage onSuccess={(a) => setAdmin(a)} />;
+  }
 
   const toggleCollapsed = () => {
     setCollapsed((c) => {
