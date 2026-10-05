@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Eye, EyeOff } from 'lucide-react';
 
 export const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(' ');
 
@@ -67,6 +67,34 @@ const inputStyles =
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={cx(inputStyles, props.className)} />;
+}
+
+/**
+ * Password field with a reveal toggle so a mistyped character can be caught
+ * before submitting. Keeps the same look as TextInput and leaves room on the
+ * right for the eye button.
+ */
+export function PasswordInput(props: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+  const [shown, setShown] = React.useState(false);
+  return (
+    <div className="relative">
+      <input
+        {...props}
+        type={shown ? 'text' : 'password'}
+        className={cx(inputStyles, 'pr-10', props.className)}
+      />
+      <button
+        type="button"
+        onClick={() => setShown((s) => !s)}
+        // aria-label (not title alone) so screen readers announce the toggle.
+        aria-label={shown ? 'Hide password' : 'Show password'}
+        title={shown ? 'Hide password' : 'Show password'}
+        className="absolute right-0 top-0 h-full px-3 flex items-center text-neutral-400 hover:text-neutral-700 transition-colors cursor-pointer"
+      >
+        {shown ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
+  );
 }
 
 export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {

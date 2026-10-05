@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api, setStoredAdmin, setToken, type AdminUser } from '../api';
-import { Button, Field, TextInput } from '../components/ui';
+import { Button, Field, PasswordInput, TextInput } from '../components/ui';
 import aksLogo from '../assets/AKS.logo.jpg';
 
 export function LoginPage({ onSuccess }: { onSuccess: (admin: AdminUser) => void }) {
@@ -61,9 +61,9 @@ export function LoginPage({ onSuccess }: { onSuccess: (admin: AdminUser) => void
             />
           </Field>
           <Field label="Password">
-            <TextInput
-              type="password"
+            <PasswordInput
               required
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
