@@ -34,7 +34,6 @@ interface StoreContextType {
   subcategoriesFor: (categorySlug: string) => Subcategory[];
   cart: CartItem[];
   wishlist: WishlistItem[];
-  compareList: Product[];
   recentlyViewed: Product[];
   currency: CurrencyMode;
   setCurrency: (c: CurrencyMode) => void;
@@ -59,10 +58,6 @@ interface StoreContextType {
   toggleWishlist: (product: Product) => void;
   isInWishlist: (productId: string) => boolean;
   clearWishlist: () => void;
-  // Compare Actions
-  toggleCompare: (product: Product) => void;
-  isInCompare: (productId: string) => boolean;
-  clearCompare: () => void;
   // Modals & Navigation
   isCartDrawerOpen: boolean;
   setIsCartDrawerOpen: (open: boolean) => void;
@@ -79,14 +74,15 @@ interface StoreContextType {
   setIsCheckoutOpen: (open: boolean) => void;
   isSizeGuideOpen: boolean;
   setIsSizeGuideOpen: (open: boolean) => void;
-    isAksMartClubOpen: boolean;
-  setIsAksMartClubOpen: (open: boolean) => void;
   isOrderTrackerOpen: boolean;
   setIsOrderTrackerOpen: (open: boolean) => void;
-  isShoeFinderOpen: boolean;
-  setIsShoeFinderOpen: (open: boolean) => void;
-  isCompareModalOpen: boolean;
-  setIsCompareModalOpen: (open: boolean) => void;
+  // Mobile chrome: bottom-bar Categories tab toggles the header's mobile drawer,
+  // and the Search tab asks the header to scroll up + focus its search box.
+  isMobileMenuOpen: boolean;
+  setIsMobileMenuOpen: (open: boolean) => void;
+  /** Increment to tell Header's mobile search input to take focus. */
+  mobileSearchFocusNonce: number;
+  requestMobileSearchFocus: () => void;
   // Orders & Reviews
   orders: Order[];
     createOrder: (orderData: Omit<Order, 'id' | 'createdAt' | 'trackingCode' | 'status'>) => Promise<Order>;
@@ -206,7 +202,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [compareList, setCompareList] = useState<Product[]>([]);
   const [recentlyViewed, setRecentlyViewed] = useState<Product[]>(() => {
     const saved = localStorage.getItem('aks_recent_viewed');
     return saved ? JSON.parse(saved) : [];
@@ -229,10 +224,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeProductPage, setActiveProductPage] = useState<Product | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
-    const [isAksMartClubOpen, setIsAksMartClubOpen] = useState(false);
   const [isOrderTrackerOpen, setIsOrderTrackerOpen] = useState(false);
-  const [isShoeFinderOpen, setIsShoeFinderOpen] = useState(false);
-  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+  // Mobile bottom-bar ↔ header bridge (Categories drawer + mobile search focus).
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mobileSearchFocusNonce, setMobileSearchFocusNonce] = useState(0);
+  const requestMobileSearchFocus = () =>
+    setMobileSearchFocusNonce((n) => n + 1);
 
   // Divisions taxonomy — active subcategories of one division slug.
   const subcategoriesFor = (categorySlug: string): Subcategory[] =>
@@ -541,38 +538,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return wishlist.some((item) => item.productId === productId);
   };
 
-  // Compare actions
-  const toggleCompare = (product: Product) => {
-    setCompareList((prev) => {
-      const exists = prev.some((p) => p.id === product.id);
-      if (exists) {
-        return prev.filter((p) => p.id !== product.id);
-      }
-      if (prev.length >= 4) {
-        addToast({
-          type: 'warning',
-          title: 'Compare Limit Reached',
-          message: 'You can compare up to 4 apparel items at once.',
-        });
-        return prev;
-      }
-      addToast({
-        type: 'info',
-        title: 'Added to Compare',
-        message: `${product.name} added to apparel comparison chart.`,
-      });
-      return [...prev, product];
-    });
-  };
-
-  const isInCompare = (productId: string) => {
-    return compareList.some((p) => p.id === productId);
-  };
-
-  const clearCompare = () => {
-    setCompareList([]);
-  };
-
   const addToRecentlyViewed = (product: Product) => {
     setRecentlyViewed((prev) => {
       const filtered = prev.filter((p) => p.id !== product.id);
@@ -757,7 +722,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         subcategoriesFor,
         cart,
         wishlist,
-        compareList,
         recentlyViewed,
         currency,
         setCurrency,
@@ -780,9 +744,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         toggleWishlist,
         isInWishlist,
         clearWishlist,
-        toggleCompare,
-        isInCompare,
-        clearCompare,
         isCartDrawerOpen,
         setIsCartDrawerOpen,
         isWishlistDrawerOpen,
@@ -798,14 +759,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setIsCheckoutOpen,
         isSizeGuideOpen,
         setIsSizeGuideOpen,
-                isAksMartClubOpen,
-        setIsAksMartClubOpen,
         isOrderTrackerOpen,
         setIsOrderTrackerOpen,
-        isShoeFinderOpen,
-        setIsShoeFinderOpen,
-        isCompareModalOpen,
-        setIsCompareModalOpen,
+        isMobileMenuOpen,
+        setIsMobileMenuOpen,
+        mobileSearchFocusNonce,
+        requestMobileSearchFocus,
         orders,
         getOrderById,
         fetchOrderById,

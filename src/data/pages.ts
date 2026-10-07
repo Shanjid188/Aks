@@ -82,7 +82,7 @@ Our team is happy to help — see the Contact Us page for phone, email and our D
     body: `## Talk to us
 
 - Phone / WhatsApp: +8801728-843503
-- Email: info@aksgarments.com.bd
+- Email: info@aksmartbd.com
 - Office: Paltan Tower, 87 Purana Paltan Line, Dhaka
 
 ## Order help
@@ -99,7 +99,7 @@ Cash on Delivery (COD) is available at checkout: you pay when the order arrives.
     bodyBn: `## আমাদের সাথে যোগাযোগ
 
 - ফোন / হোয়াটসঅ্যাপ: +8801728-843503
-- ইমেইল: info@aksgarments.com.bd
+- ইমেইল: info@aksmartbd.com
 - অফিস: পল্টন টাওয়ার, ৮৭ পুরানা পল্টন লাইন, ঢাকা
 
 ## অর্ডার সংক্রান্ত সহায়তা
@@ -115,7 +115,7 @@ Cash on Delivery (COD) is available at checkout: you pay when the order arrives.
 চেকআউটে ক্যাশ অন ডেলিভারি (COD) সুবিধা আছে: পণ্য পৌঁছানোর সময় টাকা পরিশোধ করবেন।`,
     seoTitle: 'Contact AKS Mart — phone, email and office address',
     seoDescription:
-      'Reach AKS Mart by phone or WhatsApp at +8801728-843503, by email at info@aksgarments.com.bd, or visit Paltan Tower, 87 Purana Paltan Line, Dhaka.',
+      'Reach AKS Mart by phone or WhatsApp at +8801728-843503, by email at info@aksmartbd.com, or visit Paltan Tower, 87 Purana Paltan Line, Dhaka.',
     showInFooter: true,
     contactForm: true,
     sortOrder: 2,
@@ -130,7 +130,7 @@ We offer easy returns on eligible items within 30 days of delivery — the same 
 
 ## How to start a return
 
-- Call or message us at +8801728-843503, or email info@aksgarments.com.bd
+- Call or message us at +8801728-843503, or email info@aksmartbd.com
 - Share your order number and the reason for the return
 - Our team confirms whether the item is eligible and arranges pickup where available
 
@@ -153,7 +153,7 @@ Tell us within 3 days of delivery with a photo of the item and the packaging, an
 
 ## কীভাবে রিটার্ন শুরু করবেন
 
-- +8801728-843503 নম্বরে কল বা মেসেজ করুন, অথবা info@aksgarments.com.bd-এ ইমেইল করুন
+- +8801728-843503 নম্বরে কল বা মেসেজ করুন, অথবা info@aksmartbd.com-এ ইমেইল করুন
 - আপনার অর্ডার নম্বর ও ফেরত দেওয়ার কারণ জানান
 - পণ্যটি ফেরতযোগ্য কি না তা আমাদের টিম নিশ্চিত করে এবং যেখানে সম্ভব পিকআপের ব্যবস্থা করে
 
@@ -206,7 +206,7 @@ Your shopping bag, wishlist and language choice are stored in your own browser (
 
 ## Removing your data
 
-Write to info@aksgarments.com.bd with your order number and we will delete the personal details we no longer need to keep for accounting purposes.`,
+Write to info@aksmartbd.com with your order number and we will delete the personal details we no longer need to keep for accounting purposes.`,
     bodyBn: `## আমরা কী তথ্য নিই
 
 অর্ডার করার সময় ডেলিভারির জন্য যেটুকু তথ্য দরকার, ঠিক সেটুকুই নেওয়া হয়:
@@ -232,7 +232,7 @@ Write to info@aksgarments.com.bd with your order number and we will delete the p
 
 ## আপনার তথ্য মুছে ফেলা
 
-আপনার অর্ডার নম্বরসহ info@aksgarments.com.bd-এ লিখুন — হিসাবরক্ষণের জন্য যা রাখা জরুরি নয়, এমন ব্যক্তিগত তথ্য আমরা মুছে দেব।`,
+আপনার অর্ডার নম্বরসহ info@aksmartbd.com-এ লিখুন — হিসাবরক্ষণের জন্য যা রাখা জরুরি নয়, এমন ব্যক্তিগত তথ্য আমরা মুছে দেব।`,
     seoTitle: 'Privacy Policy — how AKS Mart handles your data',
     seoDescription:
       'How AKS Mart collects, uses and protects customer information for orders, delivery and support — and how to ask us to remove your data.',
@@ -271,7 +271,7 @@ Returns and refunds follow our Return & Refund Policy.
 
 ## Contact
 
-Questions about these terms: info@aksgarments.com.bd or +8801728-843503.`,
+Questions about these terms: info@aksmartbd.com or +8801728-843503.`,
     bodyBn: `## অর্ডার
 
 - অর্ডার করা মানে কেনার অনুরোধ; আমাদের টিম গ্রহণ করলে তা নিশ্চিত হয়
@@ -299,7 +299,7 @@ Questions about these terms: info@aksgarments.com.bd or +8801728-843503.`,
 
 ## যোগাযোগ
 
-এই শর্তাবলি নিয়ে প্রশ্ন থাকলে: info@aksgarments.com.bd অথবা +8801728-843503।`,
+এই শর্তাবলি নিয়ে প্রশ্ন থাকলে: info@aksmartbd.com অথবা +8801728-843503।`,
     seoTitle: 'Terms & Conditions — AKS Mart',
     seoDescription:
       'Ordering, delivery, payment, product and returns terms for shopping at AKS Mart Bangladesh.',

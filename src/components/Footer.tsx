@@ -65,7 +65,6 @@ const FooterColumn: React.FC<{
 
 export const Footer: React.FC = () => {
   const {
-        setIsAksMartClubOpen,
     setIsSizeGuideOpen,
     setFilters,
     setActiveProductPage,
@@ -311,11 +310,6 @@ export const Footer: React.FC = () => {
             <li>
               <button onClick={() => setIsSizeGuideOpen(true)} className="py-2 hover:text-white transition-colors cursor-pointer">
                 <Bi en={content.footerGuides} bn={content.footerGuidesBn} />
-              </button>
-            </li>
-            <li>
-              <button onClick={() => setIsAksMartClubOpen(true)} className="py-2 hover:text-white transition-colors cursor-pointer">
-                <Bi en={content.footerClub} bn={content.footerClubBn} />
               </button>
             </li>
           </FooterColumn>

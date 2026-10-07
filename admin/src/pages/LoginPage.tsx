@@ -180,7 +180,7 @@ export function LoginPage({ onSuccess }: { onSuccess: (admin: AdminUser) => void
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@aksgarments.com.bd"
+                  placeholder="admin@aksmartbd.com"
                 />
               </Field>
               <Field label="Password">

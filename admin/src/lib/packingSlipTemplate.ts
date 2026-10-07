@@ -50,7 +50,7 @@ export function emptyPackingSlipSettings(): PackingSlipSettings {
     storeTagline: 'One Mart. Many Choices.',
     website: 'aksmartbd.com',
     phone: '+8801728-843503',
-    email: 'info@aksgarments.com.bd',
+    email: 'info@aksmartbd.com',
     returnPolicy: '',
     thankYouMessage: 'Thank you for shopping with AKS Mart.',
   };

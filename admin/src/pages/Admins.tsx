@@ -154,7 +154,7 @@ export function AdminsPage() {
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="rahim@aksgarments.com.bd"
+                placeholder="rahim@aksmartbd.com"
                 className="mt-1 w-full text-sm font-semibold rounded-lg border border-neutral-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#D8232A]/30 focus:border-[#D8232A]"
               />
             </label>

@@ -125,4 +125,4 @@ See `docs/PROJECT_CONTEXT.md` for full architecture details.
 
 ---
 
-(c) 2026 AKS Garments (Bangladesh) Limited. All rights reserved.
+(c) 2026 AKS Mart (Bangladesh) Limited. All rights reserved.

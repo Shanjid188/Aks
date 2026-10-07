@@ -15,8 +15,6 @@ import {
   Menu,
   X,
   ChevronDown,
-  Sparkle,
-  Award,
   Clock,
   ArrowRight,
   ShieldCheck,
@@ -45,15 +43,11 @@ export const Header: React.FC = () => {
   const {
     cart,
     wishlist,
-    compareList,
     cartSubtotal,
     currency,
     setCurrency,
     setIsCartDrawerOpen,
     setIsWishlistDrawerOpen,
-        setIsAksMartClubOpen,
-    setIsShoeFinderOpen,
-    setIsCompareModalOpen,
     setIsSizeGuideOpen,
     filters,
     setFilters,
@@ -62,6 +56,10 @@ export const Header: React.FC = () => {
     subcategoriesFor,
     openQuickView,
     setActiveProductPage,
+    // Mobile bottom bar ↔ header bridge (shared Menu drawer + search focus).
+    isMobileMenuOpen,
+    setIsMobileMenuOpen,
+    mobileSearchFocusNonce,
   } = useStore();
 
   const { language, setLanguage } = useLanguage();
@@ -70,13 +68,16 @@ export const Header: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeMegaMenu, setActiveMegaMenu] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  // Search boxes the bottom bar's Search tab can hand focus to. Which one is
+  // on screen depends on the breakpoint: the compact bar lives below md, the
+  // full search box from md up (the bottom bar itself stops at lg).
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
+  const desktopSearchRef = useRef<HTMLInputElement>(null);
 
-  // Announcement rotation — DB-driven; hardcoded strings remain as offline fallback.
+  // Announcements scroll continuously — DB-driven; hardcoded strings remain as offline fallback.
   const [announcements, setAnnouncements] = useState<Announcement[]>(DEFAULT_ANNOUNCEMENTS);
-  const [announcementIndex, setAnnouncementIndex] = useState(0);
 
   // Load active announcements from the API (falls back to the bundled strings).
   useEffect(() => {
@@ -89,13 +90,6 @@ export const Header: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setAnnouncementIndex((prev) => (prev + 1) % announcements.length);
-    }, 4500);
-    return () => clearInterval(timer);
-  }, [announcements.length]);
-
   // Click outside to close search dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -106,6 +100,21 @@ export const Header: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Bottom bar → Search tab: the header sits above the fold, so scroll back to
+  // the top first, then focus whichever search box is actually visible at this
+  // width. `preventScroll` keeps the focus from fighting the smooth scroll.
+  // The nonce starts at 0 and only ever increases, so every tap re-runs this.
+  useEffect(() => {
+    if (mobileSearchFocusNonce === 0) return undefined;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const timer = window.setTimeout(() => {
+      const compact = mobileSearchRef.current;
+      const target = compact && compact.offsetParent !== null ? compact : desktopSearchRef.current;
+      target?.focus({ preventScroll: true });
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [mobileSearchFocusNonce]);
 
   const totalCartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -172,88 +181,24 @@ export const Header: React.FC = () => {
         {/* Top Utility Announcement Bar */}
         <div className="bg-neutral-900 text-white text-[10px] py-0.5 px-4 border-b border-neutral-800/50">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1">
-            {/* Rotating ticker — DB-driven announcements, hardcoded strings as offline fallback */}
-            <div className="flex items-center gap-2 font-medium tracking-wide">
-              <span className="inline-flex items-center justify-center p-0.5 rounded bg-[#D8232A] text-white text-[10px]">
-                {ANNOUNCEMENT_ICONS[announcementIndex % ANNOUNCEMENT_ICONS.length]}
-              </span>
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={announcementIndex}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  transition={{ duration: 0.3 }}
-                  className="text-neutral-200"
-                  onClick={
-                    announcements[announcementIndex % announcements.length]?.link
-                      ? () => {
-                          const link = announcements[announcementIndex % announcements.length].link!;
-                          if (link.startsWith('/')) navigate(link);
-                          else window.open(link, '_blank');
-                        }
-                      : undefined
-                  }
-                >
-                  {announcements[announcementIndex % announcements.length]
-                    ? language === 'bn' && announcements[announcementIndex % announcements.length].textBn
-                      ? announcements[announcementIndex % announcements.length].textBn
-                      : announcements[announcementIndex % announcements.length].text
-                    : ''}
-                </motion.span>
-              </AnimatePresence>
-            </div>
-
-            {/* Quick links & Currency */}
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 sm:gap-x-4 text-neutral-300">
-              <Link
-                to="/track-order"
-                className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
+            {/* Scrolling ticker — every message follows the previous one, side to side */}
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <div
+                key={language}
+                className="marquee-track flex w-max items-center gap-10 pr-10 font-medium tracking-wide"
+                style={{ animationDuration: `${Math.max(announcements.length * 5, 15)}s` }}
               >
-                <Clock className="w-3 h-3 text-amber-400" />
-                <span>{t(content.headerQuickTrack, content.headerQuickTrackBn)}</span>
-              </Link>
-
-              <span className="w-px h-2.5 bg-neutral-700" />
-
-              <button
-                      onClick={() => setIsAksMartClubOpen(true)}
-                className="flex items-center gap-1 hover:text-white transition-colors text-amber-400 font-semibold cursor-pointer py-2 -my-2"
-              >
-                <Award className="w-3 h-3" />
-                <span>{t(content.headerQuickClub, content.headerQuickClubBn)}</span>
-              </button>
-
-              <span className="w-px h-3 bg-neutral-700" />
-               {/* Currency & Language toggles */}
-               <div className="flex items-center gap-2">
-                 <button
-                   onClick={() => setCurrency(currency === 'BDT' ? 'USD' : 'BDT')}
-                   className={`flex items-center rounded-lg px-2.5 py-2 -my-1 text-[11px] font-bold transition-colors cursor-pointer ${
-                     currency === 'BDT'
-                       ? 'bg-[#D8232A] text-white'
-                       : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-                   }`}
-                   title="Toggle currency"
-                 >
-                   {currency === 'BDT' ? '৳ BDT' : '$ USD'}
-                 </button>
-                 <button
-                   onClick={() => {
-                     const next = language === 'en' ? 'bn' : 'en';
-                     setLanguage(next);
-                   }}
-                   className={`flex items-center rounded-lg px-2.5 py-2 -my-1 text-[11px] font-bold transition-colors cursor-pointer ${
-                     language === 'bn'
-                       ? 'bg-[#D8232A] text-white'
-                       : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
-                   }`}
-                   title="Toggle language"
-                 >
-                   {language === 'en' ? 'EN' : 'বাং'}
-                 </button>
-               </div>
-
+                {[...announcements, ...announcements].map((a, i) => (
+                  <span key={i} className="flex items-center gap-2 whitespace-nowrap">
+                    <span className="inline-flex items-center justify-center p-0.5 rounded bg-[#D8232A] text-white text-[10px]">
+                      {ANNOUNCEMENT_ICONS[i % ANNOUNCEMENT_ICONS.length]}
+                    </span>
+                    <span className="text-neutral-200">
+                      {language === 'bn' && a.textBn ? a.textBn : a.text}
+                    </span>
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -293,21 +238,25 @@ export const Header: React.FC = () => {
                   <Logo className="h-full w-full rounded-[14px] bg-white object-cover" />
                 </span>
               </span>
-              <div className="hidden sm:flex flex-col justify-center">
-                <span className="text-[15px] font-extrabold uppercase leading-none tracking-[0.13em] text-neutral-900">
-                  AKS{' '}
-                  <span className="text-[#D8232A] transition-colors duration-300 group-hover:text-[#B91C1C]">MART</span>
-                </span>
-                <span className="mt-1 hidden text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-neutral-400 transition-colors duration-300 md:block group-hover:text-neutral-500">
-                  One Mart. Many Choices.
-                </span>
-              </div>
+              {/* Wordmark: the store NAME sits beside the logo at every width —
+                it used to be hidden below `sm`, which left phones showing a bare
+                logo with no idea what the shop was called. */}
+            <div className="flex min-w-0 flex-col justify-center">
+              <span className="truncate text-[13px] font-extrabold uppercase leading-none tracking-[0.13em] text-neutral-900 sm:text-[15px]">
+                AKS{' '}
+                <span className="text-[#D8232A] transition-colors duration-300 group-hover:text-[#B91C1C]">MART</span>
+              </span>
+              <span className="mt-1 hidden text-[9px] font-semibold uppercase leading-none tracking-[0.18em] text-neutral-400 transition-colors duration-300 md:block group-hover:text-neutral-500">
+                One Mart. Many Choices.
+              </span>
+            </div>
             </Link>
 
             {/* Smart Live Search Bar */}
             <div ref={searchRef} className="relative flex-1 max-w-lg hidden md:block">
               <form onSubmit={handleSearchSubmit} className="relative">
                 <input
+                  ref={desktopSearchRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -446,39 +395,55 @@ export const Header: React.FC = () => {
               </AnimatePresence>
             </div>
 
-            {/* Action Icons (Compare, Wishlist, Cart) */}
-            <div className="flex items-center gap-1">
-              {/* Style & Fit Matcher */}
-              <button
-                onClick={() => setIsShoeFinderOpen(true)}
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg bg-gradient-to-r from-amber-50 to-rose-50 border border-amber-200/80 text-amber-900 text-xs font-bold hover:shadow-sm transition-all hover:scale-102 cursor-pointer"
+            {/* Action Icons (Track, Currency, Language, Wishlist, Cart) */}
+            <div className="flex items-center gap-1 shrink-0">
+              {/* Track Order — sits left of the wishlist */}
+              <Link
+                to="/track-order"
+                className="hidden sm:flex flex-col items-center gap-0.5 p-2.5 rounded-lg text-neutral-700 hover:bg-neutral-100 transition-colors cursor-pointer"
+                ariaLabel={t(content.headerQuickTrack, content.headerQuickTrackBn)}
               >
-                <Sparkle className="w-3.5 h-3.5 text-amber-600 fill-amber-500 animate-pulse" />
-                <span>{t(content.headerOutfitMatcher, content.headerOutfitMatcherBn)}</span>
+                <Clock className="w-5 h-5" />
+                <span className="text-[10px] font-semibold leading-none whitespace-nowrap">
+                  {t(content.headerQuickTrack, content.headerQuickTrackBn)}
+                </span>
+              </Link>
+
+              {/* Currency toggle */}
+              <button
+                onClick={() => setCurrency(currency === 'BDT' ? 'USD' : 'BDT')}
+                className="flex flex-col items-center gap-0.5 p-2.5 rounded-lg text-neutral-700 hover:bg-neutral-100 transition-colors cursor-pointer"
+                title="Toggle currency"
+              >
+                <span className="text-sm font-black leading-none">{currency === 'BDT' ? '৳' : '$'}</span>
+                <span className="text-[10px] font-semibold leading-none">{currency}</span>
               </button>
 
-              {/* Compare */}
+              {/* Language toggle */}
               <button
-                onClick={() => setIsCompareModalOpen(true)}
-                className="relative p-2.5 rounded-lg text-neutral-700 hover:bg-neutral-100 transition-colors cursor-pointer"
-                title="Compare Products"
+                onClick={() => setLanguage(language === 'en' ? 'bn' : 'en')}
+                className="flex flex-col items-center gap-0.5 p-2.5 rounded-lg text-neutral-700 hover:bg-neutral-100 transition-colors cursor-pointer"
+                title="Toggle language"
               >
-                <SlidersHorizontal className="w-5 h-5" />
-                {compareList.length > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 bg-sky-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center">
-                    {compareList.length}
-                  </span>
-                )}
+                <span className="text-sm font-black leading-none">{language === 'en' ? 'EN' : 'বাং'}</span>
+                <span className="text-[10px] font-semibold leading-none">
+                  {language === 'en' ? 'বাংলা' : 'English'}
+                </span>
               </button>
+
+              <span className="w-px h-8 bg-neutral-200 mx-1 hidden sm:block" />
 
               {/* Wishlist */}
               <button
                 onClick={() => setIsWishlistDrawerOpen(true)}
                 className="relative p-2.5 rounded-lg text-neutral-700 hover:bg-neutral-100 transition-colors cursor-pointer"
-                title="Saved Wishlist"
+                title="Wishlist"
                 aria-label={`Open wishlist${wishlist.length > 0 ? `, ${wishlist.length} saved` : ''}`}
               >
-                <Heart className="w-5 h-5" />
+                <span className="flex flex-col items-center gap-0.5">
+                  <Heart className="w-5 h-5" />
+                  <span className="text-[10px] font-semibold leading-none">Wishlist</span>
+                </span>
                 {wishlist.length > 0 && (
                   <span className="absolute top-1 right-1 w-4 h-4 bg-[#D8232A] text-white rounded-full text-[10px] font-bold flex items-center justify-center animate-scale">
                     {wishlist.length}
@@ -486,12 +451,13 @@ export const Header: React.FC = () => {
                 )}
               </button>
 
-              {/* Cart Drawer Trigger */}
+              {/* Cart Drawer Trigger — desktop only: below lg the sticky bottom
+                  bar's Cart tab owns this, so the mobile top bar stays clean. */}
               <button
                 data-header-cart=""
                 onClick={() => setIsCartDrawerOpen(true)}
                 aria-label={`Open shopping bag${totalCartCount > 0 ? `, ${totalCartCount} item${totalCartCount === 1 ? '' : 's'}` : ''}`}
-                className="flex items-center gap-2 bg-[#D8232A] hover:bg-[#b51c22] text-white pl-3.5 pr-4 py-2 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                className="hidden lg:flex items-center gap-2 bg-[#D8232A] hover:bg-[#b51c22] text-white pl-3.5 pr-4 py-2 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
               >
                 <div className="relative">
                   <ShoppingBag className="w-5 h-5 group-hover:rotate-6 transition-transform" />
@@ -517,6 +483,7 @@ export const Header: React.FC = () => {
           <div className="mt-2 md:hidden">
             <form onSubmit={handleSearchSubmit} className="relative">
               <input
+                ref={mobileSearchRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -588,16 +555,6 @@ export const Header: React.FC = () => {
               </div>
 
               <div className="border-t border-neutral-100 pt-3 flex flex-col gap-2 text-xs font-semibold text-neutral-700">
-                <button
-                  onClick={() => {
-                    setIsShoeFinderOpen(true);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="flex items-center gap-2 py-2 text-amber-700 font-bold"
-                >
-                  <Sparkle className="w-4 h-4 text-amber-600" />
-                  Launch Outfit & Style Matcher
-                </button>
                 <button
                   onClick={() => {
                     navigate('/track-order');

@@ -44,13 +44,19 @@ export const FloatingWhatsApp: React.FC = () => {
       rel="noopener noreferrer"
       aria-label="Chat with us on WhatsApp"
       title="Chat with us on WhatsApp"
-      // Rail: right edge, clearly BELOW the cart — cart is bottom-[248px]/sm:bottom-[300px]
-      // (its bottom edge sits ~197–234px above this button's top);
+      // Rail: right edge, BELOW the cart — the cart is pinned to the viewport's
+      // vertical middle (top-1/2), so the two never collide at any screen
+      // height (landscape phones included). This bubble stays bottom-anchored;
+      // env(safe-area-inset-bottom) keeps it out of the iOS home-indicator
+      // zone on notched devices (0 elsewhere).
+      // Below lg the mobile bottom bar owns the bottom edge, so the bubble is
+      // lifted clear of it (76px = ~60px bar + 16px gap) and only drops back
+      // to its resting offset once the bar is gone (lg+).
       // z-40 lets drawers slide over freely. 16/20px (literal px, immune to the
       // ≥1280 root-size bump; at the right edge it stays clear of the centred
       // iOS home indicator) and thumb-reachable, while ToastContainer's right-24
       // keeps the toast stack LEFT of this rail instead of covering it.
-      className="fixed bottom-[16px] right-3 z-40 flex h-[35px] w-[35px] items-center justify-center rounded-full bg-[#D8232A] text-white shadow-[0_8px_24px_-6px_rgba(216,35,42,0.65)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#B81E24] hover:shadow-[0_14px_32px_-8px_rgba(216,35,42,0.7)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D8232A] focus-visible:ring-offset-2 motion-reduce:transform-none sm:bottom-[20px] sm:right-4 sm:h-[46px] sm:w-[46px]"
+      className="fixed bottom-[calc(76px_+_env(safe-area-inset-bottom))] right-3 z-40 flex h-[35px] w-[35px] items-center justify-center rounded-full bg-[#D8232A] text-white shadow-[0_8px_24px_-6px_rgba(216,35,42,0.65)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#B81E24] hover:shadow-[0_14px_32px_-8px_rgba(216,35,42,0.7)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D8232A] focus-visible:ring-offset-2 motion-reduce:transform-none sm:bottom-[calc(76px_+_env(safe-area-inset-bottom))] sm:right-4 sm:h-[46px] sm:w-[46px] lg:bottom-[calc(20px_+_env(safe-area-inset-bottom))]"
     >
       {/* Subtle ping so first-time shoppers notice the help channel. */}
       <span

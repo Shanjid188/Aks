@@ -5,6 +5,7 @@ import { applyDefaultSeo } from './lib/seo';
 import { RouterProvider, useRouter, matchRoute } from './lib/router';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { ToastContainer } from './components/ToastContainer';
 import { SkeletonBlock } from './components/Skeleton';
 import { HomePage } from './pages/HomePage';
@@ -25,9 +26,6 @@ import { FloatingWhatsApp } from './components/FloatingWhatsApp';
 const WishlistDrawer = lazy(() => import('./components/WishlistDrawer').then((m) => ({ default: m.WishlistDrawer })));
 const ProductDetailModal = lazy(() => import('./components/ProductDetailModal').then((m) => ({ default: m.ProductDetailModal })));
 const SizeGuideModal = lazy(() => import('./components/SizeGuideModal').then((m) => ({ default: m.SizeGuideModal })));
-const AksMartClubModal = lazy(() => import('./components/AksMartClubModal').then((m) => ({ default: m.AksMartClubModal })));
-const ShoeFinderModal = lazy(() => import('./components/ShoeFinderModal').then((m) => ({ default: m.ShoeFinderModal })));
-const CompareModal = lazy(() => import('./components/CompareModal').then((m) => ({ default: m.CompareModal })));
 
 const ProductsPage = lazy(() => import('./pages/ProductsPage').then((m) => ({ default: m.ProductsPage })));
 const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })));
@@ -87,15 +85,18 @@ function MainAppContent() {
       </main>
       <Footer />
 
+      {/* Mobile sticky bottom bar (Home · Categories · Cart · Search · Account) —
+          fixed to the viewport so it survives scrolling, plus an in-flow
+          spacer (inside the component) so the footer never hides beneath it.
+          The `lg:hidden` breakpoint also lives inside the component. */}
+      <MobileBottomNav />
+
       {/* Global modals & drawers — on demand, so they never delay the page. */}
       <Suspense fallback={null}>
         <ProductDetailModal />
         <CartDrawer />
         <WishlistDrawer />
         <SizeGuideModal />
-        <AksMartClubModal />
-        <ShoeFinderModal />
-        <CompareModal />
       </Suspense>
       {/* Floating cart — own Suspense so it never waits on the drawer/modals chunk. */}
       <Suspense fallback={null}>

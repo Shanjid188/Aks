@@ -1,4 +1,4 @@
-// AKS Garments — typed API client
+// AKS Mart — typed API client
 import { readCache, writeCache } from './lib/apiCache';
 
 type ApiOpts = { method?: string; body?: unknown };

@@ -16,7 +16,7 @@ const COUPONS = [
   { code: 'FREESHIP', discountType: 'percent', value: 100, minSpend: 0, description: 'Free express courier delivery across Bangladesh' },
 ];
 
-const DEFAULT_ADMIN_EMAIL = 'admin@aksgarments.com.bd';
+const DEFAULT_ADMIN_EMAIL = 'admin@aksmartbd.com';
 const DEFAULT_ADMIN_PASSWORD = 'Admin@123';
 
 // Default RBAC roles seeded on every boot; Super Admin is immutable & full-access.
@@ -205,7 +205,7 @@ async function main() {
   }
   console.log(`✅ Products → ${productCreated} created, ${productUpdated} updated (${INITIAL_PRODUCTS.length} total)`);
 
-  // Keep any legacy garment products preserved in the DB but hidden from the storefront.
+  // Keep any legacy products preserved in the DB but hidden from the storefront.
   await prisma.product.updateMany({
     where: { NOT: { category: { in: DIVISIONS.map((d) => d.slug) } } },
     data: { isActive: false },

@@ -11,8 +11,10 @@ import { motion, AnimatePresence } from 'motion/react';
  * opens the existing CartDrawer. No cart logic, storage or pricing lives here, so
  * adding/changing/removing items or quantities updates it automatically.
  *
- * Always visible so shoppers always have one-tap access to their cart. When the
- * cart is empty the quantity badge is simply omitted — the button stays put.
+ * Always visible on desktop so shoppers always have one-tap access to their
+ * cart. Below lg it is hidden — the sticky bottom bar's Cart tab is the
+ * mobile entry point instead. When the cart is empty the quantity badge is
+ * simply omitted — the button stays put.
  */
 export const FloatingCart: React.FC = () => {
   const { cart, cartSubtotal, currency, setIsCartDrawerOpen } = useStore();
@@ -53,15 +55,25 @@ export const FloatingCart: React.FC = () => {
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: 24 }}
         transition={{ duration: 0.22, ease: 'easeOut' }}
-        // Edge-pinned and kept clear of the bottom-right toast stack, which is
-        // pinned at right-24 (i.e. LEFT of this 54–66px rail) so it never covers
-        // the bag. Vertical spacing is belt-and-braces anyway: the 248/300px offset
-        // (literal px, immune to the ≥1280 root-size bump) clears even a
-        // two-toast stack and leaves ~197–234px of air above the WhatsApp button's
-        // top (drawers at z-50 slide under freely).
-        // No overflow-hidden here — the count badge needs bleed room so it is
-        // never clipped; corners are rounded per-section instead.
-        className="group fixed bottom-[248px] right-0 z-40 flex w-[54px] cursor-pointer flex-col rounded-l-2xl border border-r-0 border-[#E5E7EB] bg-white shadow-[0_8px_24px_-6px_rgba(15,23,42,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_32px_-8px_rgba(216,35,42,0.4)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D8232A] focus-visible:ring-offset-2 motion-reduce:transform-none sm:bottom-[300px] sm:w-[66px]"
+        // Vertically centered on the right edge on EVERY screen size — but only
+        // from lg up: below that the sticky bottom bar owns the bottom edge and
+        // carries its own Cart tab, so this rail would just duplicate it (and
+        // collide with the bar). `hidden lg:flex` keeps it desktop-only while
+        // motion's opacity/x animation still runs harmlessly off-screen.
+        // `top-1/2` + `-translate-y-1/2` keeps the card at the viewport middle
+        // no matter how short or tall the screen is (landscape phones, tablets,
+        // desktop alike) — no fixed bottom offset can drift it into the header
+        // or leave it floating in mid-air. Centering via the `translate`
+        // property composes with motion's `transform` (slide-in x), so the
+        // entrance animation still works. `sm:` only grows the card's width;
+        // the position itself is fully size-independent. Toasts stay pinned at
+        // right-24 — LEFT of this 54–66px rail — so they can never cover the
+        // bag, and drawers (z-50) slide under freely.
+        // No hover lift here: a hover `-translate-y` would override the -50%
+        // centering and make the card jump. No overflow-hidden either — the
+        // count badge needs bleed room so it is never clipped; corners are
+        // rounded per-section instead.
+        className="group fixed right-0 top-1/2 z-40 hidden w-[54px] -translate-y-1/2 lg:flex cursor-pointer flex-col rounded-l-2xl border border-r-0 border-[#E5E7EB] bg-white shadow-[0_8px_24px_-6px_rgba(15,23,42,0.28)] transition-shadow duration-200 hover:shadow-[0_14px_32px_-8px_rgba(216,35,42,0.4)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D8232A] focus-visible:ring-offset-2 sm:w-[66px]"
       >
         {/* Bag body — white area with a stitched handle arch + bag icon.
             Extra top padding + inset badge position keep the count fully inside. */}

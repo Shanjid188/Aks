@@ -1,4 +1,4 @@
-# AKS Garments — Project Context & Developer Guide
+# AKS Mart — Project Context & Developer Guide
 
 > **Purpose:** This file is a persistent reference for AI assistants and developers working on this codebase. Read this first before making any changes. Update it whenever the project structure or architecture changes.
 
@@ -8,14 +8,14 @@
 
 | Field | Value |
 |---|---|
-| **Project Name** | AKS Garments (package: `aks-garments`) |
+| **Project Name** | AKS Mart (package: `aks-mart`) |
 | **Directory** | `d:\Downloads\bata-footwear-&-accessories-store` |
 | **Git Remote** | `https://github.com/Shanjid188/Aks.git` |
 | **Type** | Single-page e-commerce store (apparel/fashion) |
 | **Locale** | Bangladesh — prices in ৳ BDT, stores across BD, bKash/Nagad/COD |
 | **Current Status** | Functional demo e-commerce app, Vercel-ready |
 
-> ⚠️ **Directory name mismatch:** The folder is named `bata-footwear-&-accessories-store` but the app is branded **AKS Garments** — a clothing store (panjabis, shirts, sarees, denim). The `src/assets/images/` contains footwear-themed images.
+> ⚠️ **Directory name mismatch:** The folder is named `bata-footwear-&-accessories-store` but the app is branded **AKS Mart** — a multi-division mart (SHUDDHO food, AKS CRAFT handicrafts, AKS HOME & living, AKS BEAUTY personal care, AKS PRINT custom printing).
 
 > ✅ **DEPLOYMENT READY:** Configured for **Vercel** (`vercel.json`: `buildCommand: npm run build`, `outputDirectory: dist`, SPA rewrite to `/index.html`). The `&` in the directory path breaks npm's `.bin` PATH resolution on Windows `cmd.exe`; all npm scripts now invoke JS entry files directly via `node node_modules/...` (works on both Windows and Vercel Linux).
 
@@ -49,7 +49,7 @@
 bata-footwear-&-accessories-store/
 ├── .gitignore
 ├── .env.example                  # APP_URL only (AI Studio / Gemini references removed)
-├── index.html                    # Entry HTML — title "AKS Garments", OG tags, +Jakarta font
+├── index.html                    # Entry HTML — title "AKS Mart", OG tags, +Jakarta font
 ├── metadata.json                 # Project metadata (AI Studio capability removed)
 ├── package.json
 ├── package-lock.json
@@ -72,14 +72,12 @@ bata-footwear-&-accessories-store/
     │       ├── leather_craft_banner_1786895833994.jpg       # Used by slide-3 in promos.ts
     │       ├── marie_claire_chic_1786895817363.jpg          # Used by slide-2 in promos.ts
     │       └── power_athletic_banner_1786895795947.jpg      # Used by slide-4 in promos.ts
-    ├── components/               # 32 components (see §6)
-    │   ├── AksMartClubModal.tsx  # loyalty/rewards modal (renamed from BataClubModal)
+    ├── components/               # 33 components (see §6)
     │   ├── BestSellers.tsx
     │   ├── Bi.tsx                # BN/EN localised inline text helper
     │   ├── BrandMarquee.tsx
     │   ├── CartDrawer.tsx
     │   ├── CategoryVisualGrid.tsx # "Many Worlds, One Mart"
-    │   ├── CompareModal.tsx
     │   ├── ContactForm.tsx
     │   ├── FeaturedProducts.tsx
     │   ├── Footer.tsx
@@ -99,7 +97,6 @@ bata-footwear-&-accessories-store/
     │   ├── PromoGallery.tsx
     │   ├── PromotionBanner.tsx
     │   ├── SectionHeader.tsx
-    │   ├── ShoeFinderModal.tsx
     │   ├── SizeGuideModal.tsx
     │   ├── Skeleton.tsx          # SkeletonBlock / ProductRailSkeleton / HeroSkeleton / SectionSkeleton
     │   ├── ToastContainer.tsx
@@ -184,7 +181,7 @@ type BrandName =
 
 | Component | Purpose | Key Store Hooks Used |
 |---|---|---|
-| **Header** | Sticky header, rotating announcements, live search with autocomplete, mega menus, currency toggle | `setIsCartDrawerOpen`, `setIsStoreLocatorOpen`, `setIsBataClubOpen`, `setIsOrderTrackerOpen`, `setIsShoeFinderOpen`, `setIsCompareModalOpen`, `setIsSizeGuideOpen`, `setFilters` |
+| **Header** | Logo + name top bar, scrolling announcement marquee (messages follow one another side to side), live search with autocomplete, mega menus, Track Order / currency / language actions left of the wishlist-labelled heart, mobile category drawer | `setIsCartDrawerOpen`, `setIsWishlistDrawerOpen`, `setIsSizeGuideOpen`, `setIsMobileMenuOpen`, `setFilters` |
 | **Footer** | Simple, classic footer (newsletter band, service highlights, brand card and motto quote removed): one **brand block** (logo → home, brand text, address/phone/email, "Follow Us" + social icons, compact newsletter) beside **4 link columns** (Information / Shop By / Support / Consumer Policy — a column hides itself when empty), then the bottom bar with the copyright line and the flat "Pay with" strip (brand badges from `src/data/payments.ts` + live methods from Admin → Settings) | `categories`, `dataLoader.loadPages/loadStoreInfo`, `splitFooterPages` |
 | **TrustBar / BrandMarquee / SectionHeader / PromotionBanner** | Small shared homepage furniture: service promises, scrolling brand strip, the recurring diamond section heading, and the slim promo strip | — |
 | **Skeleton** | Loading placeholders (`SkeletonBlock`, `ProductRailSkeleton`, `HeroSkeleton`, `SectionSkeleton`) rendered while `catalogLoading` is true (or while a lazily-loaded section chunk arrives), so bundled fallback artwork never flashes before the API answers | — |
@@ -196,17 +193,15 @@ type BrandName =
 | **ProductShowcaseCircle** | "Loved by our customers" circle showcase (above Best Sellers): hero product in the big ring + 4 callouts with full details; items are the merchant's pasted product links (Admin → Loved Products), auto-picking trending favourites while empty | `products`, `dataLoader.loadLoveBanners` |
 | **BrandBar** | 7 brand selectors | `setFilters` |
 | **ProductGrid** | Catalog with sidebar filters (brand/size/sale) + sort + view layout | `products`, `filters`, `setFilters` |
-| **ProductCard** | Grid/list product card, color swatches, quick-add size overlay, wishlist, compare | `addToCart`, `toggleWishlist`, `openQuickView`, `setActiveProductPage` |
+| **ProductCard** | Grid/list product card, color swatches, quick-add size overlay, wishlist | `addToCart`, `toggleWishlist`, `openQuickView`, `setActiveProductPage` |
 | **ProductDetailPage** | Full page when a product is active | `activeProductPage` |
 | **ProductDetailModal** | Quick view modal | `isQuickViewOpen`, `quickViewProduct` |
 | **CartDrawer** | Right drawer with promo code, free-shipping progress, item list | `cart`, `applyCoupon`, `setIsCheckoutOpen` |
 | **CheckoutModal** | Full checkout flow | `createOrder` |
 | **SizeGuideModal** | Garment size chart modal | `isSizeGuideOpen` |
 | **StoreLocatorModal** | Store finder list/map | `stores` |
-| **BataClubModal** | Loyalty/rewards modal | `isBataClubOpen` |
 | **OrderTrackerModal** | Track order status | `orders` |
-| **ShoeFinderModal** | "Outfit Matcher" 3-question quiz → recommends products | `isShoeFinderOpen`, `products` |
-| **CompareModal** | Compare up to 4 products | `compareList` |
+| **MobileBottomNav** | Sticky bottom bar on <lg (Home · Categories · Cart · Search · Account): Categories toggles the header category drawer, Search focuses the header search box, Account opens a bottom sheet; desktop-only floating/header carts hidden below lg | `isMobileMenuOpen`, `setIsMobileMenuOpen`, `requestMobileSearchFocus` |
 | **ToastContainer** | Toast notification stack | `toasts`, `removeToast` |
 
 ---
@@ -546,14 +541,12 @@ payment methods Cash / bKash / Nagad / Card / Rocket / Bank.
 
 1. **Name mismatch** — directory says "bata footwear" but app is "AKS Garments" apparel.
 2. **`CategoryType` includes `'festive'`** — no product data uses it.
-3. **`ShoeFinderModal`** — occasion filter uses exact `p.occasion` matches that often don't match; falls back to fallback products.
-4. **No routing** — `activeProductPage` is state-based navigation, no React Router installed.
-5. **`BataClubModal`** file name is a leftover from an earlier "Bata" branding.
-6. **Wishlist heart in Header opens CartDrawer** — possible bug (no dedicated wishlist view).
-7. **`filters.inStockOnly` is dead state** — it exists in `FilterState` (`src/types.ts`), is reset in
+3. **No routing** — `activeProductPage` is state-based navigation, no React Router installed.
+4. **Wishlist heart in Header opens CartDrawer** — possible bug (no dedicated wishlist view).
+5. **`filters.inStockOnly` is dead state** — it exists in `FilterState` (`src/types.ts`), is reset in
    `StoreContext`/`Footer` but no filter UI toggles it and no grid applies it. Wire it to
    `!isOutOfStock(product)` if an "in stock only" switch is ever added.
-8. **Storefront `motion` chunk** — 129.61 kB (gzip 42.75) still ships on the critical path via
+6. **Storefront `motion` chunk** — 129.61 kB (gzip 42.75) still ships on the critical path via
    `Header` + `HeroSlider`. Code splitting is done (entry 683.55 → 166.65 kB, admin 616 → 43.73 kB);
    swapping those animations for CSS is the next win.
 

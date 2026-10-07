@@ -1,4 +1,4 @@
-// AKS Garments — Database schema
+// AKS Mart — Database schema
 // Local dev uses SQLite; switch to PostgreSQL in production by changing the
 // provider below and the DATABASE_URL in .env.
 //

@@ -85,7 +85,7 @@ export async function seedCategories(prisma: PrismaClient): Promise<SeedCategori
     legacyRemoved = res.count;
   }
 
-  // 3) Any other leftover categories (legacy garment taxonomy) are kept in the
+  // 3) Any other leftover categories (legacy taxonomy) are kept in the
   //    DB for auditing but hidden from the storefront.
   await prisma.category.updateMany({
     where: { NOT: { slug: { in: DIVISIONS.map((d) => d.slug) } } },

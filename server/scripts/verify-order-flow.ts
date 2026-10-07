@@ -3,7 +3,7 @@
 import { isLocalApi, rollbackTestOrder } from './test-cleanup.ts';
 
 const BASE = process.env.API_URL || 'http://localhost:4000';
-const EMAIL = 'admin@aksgarments.com.bd';
+const EMAIL = 'admin@aksmartbd.com';
 const PASSWORD = 'Admin@123';
 
 let pass = 0;

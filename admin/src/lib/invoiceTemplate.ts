@@ -92,7 +92,7 @@ export function emptyInvoiceSettings(): InvoiceSettings {
     storeTagline: 'One Mart. Many Choices.',
     website: 'aksmartbd.com',
     phone: '+8801728-843503',
-    email: 'info@aksgarments.com.bd',
+    email: 'info@aksmartbd.com',
     address: 'Paltan Tower, 87 Purana Paltan Line, Dhaka',
     currencySymbol: '৳',
     returnPolicy: DEFAULT_RETURN_POLICY,

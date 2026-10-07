@@ -44,7 +44,7 @@ const DIVISION_META: Record<string, { en: string }> = {
   home: { en: 'AKS HOME' },
   beauty: { en: 'AKS BEAUTY' },
   print: { en: 'AKS PRINT' },
-  garments: { en: 'AKS Garments' },
+  garments: { en: 'AKS Mart' },
 };
 
 /** Navigate to the Orders page, optionally pre-filtering or opening an order. */

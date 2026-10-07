@@ -3,7 +3,7 @@ import { Product, ProductColor } from '../types';
 import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
 import { isOutOfStock } from '../utils/stock';
-import { Heart, Eye, ShoppingBag, Star, Check, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Heart, Eye, ShoppingBag, Star, Check, Sparkles } from 'lucide-react';
 import { navigate } from '../lib/router';
 import { flyToCart } from '../lib/flyToCart';
 import { useLocalized } from './Localized';
@@ -24,8 +24,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
     addToCart,
     toggleWishlist,
     isInWishlist,
-    toggleCompare,
-    isInCompare,
     openQuickView,
     setActiveProductPage,
   } = useStore();
@@ -35,7 +33,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
   );
   const [isHovered, setIsHovered] = useState(false);
   const isFav = isInWishlist(product.id);
-  const isCompared = isInCompare(product.id);
   /** Admin → Products stock tracking: a tracked product with no units left is
    *  unbuyable (the API refuses the order), so the card says so up front. */
   const outOfStock = isOutOfStock(product);
@@ -150,23 +147,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  toggleCompare(product);
-                }}
-                className={`p-2 rounded-lg border text-xs font-semibold flex items-center gap-1 transition-colors ${
-                  isCompared
-                    ? 'bg-sky-50 border-sky-300 text-sky-700'
-                    : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-                }`}
-                title="Compare"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-                <span className="hidden md:inline">{isCompared ? 'Comparing' : 'Compare'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
                   toggleWishlist(product);
                 }}
                 className={`p-2 rounded-lg border transition-colors ${
@@ -243,9 +223,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
         {/* Floating Quick Action Buttons.
             The circles stay 32px so the card visuals are unchanged; the
             ::after pseudo-element extends the tappable area to 44px without
-            affecting layout. Quick View / Compare were hover-only, which on
-            touch devices left invisible (yet still clickable) buttons, so
-            they now stay visible below the `sm` breakpoint. */}
+            affecting layout. Quick View was hover-only, which on touch
+            devices left an invisible (yet still clickable) button, so it
+            now stays visible below the `sm` breakpoint. */}
         <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 z-10">
           <button
             type="button"
@@ -276,24 +256,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, layout = 'gri
             title="Quick View"
           >
             <Eye className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleCompare(product);
-            }}
-            aria-label={`Compare specs for ${product.name}`}
-            aria-pressed={isCompared}
-            className={`relative w-8 h-8 rounded-full shadow-md flex items-center justify-center transition-all sm:opacity-0 sm:group-hover:opacity-100 after:absolute after:-inset-1.5 after:content-[''] ${
-              isCompared
-                ? 'bg-sky-600 text-white opacity-100'
-                : 'bg-white/90 backdrop-blur-md text-neutral-700 hover:text-sky-600'
-            }`}
-            title="Compare Specs"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
           </button>
         </div>
 

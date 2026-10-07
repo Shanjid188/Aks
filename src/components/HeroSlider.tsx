@@ -37,7 +37,9 @@ export const HeroSlider: React.FC = () => {
     const interval = setInterval(() => {
       setDirection(1);
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 2000);
+    // 2s was too fast to read anything and made the crossfade overlap visible
+    // for a quarter of the cycle — 6s gives each slide time on screen.
+    }, 6000);
     return () => clearInterval(interval);
   }, [isPaused, slides.length]);
 
@@ -104,7 +106,12 @@ export const HeroSlider: React.FC = () => {
           columns of the SAME grid row, so both always share one height. Below
           `xl` the grid collapses and the promos drop under the hero. */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 grid grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="relative flex items-center overflow-hidden rounded-2xl bg-neutral-900 shadow-lg shadow-neutral-900/5 min-h-[380px] sm:min-h-[435px] lg:min-h-[505px]">
+        {/* Mobile locks the card to 16:10 — the old min-h-[380px] made the box
+            near-square (358x380), so object-cover had to zoom a 16:9 photo to
+            ~1.5x and slice away almost half its width. Wider breakpoints keep
+            their original min-heights because the card is already landscape
+            there (e.g. 720x435, 860x505 ≈ 16:9). */}
+        <div className="relative flex items-center overflow-hidden rounded-2xl bg-neutral-900 shadow-lg shadow-neutral-900/5 aspect-[16/10] sm:aspect-auto sm:min-h-[435px] lg:min-h-[505px]">
           {/* Background Image Carousel — true crossfade, no overlay or shadow */}
           <AnimatePresence initial={false}>
             <motion.div
@@ -124,8 +131,22 @@ export const HeroSlider: React.FC = () => {
             </motion.div>
           </AnimatePresence>
 
+          {/* Contrast scrim — only when HTML copy sits on the photo; plain
+              image-only slides (hasCopy === false) keep their full brightness.
+              Two gradients — one anchored to the bottom, one to the left where
+              the text block lives — keep white text readable on any slide. */}
+          {hasCopy && (
+            <div
+              className="absolute inset-0 z-[1] pointer-events-none"
+              style={{
+                background:
+                  'linear-gradient(to top, rgba(9,9,11,0.90) 0%, rgba(9,9,11,0.50) 45%, rgba(9,9,11,0.18) 100%), linear-gradient(to right, rgba(9,9,11,0.70) 0%, rgba(9,9,11,0.30) 55%, rgba(9,9,11,0) 100%)',
+              }}
+            />
+          )}
+
           {/* Hero Content */}
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24 sm:py-12 lg:py-16 w-full">
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-16 sm:py-12 lg:py-16 w-full">
             <div className="max-w-2xl">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -134,7 +155,7 @@ export const HeroSlider: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 0.61, 0.36, 1] }}
-                  className="space-y-3 sm:space-y-6"
+                  className="space-y-3 sm:space-y-6 [text-shadow:0_1px_4px_rgba(0,0,0,0.55)]"
                 >
                   {hasCopy && (
                     <>
@@ -156,16 +177,18 @@ export const HeroSlider: React.FC = () => {
                         </h2>
                       )}
 
-                      {/* Subtitle */}
+                      {/* Subtitle — hidden below sm: the 16:10 mobile card has
+                          no vertical room for it (badge + title + CTA already
+                          fill the box); sm+ layouts are wide enough to spare it. */}
                       {slideSubtitle && (
-                        <p className="text-base sm:text-lg lg:text-xl text-neutral-300 font-normal leading-relaxed max-w-xl">
+                        <p className="hidden sm:block text-base sm:text-lg lg:text-xl text-neutral-300 font-normal leading-relaxed max-w-xl">
                           {slideSubtitle}
                         </p>
                       )}
 
-                      {/* Tagline pill */}
+                      {/* Tagline pill — same mobile cutoff as the subtitle. */}
                       {slideTagline && (
-                        <div className="text-sm text-neutral-400 font-semibold tracking-wide flex items-center gap-2">
+                        <div className="hidden sm:flex text-sm text-neutral-400 font-semibold tracking-wide items-center gap-2">
                           <Sparkles className="w-4 h-4 text-amber-400" />
                           <span>{slideTagline}</span>
                         </div>

@@ -59,10 +59,14 @@ interface SiteContentBase {
   headerTrendingLabel: string;
   headerMobileShopBy: string;
   headerQuickTrack: string;
-  headerQuickClub: string;
-  headerOutfitMatcher: string;
   headerSearchPlaceholder: string;
   headerSearchPlaceholderMobile: string;
+  /* Mobile sticky bottom bar (Home · Categories · Cart · Search · Account) */
+  mobileNavHome: string;
+  mobileNavMenu: string;
+  mobileNavCart: string;
+  mobileNavSearch: string;
+  mobileNavAccount: string;
   /* Product listing / filters (the shop page a merchant most wants in their own voice) */
   listingAllProducts: string;
   /** `{name}` is the division name. */
@@ -232,7 +236,6 @@ interface SiteContentBase {
   footerPolicyHeading: string;
   footerTrack: string;
   footerGuides: string;
-  footerClub: string;
   footerContactHeading: string;
   footerContactPhoneLabel: string;
   footerNewsletterTitle: string;
@@ -301,10 +304,14 @@ const DEFAULT_SITE_CONTENT_BASE: SiteContentBase = {
   headerTrendingLabel: 'Trending Searches',
   headerMobileShopBy: 'Shop by AKS Mart Division',
   headerQuickTrack: 'Track Order',
-  headerQuickClub: 'AKS Mart Club',
-  headerOutfitMatcher: 'Outfit Matcher',
   headerSearchPlaceholder: 'Search products (rice, honey, kantha, bedsheets…)',
   headerSearchPlaceholderMobile: 'Search products...',
+
+  mobileNavHome: 'Home',
+  mobileNavMenu: 'Categories',
+  mobileNavCart: 'Cart',
+  mobileNavSearch: 'Search',
+  mobileNavAccount: 'Account',
 
   listingAllProducts: 'All Products',
   listingCollectionSuffix: '{name} Collection',
@@ -469,7 +476,6 @@ const DEFAULT_SITE_CONTENT_BASE: SiteContentBase = {
   footerPolicyHeading: 'Consumer Policy',
   footerTrack: 'Track Your Order',
   footerGuides: 'Product & Fit Guides',
-  footerClub: 'AKS Mart Club Rewards',
   footerContactHeading: 'Contact & Order',
   footerContactPhoneLabel: 'WhatsApp / Call',
   footerNewsletterTitle: 'Subscribe to the AKS Mart Gazette',
@@ -532,10 +538,14 @@ const DEFAULT_SITE_CONTENT_BN: BanglaOf<SiteContentBase> = {
   headerTrendingLabelBn: 'জনপ্রিয় সার্চ',
   headerMobileShopByBn: 'AKS Mart বিভাগ অনুযায়ী কিনুন',
   headerQuickTrackBn: 'অর্ডার ট্র্যাক করুন',
-  headerQuickClubBn: 'AKS Mart ক্লাব',
-  headerOutfitMatcherBn: 'আউটফিট ম্যাচার',
   headerSearchPlaceholderBn: 'পণ্য খুঁজুন (চাল, মধু, কাঁথা, বেডশিট…)',
   headerSearchPlaceholderMobileBn: 'পণ্য খুঁজুন...',
+
+  mobileNavHomeBn: 'হোম',
+  mobileNavMenuBn: 'ক্যাটাগরি',
+  mobileNavCartBn: 'কার্ট',
+  mobileNavSearchBn: 'সার্চ',
+  mobileNavAccountBn: 'অ্যাকাউন্ট',
 
   listingAllProductsBn: 'সব পণ্য',
   listingCollectionSuffixBn: '{name} কালেকশন',
@@ -701,7 +711,6 @@ const DEFAULT_SITE_CONTENT_BN: BanglaOf<SiteContentBase> = {
   footerPolicyHeadingBn: 'ভোক্তা নীতি',
   footerTrackBn: 'আপনার অর্ডার ট্র্যাক করুন',
   footerGuidesBn: 'পণ্য ও সাইজ গাইড',
-  footerClubBn: 'AKS Mart ক্লাব রিওয়ার্ড',
   footerContactHeadingBn: 'যোগাযোগ ও অর্ডার',
   footerContactPhoneLabelBn: 'হোয়াটসঅ্যাপ / কল',
   footerNewsletterTitleBn: 'AKS Mart Gazette-এ সাবস্ক্রাইব করুন',
@@ -765,10 +774,14 @@ const SITE_CONTENT_BASE_KEYS: Record<keyof SiteContentBase, string> = {
   headerTrendingLabel: 'content.header.trendingLabel',
   headerMobileShopBy: 'content.header.mobileShopBy',
   headerQuickTrack: 'content.header.quickTrack',
-  headerQuickClub: 'content.header.quickClub',
-  headerOutfitMatcher: 'content.header.outfitMatcher',
   headerSearchPlaceholder: 'content.header.searchPlaceholder',
   headerSearchPlaceholderMobile: 'content.header.searchPlaceholderMobile',
+
+  mobileNavHome: 'content.mobilenav.home',
+  mobileNavMenu: 'content.mobilenav.menu',
+  mobileNavCart: 'content.mobilenav.cart',
+  mobileNavSearch: 'content.mobilenav.search',
+  mobileNavAccount: 'content.mobilenav.account',
 
   listingAllProducts: 'content.listing.allProducts',
   listingCollectionSuffix: 'content.listing.collectionSuffix',
@@ -921,7 +934,6 @@ const SITE_CONTENT_BASE_KEYS: Record<keyof SiteContentBase, string> = {
   footerPolicyHeading: 'content.footer.policyHeading',
   footerTrack: 'content.footer.track',
   footerGuides: 'content.footer.guides',
-  footerClub: 'content.footer.club',
   footerContactHeading: 'content.footer.contactHeading',
   footerContactPhoneLabel: 'content.footer.contactPhoneLabel',
   footerNewsletterTitle: 'content.footer.newsletterTitle',
