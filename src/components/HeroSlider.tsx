@@ -126,7 +126,7 @@ export const HeroSlider: React.FC = () => {
                 src={slide.image}
                 alt={slide.title}
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover object-center"
+                className="w-full h-full object-contain object-center xl:object-cover"
               />
             </motion.div>
           </AnimatePresence>

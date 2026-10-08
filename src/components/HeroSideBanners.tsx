@@ -53,7 +53,7 @@ const SideBannerTile: React.FC<{ tile: SideBanner; className?: string }> = ({ ti
           alt=""
           loading="lazy"
           decoding="async"
-          className={`absolute inset-0 w-full h-full object-cover object-center ${
+          className={`absolute inset-0 w-full h-full object-contain object-center xl:object-cover ${
             clickable ? 'transition-transform duration-700 group-hover:scale-105' : ''
           }`}
         />
