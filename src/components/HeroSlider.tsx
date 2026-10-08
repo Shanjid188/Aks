@@ -106,12 +106,11 @@ export const HeroSlider: React.FC = () => {
           columns of the SAME grid row, so both always share one height. Below
           `xl` the grid collapses and the promos drop under the hero. */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 grid grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        {/* Mobile locks the card to 16:10 — the old min-h-[380px] made the box
-            near-square (358x380), so object-cover had to zoom a 16:9 photo to
-            ~1.5x and slice away almost half its width. Wider breakpoints keep
-            their original min-heights because the card is already landscape
-            there (e.g. 720x435, 860x505 ≈ 16:9). */}
-        <div className="relative flex items-center overflow-hidden rounded-2xl bg-neutral-900 shadow-lg shadow-neutral-900/5 aspect-[16/10] sm:aspect-auto sm:min-h-[435px] lg:min-h-[505px]">
+        {/* Mobile locks the card to 16:9 to match the 16:9 slider artwork
+            (measured 1344x768) — 1:1 fill, so no sides are sliced and no
+            letterbox bars appear. Wider breakpoints keep their original
+            min-heights because the card is already landscape there. */}
+        <div className="relative flex items-center overflow-hidden rounded-2xl bg-neutral-900 shadow-lg shadow-neutral-900/5 aspect-[16/9] sm:aspect-auto sm:min-h-[435px] lg:min-h-[505px]">
           {/* Background Image Carousel — true crossfade, no overlay or shadow */}
           <AnimatePresence initial={false}>
             <motion.div
@@ -126,7 +125,7 @@ export const HeroSlider: React.FC = () => {
                 src={slide.image}
                 alt={slide.title}
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-contain object-center xl:object-cover"
+                className="w-full h-full object-cover object-center"
               />
             </motion.div>
           </AnimatePresence>

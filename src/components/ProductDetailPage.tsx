@@ -238,7 +238,7 @@ export const ProductDetailPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
             {/* Left: Gallery (6 cols) */}
             <div className="lg:col-span-6 space-y-4">
-              <div className="relative aspect-4/3 sm:aspect-[4/5] bg-neutral-100 rounded-2xl overflow-hidden border border-neutral-200 shadow-xs">
+              <div className="relative aspect-[3/2] sm:aspect-[4/5] bg-neutral-100 rounded-2xl overflow-hidden border border-neutral-200 shadow-xs">
                 <PressZoom scale={1.12} ariaLabel="Zoom product image" className="h-full">
                   <img
                   src={galleryImages[activeImageIndex] || selectedColor.image}
