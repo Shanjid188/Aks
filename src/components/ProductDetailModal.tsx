@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bi } from './Bi';
+import { PressZoom } from './PressZoom';
 import { navigate } from '../lib/router';
 
 export const ProductDetailModal: React.FC = () => {
@@ -103,12 +104,14 @@ export const ProductDetailModal: React.FC = () => {
         {/* Left: Image Gallery */}
         <div className="w-full md:w-1/2 p-6 bg-neutral-50 flex flex-col justify-between border-b md:border-b-0 md:border-r border-neutral-200">
           <div className="relative aspect-square rounded-2xl overflow-hidden bg-white border border-neutral-200 shadow-xs mb-4">
-            <img
+            <PressZoom scale={1.12} ariaLabel="Zoom product image" className="h-full">
+              <img
               src={galleryImages[activeImageIndex] || selectedColor.image}
               alt={product.name}
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover object-center"
             />
+            </PressZoom>
             {product.discountPercent && (
               <span className="absolute top-3 left-3 bg-[#D8232A] text-white text-xs font-black px-2.5 py-1 rounded uppercase shadow-sm">
                 {product.discountPercent}% OFF
@@ -119,9 +122,12 @@ export const ProductDetailModal: React.FC = () => {
           {/* Thumbnails */}
           <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
             {galleryImages.map((img, idx) => (
-              <button
+              <PressZoom
                 key={idx}
                 onClick={() => setActiveImageIndex(idx)}
+                scale={1.25}
+                mode="hold"
+                ariaLabel={`View product image ${idx + 1}`}
                 className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
                   activeImageIndex === idx
                     ? 'border-[#D8232A] shadow-md scale-105'
@@ -134,7 +140,7 @@ export const ProductDetailModal: React.FC = () => {
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover"
                 />
-              </button>
+              </PressZoom>
             ))}
           </div>
         </div>

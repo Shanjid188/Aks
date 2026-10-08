@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bi } from './Bi';
+import { PressZoom } from './PressZoom';
 import { navigate, useRouter } from '../lib/router';
 import { applySeo, claimSeo } from '../lib/seo';
 import { useSiteContent } from '../context/SiteContentContext';
@@ -238,12 +239,14 @@ export const ProductDetailPage: React.FC = () => {
             {/* Left: Gallery (6 cols) */}
             <div className="lg:col-span-6 space-y-4">
               <div className="relative aspect-4/3 sm:aspect-[4/5] bg-neutral-100 rounded-2xl overflow-hidden border border-neutral-200 shadow-xs">
-                <img
+                <PressZoom scale={1.12} ariaLabel="Zoom product image" className="h-full">
+                  <img
                   src={galleryImages[activeImageIndex] || selectedColor.image}
                   alt={product.name}
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover object-center"
                 />
+                </PressZoom>
 
                 {product.discountPercent && (
                   <span className="absolute top-4 left-4 bg-[#D8232A] text-white text-xs font-black px-3 py-1 rounded-sm uppercase shadow-sm">
@@ -260,9 +263,12 @@ export const ProductDetailPage: React.FC = () => {
               {/* Thumbnails */}
               <div className="flex items-center gap-3 overflow-x-auto pb-2">
                 {galleryImages.map((img, idx) => (
-                  <button
+                  <PressZoom
                     key={idx}
                     onClick={() => setActiveImageIndex(idx)}
+                    scale={1.25}
+                    mode="hold"
+                    ariaLabel={`View product image ${idx + 1}`}
                     className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
                       activeImageIndex === idx
                         ? 'border-[#D8232A] shadow-md scale-105'
@@ -275,7 +281,7 @@ export const ProductDetailPage: React.FC = () => {
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
                     />
-                  </button>
+                  </PressZoom>
                 ))}
               </div>
 
