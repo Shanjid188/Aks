@@ -65,6 +65,15 @@ export const ProductDetailPage: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'details' | 'reviews' | 'care'>('details');
 
+  // Mobile detection for touch-friendly image display
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const [isMobileRef, setIsMobileRef] = useState(isMobile);
+  useEffect(() => {
+    const handleResize = () => setIsMobileRef(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Review Form State
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [newReviewAuthor, setNewReviewAuthor] = useState('');
@@ -238,13 +247,13 @@ export const ProductDetailPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
             {/* Left: Gallery (6 cols) */}
             <div className="lg:col-span-6 space-y-4">
-              <div className="relative aspect-[3/2] sm:aspect-[4/5] bg-neutral-100 rounded-2xl overflow-hidden border border-neutral-200 shadow-xs">
-                <PressZoom scale={1.12} ariaLabel="Zoom product image" className="h-full">
+              <div min-h-[320px] sm:min-h-[400px]>
+                <PressZoom scale={1.12} ariaLabel="Zoom product image" className="h-full" disableZoom={isMobile}>
                   <img
                   src={galleryImages[activeImageIndex] || selectedColor.image}
                   alt={product.name}
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover object-center"
+                  className="w-full h-full object-contain object-center"
                 />
                 </PressZoom>
 
@@ -266,6 +275,7 @@ export const ProductDetailPage: React.FC = () => {
                   <PressZoom
                     key={idx}
                     onClick={() => setActiveImageIndex(idx)}
+                    disableZoom={isMobile}
                     scale={1.25}
                     mode="hold"
                     ariaLabel={`View product image ${idx + 1}`}
@@ -279,7 +289,7 @@ export const ProductDetailPage: React.FC = () => {
                       src={img}
                       alt="view"
                       referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   </PressZoom>
                 ))}

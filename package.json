@@ -12,6 +12,7 @@
     "audit:copy:all": "node scripts/audit-copy.mjs --all",
     "audit:mobile": "node scripts/audit-mobile.mjs",
     "dev:api": "cd server && npm run dev",
+    "print-agent": "node scripts/print-agent.mjs",
     "dev:admin": "cd admin && npm run dev",
     "setup:api": "cd server && npm install --no-audit --no-fund && npm run prisma:generate && npm run prisma:push && npm run seed",
     "seed": "cd server && npm run seed"

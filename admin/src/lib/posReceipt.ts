@@ -3,7 +3,9 @@
 // Self-contained (own settings fetch, logo resolution and print lifecycle) so it
 // does not couple to the invoice or packing-slip modules.
 import { api, getStoredAdmin } from '../api';
-import aksLogo from '../assets/AKS.logo.jpg';
+// ?inline: always a data: URI, so a receipt HTML is fully self-contained (needed
+// when the local print agent prints it from a file, outside this site).
+import aksPrintLogo from '../assets/AKS.logo.print.png?inline';
 import {
   buildPosReceiptHtml,
   emptyPosReceiptSettings,
@@ -11,12 +13,15 @@ import {
   type PosReceiptSettings,
 } from './posReceiptTemplate';
 
-/** Absolute URL of the bundled AKS Mart logo (the project's existing asset). */
+/**
+ * Pure black/white AKS Mart logo for thermal printing (derived from AKS.logo.jpg).
+ * Imported ?inline as a data: URI, so it is ready the moment the receipt is written.
+ */
 function logoHref(): string {
   try {
-    return new URL(aksLogo, window.location.origin).href;
+    return new URL(aksPrintLogo, window.location.origin).href;
   } catch {
-    return aksLogo;
+    return aksPrintLogo;
   }
 }
 
@@ -86,19 +91,22 @@ function paint(
     });
 }
 
+/** Falls back to the signed-in admin as the cashier when the sale has no name. */
+function withCashier(data: PosReceiptData): PosReceiptData {
+  return data.cashierName || data.cashier
+    ? data
+    : { ...data, cashierName: getStoredAdmin()?.name || '' };
+}
+
 /**
  * Print / view a receipt from data already in hand (right after a POS sale). The
  * window opens synchronously so pop-up blockers treat it as a user gesture.
- * Falls back to the signed-in admin as the cashier when the sale has no name.
  */
 export function openPosReceipt(data: PosReceiptData, opts: OpenPosReceiptOptions = {}): void {
   const w = window.open('', '_blank', 'width=380,height=760');
   if (!w) return;
   w.document.write(LOADING_HTML);
-  const withCashier: PosReceiptData = data.cashierName || data.cashier
-    ? data
-    : { ...data, cashierName: getStoredAdmin()?.name || '' };
-  paint(w, Promise.resolve(withCashier), opts.settings ? Promise.resolve(opts.settings) : loadPosReceiptSettings(), !!opts.autoPrint);
+  paint(w, Promise.resolve(withCashier(data)), opts.settings ? Promise.resolve(opts.settings) : loadPosReceiptSettings(), !!opts.autoPrint);
 }
 
 /**
@@ -116,7 +124,60 @@ export function openPosReceiptById(orderId: string, opts: OpenPosReceiptOptions 
   paint(w, dataPromise, opts.settings ? Promise.resolve(opts.settings) : loadPosReceiptSettings(), !!opts.autoPrint);
 }
 
-/** Print once the logo image has settled (with a safety timeout). */
+/* ── Direct print (no dialog) via the local print agent ───────────────────── */
+
+// scripts/print-agent.mjs, running on the POS PC. Browsers cannot print without
+// the dialog, so the agent prints through Chrome's silent kiosk printing.
+const PRINT_AGENT_URL = 'http://127.0.0.1:17777';
+
+export class PrintAgentUnavailableError extends Error {
+  constructor() {
+    super('Direct print is unavailable: the AKS print agent is not running on this PC.');
+    this.name = 'PrintAgentUnavailableError';
+  }
+}
+
+/** POST a print job to the local agent (`/print` receipts, `/sticker` courier labels). */
+export async function sendToPrintAgent(html: string, path = '/print', extra: Record<string, unknown> = {}, timeoutMs = 4000): Promise<void> {
+  const ctrl = new AbortController();
+  const timer = window.setTimeout(() => ctrl.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(`${PRINT_AGENT_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ html, ...extra }),
+      signal: ctrl.signal,
+    });
+  } catch {
+    throw new PrintAgentUnavailableError();
+  } finally {
+    window.clearTimeout(timer);
+  }
+  const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+  if (!res.ok || !body.ok) throw new Error(body.error || `Print agent error (${res.status})`);
+}
+
+/** Print a receipt straight to the receipt printer, without the print dialog. */
+export async function directPrintPosReceipt(data: PosReceiptData, opts: { settings?: PosReceiptSettings } = {}): Promise<void> {
+  const settings = opts.settings ?? (await loadPosReceiptSettings());
+  await sendToPrintAgent(buildPosReceiptHtml(withCashier(data), settings, { logoUrl: logoHref() }));
+}
+
+/** Direct-print the ORIGINAL stored sale by id (same data as Reprint Receipt). */
+export async function directPrintPosReceiptById(orderId: string): Promise<void> {
+  const [{ order }, settings] = await Promise.all([
+    api.get<{ order: PosReceiptData }>(`/admin/pos/receipt/${orderId}`),
+    loadPosReceiptSettings(),
+  ]);
+  await directPrintPosReceipt(order, { settings });
+}
+
+/**
+ * Print once the logo is decoded and fonts are ready (with a safety timeout), so
+ * the layout is final when the print dialog snapshots the document — a
+ * late-loading logo would otherwise shift content.
+ */
 function printWhenReady(w: Window): void {
   let printed = false;
   const go = () => {
@@ -130,11 +191,10 @@ function printWhenReady(w: Window): void {
     }
   };
   const img = w.document.getElementById('aks-pos-logo') as HTMLImageElement | null;
-  if (img && !img.complete) {
-    img.addEventListener('load', go);
-    img.addEventListener('error', go);
-    window.setTimeout(go, 1500);
-  } else {
-    window.setTimeout(go, 250);
-  }
+  const logoReady = img
+    ? img.decode().catch(() => undefined)
+    : Promise.resolve();
+  const fontsReady = w.document.fonts?.ready.catch(() => undefined) ?? Promise.resolve();
+  Promise.all([logoReady, fontsReady]).then(() => window.setTimeout(go, 100));
+  window.setTimeout(go, 2000);
 }

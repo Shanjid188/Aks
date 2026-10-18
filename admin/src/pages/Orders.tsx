@@ -14,9 +14,9 @@ import {
   StatusBadge,
   formatDate,
 } from '../components/ui';
-import { Package, Search, Plus, Minus, Trash2, Loader2, ClipboardList, PackageCheck, Activity, Printer, Eye, ShoppingCart } from 'lucide-react';
+import { Package, Search, Plus, Minus, Trash2, Loader2, ClipboardList, PackageCheck, Activity, Printer, Eye, ShoppingCart, Zap } from 'lucide-react';
 import { ManageOrder } from './ManageOrder';
-import { openPosReceiptById } from '../lib/posReceipt';
+import { directPrintPosReceiptById, openPosReceiptById, PrintAgentUnavailableError } from '../lib/posReceipt';
 import { adminImageUrl } from '../lib/imageUrl';
 
 const bdt = (n: number) => `BDT ${n.toLocaleString('en-IN')}`;
@@ -78,6 +78,20 @@ export function OrdersPage({ initialFilter }: { initialFilter?: string } = {}) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [detail, setDetail] = useState<Order | null>(null);
+  // Status line for "Direct Print" inside the order-detail modal.
+  const [directPrintMsg, setDirectPrintMsg] = useState<string | null>(null);
+
+  const directPrint = async (orderId: string) => {
+    setDirectPrintMsg('Sending to printer…');
+    try {
+      await directPrintPosReceiptById(orderId);
+      setDirectPrintMsg('Sent to the receipt printer.');
+    } catch (e) {
+      setDirectPrintMsg((e as Error).message);
+      // No agent on this PC: fall back to the normal print dialog.
+      if (e instanceof PrintAgentUnavailableError) openPosReceiptById(orderId, { autoPrint: true });
+    }
+  };
   // POS-style full-page Manage Order view (null = normal list)
   const [manageId, setManageId] = useState<string | null>(null);
   // Order currently being sent to Packaging (shows a spinner on its row button)
@@ -525,7 +539,7 @@ return (
       {/* Order detail modal */}
       <Modal
         open={!!detail}
-        onClose={() => setDetail(null)}
+        onClose={() => { setDetail(null); setDirectPrintMsg(null); }}
         title={detail ? `${detail.orderNumber} — ${detail.customerName}` : ''}
         wide
       >
@@ -638,14 +652,16 @@ return (
                 </div>
               </div>
 
+              {directPrintMsg && <p className="text-xs font-semibold text-neutral-600 text-right mt-3">{directPrintMsg}</p>}
               <div className="flex justify-end gap-2 mt-3">
                 {detail.source === 'pos' && (
                   <>
                     <Button variant="secondary" onClick={() => openPosReceiptById(detail.id)}><Eye className="w-3.5 h-3.5" /> View Receipt</Button>
                     <Button variant="secondary" onClick={() => openPosReceiptById(detail.id, { autoPrint: true })}><Printer className="w-3.5 h-3.5" /> Reprint Receipt</Button>
+                    <Button onClick={() => directPrint(detail.id)} title="Print straight to the receipt printer, without the print dialog"><Zap className="w-3.5 h-3.5" /> Direct Print</Button>
                   </>
                 )}
-                <Button variant="ghost" onClick={() => setDetail(null)}>Close</Button>
+                <Button variant="ghost" onClick={() => { setDetail(null); setDirectPrintMsg(null); }}>Close</Button>
               </div>
             </div>
 

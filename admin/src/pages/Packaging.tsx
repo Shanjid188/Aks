@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { Button, EmptyState, Select, Spinner, formatDate, PageHeader } from '../components/ui';
-import { RefreshCw, PackageCheck, Printer, CheckSquare, Eye } from 'lucide-react';
-import { openPackingSlip } from '../lib/packingSlip';
+import { RefreshCw, PackageCheck, Printer, CheckSquare, Eye, Tag } from 'lucide-react';
+import { directPrintCourierSticker, openCourierSticker, openPackingSlip } from '../lib/packingSlip';
+import { PrintAgentUnavailableError } from '../lib/posReceipt';
 
 interface PackItem {
   id: string;
@@ -17,6 +18,13 @@ interface PackItem {
   source: string;
   itemsCount: number;
   createdAt: string;
+  deliveryMethod?: string | null;
+  pickupStore?: string | null;
+  paymentMethod?: string | null;
+  paymentStatus?: string | null;
+  total?: number | null;
+  paidAmount?: number | null;
+  dueAmount?: number | null;
   customerAddress: Record<string, string>;
   items: { productName: string; productSku: string; size: string; color: string; quantity: number; product?: { weight?: number | null } | null }[];
 }
@@ -42,6 +50,26 @@ export function PackagingPage() {
   const bulkPrint = () => {
     rows.filter((r) => selected.has(r.id)).forEach((r) => setTimeout(() => openPackingSlip(r, { autoPrint: true }), 120));
   };
+  // Stickers print through the local print agent (exact 50 × 70 mm raw label).
+  // Without the agent, open the preview instead of a misaligned browser print.
+  const [stickerBusy, setStickerBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const printStickers = async (list: PackItem[]) => {
+    if (list.length === 0 || stickerBusy) return;
+    setStickerBusy(true); setError(null); setNotice(null);
+    try {
+      await directPrintCourierSticker(list);
+      setNotice(`${list.length} sticker${list.length > 1 ? 's' : ''} sent to the printer.`);
+    } catch (e) {
+      if (e instanceof PrintAgentUnavailableError) {
+        openCourierSticker(list);
+        setError('Sticker printer agent is not running on this PC — start scripts/start-print-agent.cmd, then press Sticker again. Opened a preview instead.');
+      } else setError((e as Error).message);
+    } finally {
+      setStickerBusy(false);
+    }
+  };
+  const bulkStickers = () => printStickers(rows.filter((r) => selected.has(r.id)));
   return (
     <div className="space-y-5">
       <PageHeader
@@ -54,10 +82,12 @@ export function PackagingPage() {
             <Select value={status} onChange={(e) => setStatus(e.target.value)} className="!w-40 !bg-white/10 !border-white/15 !text-white [&>option]:text-neutral-900"><option value="">All</option><option value="not_packed">Not packed</option><option value="packing">Packing</option><option value="packed">Packed</option><option value="shipped">Shipped</option></Select>
             <button onClick={load} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white/10 border border-white/15 text-white hover:bg-white/20 cursor-pointer" title="Refresh"><RefreshCw className="w-3.5 h-3.5" /></button>
             {selected.size > 0 && <Button onClick={bulkPrint} variant="secondary"><Printer className="w-3.5 h-3.5" /> Print {selected.size}</Button>}
+            {selected.size > 0 && <Button onClick={bulkStickers} disabled={stickerBusy} variant="secondary" title="Print 50 × 70 mm courier stickers"><Tag className="w-3.5 h-3.5" /> Stickers {selected.size}</Button>}
           </>
         }
       />
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+      {notice && <p className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{notice}</p>}
       <section className="bg-white rounded-2xl border border-neutral-200">
         <header className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between">
           <h3 className="text-sm font-black text-neutral-900 flex items-center gap-2"><PackageCheck className="w-4 h-4 text-[#D8232A]" /> Packing Queue</h3>
@@ -81,6 +111,8 @@ export function PackagingPage() {
                       <div className="flex justify-end gap-1.5">
                         <Button onClick={() => openPackingSlip(o)} variant="secondary" className="!px-2.5 !py-1 text-[11px]" title="View packing slip"><Eye className="w-3.5 h-3.5" /> View</Button>
                         <Button onClick={() => openPackingSlip(o, { autoPrint: true })} variant="secondary" className="!px-2.5 !py-1 text-[11px]" title="Print packing slip / Save as PDF"><Printer className="w-3.5 h-3.5" /> Print</Button>
+                        <Button onClick={() => openCourierSticker(o)} variant="secondary" className="!px-2.5 !py-1 text-[11px]" title="Preview courier sticker"><Eye className="w-3.5 h-3.5" /> Sticker</Button>
+                        <Button onClick={() => printStickers([o])} disabled={stickerBusy} variant="secondary" className="!px-2.5 !py-1 text-[11px]" title="Print 50 × 70 mm courier sticker"><Tag className="w-3.5 h-3.5" /> Print Sticker</Button>
                         {o.packedStatus !== 'shipped' && <Button onClick={() => mark(o.id, 'packed')} className="!px-2.5 !py-1 text-[11px]"><PackageCheck className="w-3.5 h-3.5" /> Pack</Button>}
                       </div>
                     </td>

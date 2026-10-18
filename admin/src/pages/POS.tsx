@@ -2,7 +2,7 @@
 import { api } from '../api';
 import { Button, EmptyState, Field, Spinner, TextInput, formatDate, PageHeader } from '../components/ui';
 import { Calculator, CheckCircle2, Minus, Pause, Plus, Printer, RefreshCw, Search, ShoppingCart, Trash2 } from 'lucide-react';
-import { openPosReceipt } from '../lib/posReceipt';
+import { directPrintPosReceipt, openPosReceipt } from '../lib/posReceipt';
 import { adminImageUrl } from '../lib/imageUrl';
 import type { PosReceiptData } from '../lib/posReceiptTemplate';
 
@@ -20,6 +20,12 @@ const PAYMENT_METHODS: { id: string; label: string }[] = [
 
 /** Hides the browser's number-input spinner so the cashier just types a figure. */
 const NO_SPINNER = '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
+
+/** This till's "Direct print" choice (per browser; on by default). */
+const DIRECT_PRINT_KEY = 'aks.pos.directPrint';
+const readDirectPrint = (): boolean => {
+  try { return localStorage.getItem(DIRECT_PRINT_KEY) !== '0'; } catch { return true; }
+};
 
 interface PosProduct {
   id: string; name: string; sku: string; barcode: string | null; brand: string; category: string;
@@ -58,6 +64,12 @@ export function PosPage() {
   const [showHolds, setShowHolds] = useState(false);
   const [resumedHoldId, setResumedHoldId] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
+  const [directPrint, setDirectPrint] = useState(readDirectPrint);
+
+  const toggleDirectPrint = (on: boolean) => {
+    setDirectPrint(on);
+    try { localStorage.setItem(DIRECT_PRINT_KEY, on ? '1' : '0'); } catch { /* per-browser preference only */ }
+  };
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -187,7 +199,16 @@ export function PosPage() {
         try { await api.del(`/pos/holds/${resumedHoldId}`); } catch { /* best-effort cleanup */ }
       }
       // Professional 80mm thermal receipt (shared module) from the real sale.
-      openPosReceipt(res.order, { autoPrint: true });
+      // Direct print goes straight to the printer via the local print agent and
+      // falls back to the normal print dialog if the agent is not reachable.
+      if (directPrint) {
+        directPrintPosReceipt(res.order).catch((e: Error) => {
+          setError(`${e.message} Opened the print dialog instead.`);
+          openPosReceipt(res.order, { autoPrint: true });
+        });
+      } else {
+        openPosReceipt(res.order, { autoPrint: true });
+      }
       setOk(`Sale completed — ${res.order.invoiceNumber || res.order.orderNumber}`);
       clearCart();
       setPaidAmount('');
@@ -434,6 +455,10 @@ export function PosPage() {
                 <button onClick={clearCart} className="px-2 text-neutral-400 hover:text-red-600 cursor-pointer" title="Clear cart"><Trash2 className="w-4 h-4" /></button>
               )}
             </div>
+            <label className="flex items-center gap-2 text-xs font-bold text-neutral-600 cursor-pointer select-none" title="Print the receipt straight to the receipt printer, without the print dialog">
+              <input type="checkbox" checked={directPrint} onChange={(e) => toggleDirectPrint(e.target.checked)} className="accent-[#D8232A] w-3.5 h-3.5 cursor-pointer" />
+              Direct print receipt (no print dialog)
+            </label>
           </div>
         </section>
       </div>

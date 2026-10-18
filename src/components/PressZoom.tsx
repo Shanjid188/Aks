@@ -18,6 +18,8 @@ export interface PressZoomProps {
    * is the natural feel for small thumbnails that must also stay selectable.
    */
   mode?: "toggle" | "hold";
+  /** Disable zoom and click behavior (used on mobile for touch-friendly viewing). */
+  disableZoom?: boolean;
 }
 
 /**
@@ -33,9 +35,15 @@ export const PressZoom: React.FC<PressZoomProps> = ({
   ariaLabel,
   onClick,
   mode = "toggle",
+  disableZoom = false,
 }) => {
   const [scaled, setScaled] = useState(false);
   const startY = useRef<number | null>(null);
+
+  // If zoom is disabled, skip all pointer logic
+  if (disableZoom) {
+    return <div className={`${className}`}>{children}</div>;
+  }
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
