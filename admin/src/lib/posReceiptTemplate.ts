@@ -124,13 +124,24 @@ function formatTime(iso?: string | null): string {
 // the receipt sets no page size: it uses whatever stock the driver has, fills its
 // width (insets keep text inside the printable band), and flows onto further pages
 // with no row split across a page boundary. On continuous media those pages
-// print back to back as one receipt.
+// print back to back as one receipt. Only single rows are kept whole: keeping a
+// whole block (header, footer) together pushes it to the next stock page and
+// leaves the rest of the current page as blank paper mid-receipt.
 const RECEIPT_CSS = `
-  :root{ --paper:78.7mm; --edge-l:2.5mm; --edge-r:3.5mm; }
+  /* The driver does not print the 78.7mm page as-is: it sends the printer a 76mm
+     label (TSPL "SIZE 76 mm") whose x=0 is the page's printable-area edge, 2.75mm
+     in (page x 10mm → printer x 7.25mm, measured from the driver's print-to-file
+     output; the printer can mark up to 74.8mm of it). So the
+     content is centred on that 76mm label, not on the page — centring on the page
+     printed it ~2.5mm left of centre. --edge = margin inside the label on each side;
+     nudge with --shift (+ = right) if the physical print is still off-centre. */
+  :root{ --paper:78.7mm; --label-l:2.75mm; --label-w:76mm; --edge:3mm; --shift:1mm;
+    --edge-l:calc(var(--label-l) + var(--edge) + var(--shift));
+    --edge-r:calc(var(--paper) - var(--label-l) - var(--label-w) + var(--edge) - var(--shift)); }
   *{ box-sizing:border-box; }
   html,body{ margin:0; padding:0; }
-  body{ background:#e9edf1; color:#000; font-family:Arial,'Helvetica Neue',Helvetica,'Nirmala UI',sans-serif; font-size:14px; font-weight:400; line-height:1.3; -webkit-font-smoothing:antialiased; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .receipt{ background:#fff; width:var(--paper); margin:14px auto; padding:3mm var(--edge-r) 3mm var(--edge-l); overflow:hidden; box-shadow:0 2px 14px rgba(0,0,0,.12); }
+  body{ background:#e9edf1; color:#000; font-family:Arial,'Helvetica Neue',Helvetica,'Nirmala UI',sans-serif; font-size:14px; font-weight:400; line-height:1.22; -webkit-font-smoothing:antialiased; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .receipt{ background:#fff; width:var(--paper); margin:14px auto; padding:1.5mm var(--edge-r) 1mm var(--edge-l); overflow:hidden; box-shadow:0 2px 14px rgba(0,0,0,.12); }
 
   /* Toolbar — never printed */
   .toolbar{ position:fixed; top:12px; right:12px; display:flex; gap:8px; z-index:9; }
@@ -139,48 +150,50 @@ const RECEIPT_CSS = `
 
   .center{ text-align:center; }
   /* Pure black/white bitmap; explicit size reserves its space before it decodes. */
-  .logo{ display:block; width:18mm; height:auto; aspect-ratio:384/471; margin:0 auto 2mm; }
+  .logo{ display:block; width:16mm; height:auto; aspect-ratio:384/471; margin:0 auto 1mm; }
   .brand{ font-size:21px; font-weight:900; letter-spacing:.5px; }
   .tag{ font-size:13px; }
-  .muted{ font-size:12.5px; line-height:1.35; overflow-wrap:anywhere; }
+  .muted{ font-size:12.5px; line-height:1.25; overflow-wrap:anywhere; }
 
-  .ln{ border-top:1.5px dashed #000; margin:6px 0; }
+  .ln{ border-top:1.5px dashed #000; margin:4px 0; }
 
   /* Key/value rows: label left (may wrap), amount right (never wraps). */
-  .r{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; font-size:14px; padding:1px 0; }
+  .r{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; font-size:14px; padding:0; }
   .r > span:first-child{ flex:1 1 auto; overflow-wrap:break-word; }
   .r .v{ flex:0 0 auto; white-space:nowrap; text-align:right; }
   /* Free-text values (customer, cashier, refs) wrap instead of running off the edge. */
   .r .v.t{ flex:0 1 auto; min-width:0; white-space:normal; overflow-wrap:anywhere; }
 
-  .items{ margin:1px 0; }
-  .item{ padding:3px 0; }
+  .items{ margin:0; }
+  .item{ padding:2px 0; }
   .item .nm{ font-size:14.5px; font-weight:700; overflow-wrap:anywhere; word-break:break-word; }
   .item .var{ font-size:12.5px; overflow-wrap:anywhere; }
   .item .amt{ display:flex; justify-content:space-between; gap:8px; font-size:14px; }
   .item .amt .v{ flex:0 0 auto; white-space:nowrap; font-weight:700; text-align:right; }
 
-  .grand{ display:flex; justify-content:space-between; gap:6px; font-size:16px; font-weight:900; border-top:2px solid #000; margin-top:4px; padding-top:5px; }
+  .grand{ display:flex; justify-content:space-between; gap:6px; font-size:16px; font-weight:900; border-top:2px solid #000; margin-top:3px; padding-top:3px; }
   .grand span{ white-space:nowrap; }
 
-  .payhead{ font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.7px; margin:1px 0 2px; }
-  .foot{ text-align:center; font-size:13px; line-height:1.4; margin-top:6px; }
-  .foot .thx{ font-weight:700; font-size:15px; margin-top:5px; }
-  .foot p{ margin:2px 0; overflow-wrap:anywhere; }
+  .payhead{ font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.7px; margin:0 0 1px; }
+  .foot{ text-align:center; font-size:13px; line-height:1.25; }
+  .foot .thx{ font-weight:700; font-size:15px; margin-bottom:1px; }
+  .foot p{ margin:1px 0; overflow-wrap:anywhere; }
   /* Software credit — the receipt's last line, kept small and plain. */
-  .credit{ font-size:11px; margin-top:6px; padding-top:4px; border-top:1px dashed #000; }
+  .credit{ font-size:11px; margin-top:3px; padding-top:2px; border-top:1px dashed #000; }
 
   /* Print — no @page size on purpose (see the note above): the driver's stock
      decides the page; the receipt fills its width. ("size:80mm auto" is not valid
      CSS anyway — browsers drop the whole declaration.) */
   @page{ margin:0; }
   @media print{
-    html,body{ background:#fff; }
+    html,body{ background:#fff; orphans:1; widows:1; }
     .no-print{ display:none !important; }
     .receipt{ width:auto; margin:0; box-shadow:none; overflow:visible; }
-    /* Never split a line, item, header or total across label pages. */
-    .center,.r,.item,.grand,.foot,.logo{ break-inside:avoid; page-break-inside:avoid; }
-    .grand,.payhead{ break-after:avoid; page-break-after:avoid; }
+    /* On the continuous roll a page boundary is invisible, so only keep single
+       rows (and the logo) whole. Keeping whole blocks or items together pushed
+       them to the next stock page and left blank paper above them. Text lines
+       themselves are never sliced by the browser. */
+    .logo,.r,.item .amt,.grand{ break-inside:avoid; page-break-inside:avoid; }
   }
 `;
 
