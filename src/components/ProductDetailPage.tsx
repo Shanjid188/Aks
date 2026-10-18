@@ -247,8 +247,8 @@ export const ProductDetailPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
             {/* Left: Gallery (6 cols) */}
             <div className="lg:col-span-6 space-y-4">
-              <div min-h-[320px] sm:min-h-[400px]>
-                <PressZoom scale={1.12} ariaLabel="Zoom product image" className="h-full" disableZoom={isMobile}>
+              <div className="relative min-h-[320px] sm:min-h-[400px] bg-neutral-100 rounded-2xl overflow-hidden border border-neutral-200 shadow-xs">
+                <PressZoom scale={1.12} ariaLabel="Zoom product image" className="h-full" disableZoom={isMobileRef}>
                   <img
                   src={galleryImages[activeImageIndex] || selectedColor.image}
                   alt={product.name}
@@ -275,7 +275,7 @@ export const ProductDetailPage: React.FC = () => {
                   <PressZoom
                     key={idx}
                     onClick={() => setActiveImageIndex(idx)}
-                    disableZoom={isMobile}
+                    disableZoom={isMobileRef}
                     scale={1.25}
                     mode="hold"
                     ariaLabel={`View product image ${idx + 1}`}
