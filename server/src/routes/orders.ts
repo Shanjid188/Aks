@@ -200,7 +200,11 @@ router.post(
     if (deliveryMethod !== 'pickup' && !zone) {
       return res.status(400).json({ error: 'Please choose a valid delivery area' });
     }
-    const shippingFee = freeDeliveryCoupon || deliveryMethod === 'pickup' ? 0 : (zone?.fee ?? 0);
+    // Free delivery by amount uses the same rule the checkout page shows: the
+    // pre-discount subtotal, which is built from catalog prices only (above).
+    const freeByThreshold = subtotal >= checkoutConfig.freeShippingThreshold;
+    const shippingFee =
+      freeDeliveryCoupon || freeByThreshold || deliveryMethod === 'pickup' ? 0 : (zone?.fee ?? 0);
     const total = Math.max(0, subtotal - discount) + shippingFee;
 
     // Payment method must be one the merchant has enabled (and configured).

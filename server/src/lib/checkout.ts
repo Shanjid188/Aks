@@ -1,4 +1,5 @@
 import { prisma } from './prisma.ts';
+import { DEFAULT_COMMERCE } from '../../../src/data/commerce.ts';
 
 /**
  * Checkout configuration the merchant controls (Admin → Settings → Delivery &
@@ -54,6 +55,20 @@ export const CHECKOUT_KEYS = ['shippingZones', 'paymentMethods', 'bkashNumber', 
 export interface CheckoutConfig {
   zones: ShippingZone[];
   paymentMethods: PaymentMethodOption[];
+  /** Orders whose subtotal is at or above this ship free (Admin → Settings). */
+  freeShippingThreshold: number;
+}
+
+/**
+ * Same rule as the storefront's dataLoader.loadCommerce(): a finite number ≥ 0
+ * is used as-is, anything else falls back to the bundled default. Sharing the
+ * rule (and the default) keeps the fee the server charges equal to the one the
+ * checkout page shows.
+ */
+function parseFreeShippingThreshold(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? value
+    : DEFAULT_COMMERCE.freeShippingThreshold;
 }
 
 function parseValue(value: string): unknown {
@@ -101,10 +116,13 @@ function parsePaymentMethods(value: unknown, settings: Map<string, unknown>): Pa
 
 /** Read the delivery zones + enabled payment methods from store settings. */
 export async function loadCheckoutConfig(): Promise<CheckoutConfig> {
-  const rows = await prisma.storeSetting.findMany({ where: { key: { in: CHECKOUT_KEYS } } });
+  const rows = await prisma.storeSetting.findMany({
+    where: { key: { in: [...CHECKOUT_KEYS, 'freeShippingThreshold'] } },
+  });
   const settings = new Map(rows.map((r) => [r.key, parseValue(r.value)]));
   return {
     zones: parseZones(settings.get('shippingZones')),
     paymentMethods: parsePaymentMethods(settings.get('paymentMethods'), settings),
+    freeShippingThreshold: parseFreeShippingThreshold(settings.get('freeShippingThreshold')),
   };
 }

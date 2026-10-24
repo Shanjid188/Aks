@@ -62,16 +62,13 @@ describe('checkout totals', () => {
     assert.equal(res.body.order.items.length, 2);
   });
 
-  it(
-    'gives free delivery once the subtotal reaches freeShippingThreshold',
-    { todo: 'BUG: storefront shows free shipping at the threshold (CheckoutPage.tsx:84) but POST /orders ignores it and charges the zone fee' },
-    async () => {
-      const qty = Math.ceil(FREE_SHIPPING_THRESHOLD / RICE.price);
-      const res = await placeOrder([{ sku: RICE.sku, quantity: qty }]);
-      assert.ok(res.body.order.subtotal >= FREE_SHIPPING_THRESHOLD);
-      assert.equal(res.body.order.shippingFee, 0);
-    }
-  );
+  it('gives free delivery once the subtotal reaches freeShippingThreshold', async () => {
+    const qty = Math.ceil(FREE_SHIPPING_THRESHOLD / RICE.price);
+    const res = await placeOrder([{ sku: RICE.sku, quantity: qty }]);
+    assert.ok(res.body.order.subtotal >= FREE_SHIPPING_THRESHOLD);
+    assert.equal(res.body.order.shippingFee, 0);
+    assert.equal(res.body.order.total, res.body.order.subtotal);
+  });
 
   it('prices items from the catalog, not from the client', async () => {
     const body = checkoutBody([
