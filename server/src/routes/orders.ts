@@ -126,43 +126,33 @@ router.post(
       }
     }
 
+    // Prices always come from the Product table. Any price or line total in the
+    // request is ignored, and an item that does not match a real product is
+    // rejected — otherwise it would be charged at whatever price the client sent.
     let subtotal = 0;
     const stockTargets: { productId: string; qty: number }[] = [];
     const orderItems = [];
     for (const raw of items) {
       const it = (raw || {}) as Record<string, unknown>;
-      const product = (it.product || {}) as Record<string, unknown>;
-      const price = Number(it.price ?? product.price ?? 0) || 0;
       const qty = Math.floor(Number(it.quantity));
-      subtotal += price * qty;
 
       const resolved = await resolveOrderProduct(it);
-      if (resolved) {
-        stockTargets.push({ productId: resolved.id, qty });
-        // Prefer live product price when stock tracking is enabled so POS/inventory
-        // totals stay consistent with the catalog; snapshot the name/sku for history.
-        orderItems.push({
-          productId: resolved.id,
-          productName: resolved.name,
-          productSku: resolved.sku,
-          size: String(it.size ?? (it.selectedSize as Record<string, unknown>)?.size ?? ''),
-          color: String(it.color ?? (it.selectedColor as Record<string, unknown>)?.name ?? ''),
-          quantity: qty,
-          price: Number(it.price ?? product.price ?? 0) || 0,
-          unitCost: resolved.costPrice ?? null,
-        });
-      } else {
-        orderItems.push({
-          productId: null,
-          productName: String(it.productName ?? product.name ?? 'Unknown product'),
-          productSku: String(product.sku ?? it.sku ?? ''),
-          size: String(it.size ?? (it.selectedSize as Record<string, unknown>)?.size ?? ''),
-          color: String(it.color ?? (it.selectedColor as Record<string, unknown>)?.name ?? ''),
-          quantity: qty,
-          price,
-          unitCost: null,
-        });
+      if (!resolved) {
+        return res.status(400).json({ error: 'An item in your cart is no longer available. Please refresh your cart.' });
       }
+      subtotal += resolved.price * qty;
+      stockTargets.push({ productId: resolved.id, qty });
+      // Snapshot the name/sku/price so order history survives later catalog edits.
+      orderItems.push({
+        productId: resolved.id,
+        productName: resolved.name,
+        productSku: resolved.sku,
+        size: String(it.size ?? (it.selectedSize as Record<string, unknown>)?.size ?? ''),
+        color: String(it.color ?? (it.selectedColor as Record<string, unknown>)?.name ?? ''),
+        quantity: qty,
+        price: resolved.price,
+        unitCost: resolved.costPrice ?? null,
+      });
     }
 
     if (stockTargets.length > 0) {
