@@ -80,18 +80,116 @@ describe('order status', () => {
     assert.equal(await stockOf('TEST-OIL-1L'), before);
   });
 
-  it(
-    'reopening and re-cancelling an order does not restock twice',
-    { todo: 'BUG: moving a cancelled order back to pending does not re-deduct stock, so a second cancel adds the items again' },
-    async () => {
-      const before = await stockOf('TEST-BASKET');
-      const id = (await placeOrder([{ sku: 'TEST-BASKET', quantity: 1 }])).body.order.id;
-      await admin.patch(`/api/admin/orders/${id}`, { status: 'cancelled' });
-      await admin.patch(`/api/admin/orders/${id}`, { status: 'pending' });
-      await admin.patch(`/api/admin/orders/${id}`, { status: 'cancelled' });
-      assert.equal(await stockOf('TEST-BASKET'), before);
+  it('changing status between non-cancelled states leaves stock alone', async () => {
+    const id = (await placeOrder([{ sku: 'TEST-OIL-1L', quantity: 2 }])).body.order.id;
+    const before = await stockOf('TEST-OIL-1L');
+    for (const status of ['confirmed', 'processing', 'pending', 'shipped', 'delivered']) {
+      assert.equal((await admin.patch(`/api/admin/orders/${id}`, { status })).status, 200, status);
+      assert.equal(await stockOf('TEST-OIL-1L'), before, status);
     }
-  );
+  });
+});
+
+describe('reopening a cancelled order', () => {
+  const setStatus = (id: string, status: string) => admin.patch(`/api/admin/orders/${id}`, { status });
+
+  it('reopening and re-cancelling an order does not restock twice', async () => {
+    const before = await stockOf('TEST-BASKET');
+    const id = (await placeOrder([{ sku: 'TEST-BASKET', quantity: 1 }])).body.order.id;
+    assert.equal(await stockOf('TEST-BASKET'), before - 1);
+
+    assert.equal((await setStatus(id, 'cancelled')).status, 200);
+    assert.equal(await stockOf('TEST-BASKET'), before);
+    assert.equal((await setStatus(id, 'pending')).status, 200);
+    assert.equal(await stockOf('TEST-BASKET'), before - 1);
+    assert.equal((await setStatus(id, 'cancelled')).status, 200);
+    assert.equal(await stockOf('TEST-BASKET'), before);
+  });
+
+  it('several cancel/reopen cycles always end where they started', async () => {
+    const before = await stockOf('TEST-BASKET');
+    const id = (await placeOrder([{ sku: 'TEST-BASKET', quantity: 2 }])).body.order.id;
+    for (let i = 0; i < 3; i++) {
+      await setStatus(id, 'cancelled');
+      assert.equal(await stockOf('TEST-BASKET'), before);
+      await setStatus(id, 'pending');
+      assert.equal(await stockOf('TEST-BASKET'), before - 2);
+    }
+    await setStatus(id, 'cancelled');
+    assert.equal(await stockOf('TEST-BASKET'), before);
+  });
+
+  it('reopening straight to a later status also takes the stock back', async () => {
+    const before = await stockOf('TEST-OIL-1L');
+    const id = (await placeOrder([{ sku: 'TEST-OIL-1L', quantity: 2 }])).body.order.id;
+    await setStatus(id, 'cancelled');
+    const res = await setStatus(id, 'confirmed');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.order.status, 'confirmed');
+    assert.equal(await stockOf('TEST-OIL-1L'), before - 2);
+    await setStatus(id, 'cancelled');
+    assert.equal(await stockOf('TEST-OIL-1L'), before);
+  });
+
+  it('refuses to reopen when the stock has since been sold, and changes nothing', async () => {
+    const start = await stockOf('TEST-POTTERY');
+    const first = (await placeOrder([{ sku: 'TEST-POTTERY', quantity: start - 5 }])).body.order.id;
+    await setStatus(first, 'cancelled');
+    const second = (await placeOrder([{ sku: 'TEST-POTTERY', quantity: 10 }])).body.order.id;
+    assert.equal(await stockOf('TEST-POTTERY'), start - 10);
+
+    const res = await setStatus(first, 'pending');
+    assert.equal(res.status, 400);
+    assert.match(res.body.error, /enough stock/);
+    assert.equal(await stockOf('TEST-POTTERY'), start - 10);
+    assert.equal((await admin.get(`/api/admin/orders/${first}`)).body.order.status, 'cancelled');
+
+    // Once the stock is back, the reopen goes through.
+    await setStatus(second, 'cancelled');
+    assert.equal((await setStatus(first, 'pending')).status, 200);
+    assert.equal(await stockOf('TEST-POTTERY'), 5);
+    await setStatus(first, 'cancelled');
+    assert.equal(await stockOf('TEST-POTTERY'), start);
+  });
+
+  it('two simultaneous cancels restock only once', async () => {
+    const before = await stockOf('TEST-BASKET');
+    const id = (await placeOrder([{ sku: 'TEST-BASKET', quantity: 3 }])).body.order.id;
+    const results = await Promise.all([setStatus(id, 'cancelled'), setStatus(id, 'cancelled')]);
+    for (const r of results) assert.ok([200, 409].includes(r.status), JSON.stringify(r.body));
+    assert.equal(await stockOf('TEST-BASKET'), before);
+  });
+
+  for (const status of ['refunded', 'returned']) {
+    it(`moving a cancelled order to ${status} leaves stock alone (#107)`, async () => {
+      const before = await stockOf('TEST-OIL-1L');
+      const id = (await placeOrder([{ sku: 'TEST-OIL-1L', quantity: 1 }])).body.order.id;
+      await setStatus(id, 'cancelled');
+      assert.equal(await stockOf('TEST-OIL-1L'), before);
+      const res = await setStatus(id, status);
+      assert.equal(res.status, 200);
+      assert.equal(res.body.order.status, status);
+      assert.equal(await stockOf('TEST-OIL-1L'), before);
+    });
+  }
+
+  it('a refused reopen rolls back every product, not just the short one', async () => {
+    const basket = await stockOf('TEST-BASKET');
+    const pottery = await stockOf('TEST-POTTERY');
+    const first = (await placeOrder([
+      { sku: 'TEST-BASKET', quantity: 1 },
+      { sku: 'TEST-POTTERY', quantity: pottery },
+    ])).body.order.id;
+    await setStatus(first, 'cancelled');
+    const second = (await placeOrder([{ sku: 'TEST-POTTERY', quantity: 1 }])).body.order.id;
+
+    const res = await setStatus(first, 'pending');
+    assert.equal(res.status, 400);
+    assert.equal(await stockOf('TEST-BASKET'), basket, 'basket deduction must be rolled back');
+    assert.equal(await stockOf('TEST-POTTERY'), pottery - 1);
+    assert.equal((await admin.get(`/api/admin/orders/${first}`)).body.order.status, 'cancelled');
+    await setStatus(second, 'cancelled');
+  });
 });
 
 describe('public order lookup', () => {

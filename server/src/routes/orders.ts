@@ -28,6 +28,25 @@ const ORDER_STATUSES = [
   'refunded',
 ] as const;
 
+/** Statuses an order is still being fulfilled in; leaving `cancelled` for one of these is a reopen. */
+const ACTIVE_STATUSES: readonly string[] = [
+  'pending',
+  'confirmed',
+  'processing',
+  'packed',
+  'shipped',
+  'out_for_delivery',
+  'delivered',
+  'completed',
+];
+
+/** Thrown inside the status-change transaction to roll it back with an HTTP error. */
+class StatusChangeError extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message);
+  }
+}
+
 /** Resolve a product row from an order-item payload (id or SKU). */
 async function resolveOrderProduct(it: Record<string, unknown>) {
   const productObj = (it.product || {}) as Record<string, unknown>;
@@ -375,38 +394,78 @@ router.patch(
       return res.status(403).json({ error: "You don't have permission to perform this action" });
     }
 
-    const order = await prisma.order.update({
-      where: { id },
-      data: { status: nextStatus },
-      include: ITEM_INCLUDE,
-    });
-
-    // Restore stock when an order is cancelled (tracked products only).
-    if (isCancel) {
-      const withItems = await prisma.order.findUnique({
-        where: { id },
-        include: { items: { select: { productId: true, quantity: true } } },
+    // Cancelling puts the items back on the shelf; moving a cancelled order back
+    // into the active lifecycle takes them off again, so cancel → reopen → cancel
+    // restocks only once. Going from cancelled to refunded/returned is not a
+    // reopen: the goods are already back on the shelf, so stock stays put.
+    // Tracked products only, as at checkout.
+    const isReopen = existing.status === 'cancelled' && ACTIVE_STATUSES.includes(nextStatus);
+    const stockByProduct = new Map<string, number>();
+    if (isCancel || isReopen) {
+      const items = await prisma.orderItem.findMany({
+        where: { orderId: id },
+        select: { productId: true, quantity: true },
       });
-      const items = withItems?.items ?? [];
-      if (items.length > 0) {
-        const tracked = await prisma.product.findMany({
-          where: { id: { in: items.map((i) => i.productId ?? '').filter(Boolean) }, trackStock: true },
-          select: { id: true },
-        });
-        const trackedIds = new Set(tracked.map((t) => t.id));
-        for (const item of items) {
-          if (!item.productId || !trackedIds.has(item.productId)) continue;
-          await applyStockDelta({
-            productId: item.productId,
-            change: item.quantity,
-            reason: 'order.cancelled',
-            referenceType: 'order',
-            referenceId: id,
-            createdBy: currentAdmin(req)?.email,
-          });
+      const tracked = await prisma.product.findMany({
+        where: { id: { in: items.map((i) => i.productId ?? '').filter(Boolean) }, trackStock: true },
+        select: { id: true },
+      });
+      const trackedIds = new Set(tracked.map((t) => t.id));
+      for (const item of items) {
+        if (item.productId && trackedIds.has(item.productId)) {
+          stockByProduct.set(item.productId, (stockByProduct.get(item.productId) ?? 0) + item.quantity);
         }
       }
     }
+
+    // The status move and every stock change commit together or not at all.
+    try {
+      await prisma.$transaction(async (tx) => {
+        // Only move the order if nobody changed its status in the meantime, so
+        // two simultaneous cancels cannot both restock it. This write comes
+        // first so the transaction holds the lock for everything below.
+        const moved = await tx.order.updateMany({
+          where: { id, status: existing.status },
+          data: { status: nextStatus },
+        });
+        if (moved.count === 0) {
+          throw new StatusChangeError(409, 'This order was just updated by someone else. Please refresh and try again.');
+        }
+
+        for (const [productId, qty] of stockByProduct) {
+          const change = isCancel ? qty : -qty;
+          // A reopen only deducts what is actually on the shelf: the check and
+          // the decrement are one conditional update, so a sale in between
+          // cannot push stock below zero.
+          const updated = await tx.product.updateMany({
+            where: isCancel ? { id: productId } : { id: productId, stockQuantity: { gte: qty } },
+            data: { stockQuantity: { increment: change } },
+          });
+          if (updated.count === 0) {
+            const row = await tx.product.findUnique({ where: { id: productId }, select: { name: true, stockQuantity: true } });
+            throw new StatusChangeError(
+              400,
+              `${row?.name ?? 'A product'} doesn't have enough stock to reopen this order (available: ${row?.stockQuantity ?? 0}, needed: ${qty})`
+            );
+          }
+          await tx.stockMovement.create({
+            data: {
+              productId,
+              change,
+              reason: isCancel ? 'order.cancelled' : 'order.reopened',
+              referenceType: 'order',
+              referenceId: id,
+              createdBy: currentAdmin(req)?.email ?? null,
+            },
+          });
+        }
+      });
+    } catch (err) {
+      if (err instanceof StatusChangeError) return res.status(err.status).json({ error: err.message });
+      throw err;
+    }
+
+    const order = await prisma.order.findUniqueOrThrow({ where: { id }, include: ITEM_INCLUDE });
 
     await logAudit({
       admin: currentAdmin(req),
