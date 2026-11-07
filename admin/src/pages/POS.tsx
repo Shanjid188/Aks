@@ -184,10 +184,10 @@ export function PosPage() {
     if (cart.length === 0) return;
     setBusy(true); setError(null); setOk(null);
     try {
-      // Record what the customer actually tendered (it may exceed the total) so the
-      // receipt can show the amount received and the change given. The server still
-      // caps the applied paidAmount, so the order balance stays correct.
-      const tendered = Math.max(0, Number(paidAmount) || 0) || total;
+      // What the customer handed over. An empty field means the exact total; an
+      // explicit 0 means nothing was paid now (a due sale). Cash above the total
+      // is change; the server records only what is applied.
+      const tendered = paidAmount.trim() === '' ? total : Math.max(0, Number(paidAmount) || 0);
       const res = await api.post<{ order: PosReceiptData; sale: SaleResult }>('/pos/sales', {
         items: cart.map((l) => ({ productId: l.productId, quantity: l.quantity, price: l.price, size: 'Free Size', color: 'Default' })),
         payments: [{ method: paymentMethod, amount: tendered }],
@@ -281,7 +281,8 @@ export function PosPage() {
 
   // What the customer actually handed over (uncapped) so change is shown correctly.
   const received = Math.max(0, Number(paidAmount) || 0);
-  const change = received > total ? received - total : 0;
+  // Only cash gives change; card and wallet payments are charged exactly.
+  const change = paymentMethod === 'cash' && received > total ? received - total : 0;
 
   return (
     <div className="space-y-5">
