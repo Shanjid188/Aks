@@ -210,3 +210,76 @@ describe('public order lookup', () => {
     assert.equal(res.body.order.total, placed.total);
   });
 });
+
+describe('public order lookups hide personal and internal data (#7)', () => {
+  const ADDRESS = {
+    fullName: 'Rahim Uddin',
+    phone: '01798765432',
+    email: 'rahim@test.local',
+    division: 'Dhaka',
+    district: 'Dhaka',
+    thana: 'Gulshan',
+    streetAddress: 'House 12, Road 34',
+    postalCode: '1212',
+    deliveryInstructions: 'Ring the gate bell',
+  };
+  const INTERNAL = ['adminNote', 'customerEmail', 'customerNote', 'customerId', 'cashierId', 'assignedAdminId', 'paymentReference', 'packedBy', 'heldAt'];
+
+  async function placeWithAddress() {
+    const res = await placeOrder([{ sku: 'TEST-RICE-5KG', quantity: 1 }], { customerAddress: ADDRESS });
+    assert.equal(res.status, 201, JSON.stringify(res.body));
+    return res.body.order;
+  }
+
+  function assertPublic(order: Record<string, any>) {
+    for (const key of INTERNAL) assert.ok(!(key in order), `${key} must not be public`);
+    const json = JSON.stringify(order);
+    for (const secret of [ADDRESS.phone, ADDRESS.email, ADDRESS.streetAddress, ADDRESS.deliveryInstructions, 'Uddin']) {
+      assert.ok(!json.includes(secret), `${secret} must not be public`);
+    }
+    for (const it of order.items) assert.ok(!('unitCost' in it), 'unitCost must not be public');
+    assert.deepEqual(order.customerAddress, {
+      thana: 'Gulshan',
+      district: 'Dhaka',
+      division: 'Dhaka',
+      fullName: 'Rahim U.',
+      phone: '017******32',
+    });
+  }
+
+  it('tracking returns the masked public shape', async () => {
+    const placed = await placeWithAddress();
+    const res = await api().get(`/api/orders/track/${placed.trackingCode}`);
+    assert.equal(res.status, 200);
+    assertPublic(res.body.order);
+    assert.equal(res.body.order.status, placed.status);
+    assert.equal(res.body.order.total, placed.total);
+    assert.equal(res.body.order.items[0].productName, placed.items[0].productName);
+  });
+
+  it('the confirmation lookup by id returns the same masked shape', async () => {
+    const placed = await placeWithAddress();
+    const res = await api().get(`/api/orders/${placed.id}`);
+    assert.equal(res.status, 200);
+    assertPublic(res.body.order);
+    assert.equal(res.body.order.items.length, 1);
+  });
+
+  it('placing an order returns the customer their own details, without internal fields', async () => {
+    const placed = await placeWithAddress();
+    assert.equal(placed.customerPhone, ADDRESS.phone);
+    assert.equal(placed.customerAddress.streetAddress, ADDRESS.streetAddress);
+    for (const it of placed.items) assert.ok(!('unitCost' in it));
+    assert.ok(!('adminNote' in placed));
+  });
+
+  it('throttles a client that keeps missing', async () => {
+    let last = 0;
+    for (let i = 0; i < 31; i++) {
+      last = (await api().get(`/api/orders/track/AKS-BD-${String(100000 + i)}`)).status;
+    }
+    assert.equal(last, 429);
+    // A real code is refused too while the client is blocked.
+    assert.equal((await api().get(`/api/orders/track/${ORDERS[0].trackingCode}`)).status, 429);
+  });
+});
