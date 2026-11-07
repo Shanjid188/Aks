@@ -227,3 +227,60 @@ describe('POS pricing (#89)', () => {
     assert.equal(res.body.order.total, RICE.price);
   });
 });
+
+describe('POS tendered amounts (#90)', () => {
+  async function saleWith(payments: { method: string; amount: number }[], quantity = 1) {
+    const rice = await adminProduct(RICE.sku);
+    return api(await login('super')).post('/api/pos/sales', { items: [{ productId: rice.id, quantity }], payments });
+  }
+
+  it('nothing tendered is a due sale, not a paid one', async () => {
+    const res = await saleWith([{ method: 'cash', amount: 0 }]);
+    assert.equal(res.status, 201, JSON.stringify(res.body));
+    assert.equal(res.body.order.paymentStatus, 'due');
+    assert.equal(res.body.order.paidAmount, 0);
+    assert.equal(res.body.order.dueAmount, RICE.price);
+    assert.equal(res.body.order.payments.length, 0);
+  });
+
+  it('cash over the total stores the applied amount and keeps the change for the receipt', async () => {
+    const res = await saleWith([{ method: 'cash', amount: 500 }]);
+    assert.equal(res.status, 201, JSON.stringify(res.body));
+    const [p] = res.body.order.payments;
+    assert.equal(p.amount, RICE.price);
+    assert.equal(p.tendered, 500);
+    assert.equal(res.body.order.paidAmount, RICE.price);
+
+    const reprint = await api(await login('super')).get(`/api/admin/pos/receipt/${res.body.order.id}`);
+    assert.equal(reprint.body.order.payments[0].tendered, 500);
+    assert.equal(reprint.body.order.payments[0].amount, RICE.price);
+  });
+
+  it('a card payment above the amount due is refused', async () => {
+    const res = await saleWith([{ method: 'card', amount: 1000 }]);
+    assert.equal(res.status, 400);
+    assert.match(res.body.error, /card payment cannot be more than the amount due/);
+  });
+
+  it('an exact card payment and a partial cash payment are recorded as given', async () => {
+    const card = await saleWith([{ method: 'card', amount: RICE.price }]);
+    assert.equal(card.status, 201);
+    assert.equal(card.body.order.paymentStatus, 'paid');
+    assert.equal(card.body.order.payments[0].tendered, RICE.price);
+
+    const partial = await saleWith([{ method: 'cash', amount: 100 }]);
+    assert.equal(partial.body.order.paymentStatus, 'partial');
+    assert.equal(partial.body.order.dueAmount, RICE.price - 100);
+    assert.equal(partial.body.order.payments[0].amount, 100);
+  });
+
+  it('split payments apply in order; cash change only on the overflow', async () => {
+    const res = await saleWith([{ method: 'bkash', amount: 400 }, { method: 'cash', amount: 100 }], 1);
+    assert.equal(res.status, 201, JSON.stringify(res.body));
+    assert.deepEqual(res.body.order.payments.map((p: any) => [p.method, p.amount, p.tendered]), [
+      ['bkash', 400, 400],
+      ['cash', RICE.price - 400, 100],
+    ]);
+    assert.equal(res.body.order.paymentStatus, 'paid');
+  });
+});

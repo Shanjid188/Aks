@@ -35,6 +35,23 @@ export interface PosSaleItemInput {
   price?: number;
 }
 
+/**
+ * Cash handed over beyond the amount due is change, not money kept. The
+ * payment row stores what was applied; the tendered amount is kept in its note
+ * (no schema change) so a reprinted receipt shows the same change.
+ */
+const TENDERED_NOTE = 'tendered:';
+
+type PaymentRow = { amount: number; note: string | null; [k: string]: unknown };
+
+/** Payment rows with `tendered` added: the cash handed over (= amount when no change was given). */
+export function withTendered<T extends PaymentRow>(payments: T[]): (T & { tendered: number })[] {
+  return payments.map((p) => {
+    const fromNote = p.note?.startsWith(TENDERED_NOTE) ? Number(p.note.slice(TENDERED_NOTE.length)) : NaN;
+    return { ...p, tendered: Number.isFinite(fromNote) ? fromNote : p.amount };
+  });
+}
+
 /** Whole units ≥ 1, or null. */
 function lineQuantity(raw: unknown): number | null {
   const qty = Math.trunc(Number(raw));
@@ -115,10 +132,31 @@ router.post(
     const customerPhone = String((body as { customerPhone?: unknown }).customerPhone || '');
     const customerEmail = String((body as { customerEmail?: unknown }).customerEmail || '');
 
-    const paidAmount = Math.min(
-      total,
-      paymentsRaw.reduce((s, p) => s + (Number(p.amount) || 0), 0)
-    );
+    // Apply payments in order against what is still due. Only cash can be
+    // over-tendered (the rest is change); a card or wallet payment is charged
+    // exactly, so more than the amount due is a typing mistake.
+    let remaining = total;
+    const payments: { amount: number; method: string; note: string | null; receivedBy: string }[] = [];
+    for (const p of paymentsRaw) {
+      const tendered = Math.round((Number(p.amount) || 0) * 100) / 100;
+      if (!(tendered > 0)) continue;
+      const method = String(p.method ?? '').trim() || 'cash';
+      const applied = Math.min(tendered, Math.round(remaining * 100) / 100);
+      if (tendered > applied && method !== 'cash') {
+        return res.status(400).json({
+          error: `A ${method} payment cannot be more than the amount due (${Math.max(0, remaining).toFixed(2)})`,
+        });
+      }
+      if (applied <= 0) continue;
+      remaining -= applied;
+      payments.push({
+        amount: applied,
+        method,
+        note: tendered > applied ? `${TENDERED_NOTE}${tendered}` : null,
+        receivedBy: admin.email,
+      });
+    }
+    const paidAmount = Math.round((total - Math.max(0, remaining)) * 100) / 100;
     const dueAmount = Math.max(0, Math.round((total - paidAmount) * 100) / 100);
     const paymentStatus = dueAmount <= 0 ? 'paid' : paidAmount > 0 ? 'partial' : 'due';
 
@@ -158,15 +196,7 @@ router.post(
           customerNote: String(body.note ?? '') || null,
           packedStatus: 'not_packed',
           items: { create: orderItems },
-          payments: {
-            create: paymentsRaw
-              .filter((p) => (Number(p.amount) || 0) > 0)
-              .map((p) => ({
-                amount: Number(p.amount),
-                method: String(p.method).trim() || 'cash',
-                receivedBy: admin.email,
-              })),
-          },
+          payments: { create: payments },
         },
         include: { items: true, payments: true },
       })
@@ -194,7 +224,7 @@ router.post(
     });
 
     res.status(201).json({
-      order,
+      order: { ...order, payments: withTendered(order.payments) },
       sale: { subtotal, discount, tax, shippingFee, total, paidAmount, dueAmount, paymentStatus },
     });
   })
@@ -214,7 +244,7 @@ router.get(
       },
     });
     if (!order || order.source !== 'pos') return res.status(404).json({ error: 'POS sale not found' });
-    res.json({ order });
+    res.json({ order: { ...order, payments: withTendered(order.payments) } });
   })
 );
 

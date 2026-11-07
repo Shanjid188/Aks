@@ -18,6 +18,8 @@ export interface PosReceiptItem {
 export interface PosReceiptPayment {
   method: string;
   amount: number;
+  /** Cash handed over, when more than the amount applied (the difference was change). */
+  tendered?: number | null;
   reference?: string | null;
 }
 
@@ -254,7 +256,7 @@ export function buildPosReceiptHtml(
   // legacy row has none. Change is derived from the stored rows, so a reprint shows
   // exactly what the original receipt showed.
   const payments = (Array.isArray(data.payments) && data.payments.length > 0)
-    ? data.payments.map((p) => ({ method: p.method, amount: Number(p.amount) || 0, reference: p.reference }))
+    ? data.payments.map((p) => ({ method: p.method, amount: Number(p.tendered ?? p.amount) || 0, reference: p.reference }))
     : (data.paymentMethod ? [{ method: data.paymentMethod, amount: Number(data.paidAmount) || 0, reference: data.paymentReference }] : []);
 
   const tendered = payments.reduce((sum, p) => sum + p.amount, 0);
