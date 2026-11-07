@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import { prisma } from './prisma.ts';
 import { ALL_PERMISSIONS } from './permissions.ts';
@@ -20,15 +21,50 @@ export interface AdminPayload {
   permissions: string[];
 }
 
-export function signToken(payload: AdminPayload): string {
+/** What a session token carries: the admin plus a fingerprint of their password. */
+type TokenClaims = AdminPayload & { pv?: string };
+
+/**
+ * Short fingerprint of the stored password hash. A token is only valid while
+ * it matches, so setting a new password signs out every existing session.
+ */
+function passwordStamp(passwordHash: string): string {
+  return crypto.createHash('sha256').update(passwordHash).digest('base64url').slice(0, 16);
+}
+
+export function signToken(payload: AdminPayload, passwordHash: string): string {
   const options: jwt.SignOptions = {
     expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
   };
-  return jwt.sign(payload, JWT_SECRET, options);
+  const claims: TokenClaims = { ...payload, pv: passwordStamp(passwordHash) };
+  return jwt.sign(claims, JWT_SECRET, options);
 }
 
-export function verifyToken(token: string): AdminPayload {
-  return jwt.verify(token, JWT_SECRET) as AdminPayload;
+export function verifyToken(token: string): TokenClaims {
+  return jwt.verify(token, JWT_SECRET) as TokenClaims;
+}
+
+/**
+ * The admin behind the request's Bearer token, loaded fresh from the database,
+ * or null when there is no valid session: no or bad token, the account was
+ * removed or disabled, or its password changed after the token was issued.
+ */
+async function authenticate(req: Request): Promise<AdminPayload | null> {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return null;
+  let claims: TokenClaims;
+  try {
+    claims = verifyToken(token);
+  } catch {
+    return null;
+  }
+  const row = await prisma.adminUser.findUnique({
+    where: { id: claims.id },
+    select: { passwordHash: true, isActive: true },
+  });
+  if (!row || !row.isActive || claims.pv !== passwordStamp(row.passwordHash)) return null;
+  return loadAdminAuth(claims.id);
 }
 
 /** Express request augmented with the decoded + permission-enriched admin. */
@@ -67,18 +103,21 @@ export async function loadAdminAuth(adminId: string): Promise<AdminPayload | nul
   };
 }
 
-/** Middleware: requires a valid Bearer token for any admin route. */
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
+const SIGN_IN_AGAIN = 'Your session has ended. Please sign in again.';
+
+/** Middleware: requires a valid session for any admin route. */
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-  if (!token) {
+  if (!header.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Authentication required' });
   }
   try {
-    (req as AdminRequest).admin = verifyToken(token);
+    const admin = await authenticate(req);
+    if (!admin) return res.status(401).json({ error: SIGN_IN_AGAIN });
+    (req as AdminRequest).admin = admin;
     next();
-  } catch {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+  } catch (err) {
+    next(err);
   }
 }
 
@@ -89,24 +128,15 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
  */
 export function requirePermission(permission: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    // Authenticate first (works standalone or after requireAuth).
-    if (!currentAdmin(req)) {
-      const header = req.headers.authorization || '';
-      const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-      if (!token) {
-        return res.status(401).json({ error: 'Authentication required' });
-      }
-      try {
-        (req as AdminRequest).admin = verifyToken(token);
-      } catch {
-        return res.status(401).json({ error: 'Invalid or expired token' });
-      }
-    }
-    const tokenAdmin = currentAdmin(req);
     try {
-      const fresh = await loadAdminAuth(tokenAdmin.id);
+      // Authenticate first, unless requireAuth already did for this request.
+      let fresh: AdminPayload | null = currentAdmin(req) ?? null;
       if (!fresh) {
-        return res.status(403).json({ error: 'Account disabled or not found' });
+        if (!(req.headers.authorization || '').startsWith('Bearer ')) {
+          return res.status(401).json({ error: 'Authentication required' });
+        }
+        fresh = await authenticate(req);
+        if (!fresh) return res.status(401).json({ error: SIGN_IN_AGAIN });
       }
       (req as AdminRequest).admin = fresh;
       if (fresh.isSuper || fresh.permissions.includes(permission)) {

@@ -53,7 +53,7 @@ router.post(
       isSuper: auth.isSuper,
       name: auth.name,
       permissions: auth.permissions,
-    });
+    }, admin.passwordHash);
 
     res.json({ token, admin: auth });
   })

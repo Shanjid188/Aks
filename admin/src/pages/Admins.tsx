@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
-import { api } from '../api';
+import { api, setToken } from '../api';
 import type { AdminUserRow, Role } from '../types';
 import { EmptyState, Spinner, PageHeader } from '../components/ui';
 import { PERM } from '../lib/permissions';
@@ -388,7 +388,9 @@ async function resetPassword(admin: AdminUserRow) {
     return;
   }
   try {
-    await api.put(`/admin/admins/${admin.id}/password`, { password });
+    const res = await api.put<{ ok: boolean; token?: string }>(`/admin/admins/${admin.id}/password`, { password });
+    // Changing your own password ends your other sessions; this one gets a new token.
+    if (res.token) setToken(res.token);
     window.alert(`Password updated for ${admin.name}`);
   } catch (e) {
     window.alert((e as Error).message);

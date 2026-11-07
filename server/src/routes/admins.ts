@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
 import { PERM } from '../lib/permissions.ts';
-import { asyncHandler, currentAdmin, hashPassword, permissionsNotHeld, requirePermission, type AdminPayload } from '../lib/auth.ts';
+import { asyncHandler, currentAdmin, hashPassword, permissionsNotHeld, requirePermission, signToken, type AdminPayload } from '../lib/auth.ts';
 import { logAudit } from '../lib/audit.ts';
 
 const router = Router();
@@ -231,7 +231,7 @@ router.put(
         return res.status(403).json({ error: "You can only reset passwords of admins whose permissions you have yourself" });
       }
     }
-    await prisma.adminUser.update({
+    const updated = await prisma.adminUser.update({
       where: { id },
       data: { passwordHash: await hashPassword(password) },
     });
@@ -242,6 +242,11 @@ router.put(
       entityId: id,
       details: existing.email,
     });
+    // A new password ends every session of that account (see signToken). When
+    // admins change their own, hand back a new token so this one carries on.
+    if (id === me.id) {
+      return res.json({ ok: true, token: signToken(me, updated.passwordHash) });
+    }
     res.json({ ok: true });
   })
 );
