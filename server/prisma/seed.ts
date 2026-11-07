@@ -135,7 +135,26 @@ async function seedRoles() {
   console.log(`✅ Roles synced (${DEFAULT_ROLES.length}) [${rolesCreated} created]`);
 }
 
+/**
+ * The seed writes demo data: it resets system role permissions, overwrites
+ * products, hides products outside the demo categories, re-activates the demo
+ * coupons and rewrites hero slides. That is right for a new database and
+ * destructive for a store in use, so it only runs on an empty one unless
+ * SEED_FORCE=1 is set.
+ */
+async function storeInUse(): Promise<boolean> {
+  const [admins, orders] = await Promise.all([prisma.adminUser.count(), prisma.order.count()]);
+  return admins > 0 || orders > 0;
+}
+
 async function main() {
+  if (process.env.SEED_FORCE !== '1' && (await storeInUse())) {
+    console.log('ℹ️  This database already has admins or orders, so the seed did nothing.');
+    console.log('   Seeding overwrites products, coupons, roles and hero slides with demo data.');
+    console.log('   To do that anyway (development databases only), run it with SEED_FORCE=1.');
+    return;
+  }
+
   console.log('🔄 Seeding AKS database...\n');
 
   await seedRoles();
