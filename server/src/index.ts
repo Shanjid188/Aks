@@ -35,6 +35,7 @@ import pagesRouter from './routes/pages.ts';
 import newsletterRouter from './routes/newsletter.ts';
 import contactRouter from './routes/contact.ts';
 import seoRouter from './routes/seo.ts';
+import { requireAuth } from './lib/auth.ts';
 
 const app = express();
 
@@ -52,8 +53,11 @@ function trustProxySetting(): number | string {
 app.set('trust proxy', trustProxySetting());
 
 app.use(cors());
-// Large limit so admin can upload images as base64 data-URLs (max ~12 MB file)
-app.use(express.json({ limit: '15mb' }));
+// Images are uploaded as base64 data URLs (files up to ~12 MB), so only the
+// upload endpoint takes large bodies, and only from a signed-in admin: the
+// token is checked before the body is read. Every other route is capped.
+app.use('/api/admin/upload', requireAuth, express.json({ limit: '15mb' }));
+app.use(express.json({ limit: '1mb' }));
 
 // Serve /public/images directly from the API too, so admin previews work on any origin
 const PUBLIC_IMAGES_CANDIDATES = [
@@ -202,6 +206,13 @@ app.use((_req, res) => {
 
 // Central error handler
 const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+  // Body parser rejections (too large, malformed JSON) are the client's mistake.
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request body is too large' });
+  }
+  if (err?.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Request body is not valid JSON' });
+  }
   console.error('[API ERROR]', err);
   res.status(500).json({ error: err?.message || 'Internal server error' });
 };
