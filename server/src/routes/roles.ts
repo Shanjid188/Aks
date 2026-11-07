@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
 import { ALL_PERMISSIONS, PERMISSION_CATALOG, PERM } from '../lib/permissions.ts';
-import { asyncHandler, currentAdmin, requireAuth, requirePermission } from '../lib/auth.ts';
+import { asyncHandler, currentAdmin, permissionsNotHeld, requireAuth, requirePermission } from '../lib/auth.ts';
 import { logAudit } from '../lib/audit.ts';
 
 const router = Router();
@@ -77,6 +77,10 @@ router.post(
       return res.status(400).json({ error: 'permissions must be a list of valid permission keys' });
     }
 
+    if (permissionsNotHeld(currentAdmin(req), permissions).length > 0) {
+      return res.status(403).json({ error: 'You can only grant permissions you have yourself' });
+    }
+
     const existing = await prisma.role.findUnique({ where: { name } });
     if (existing) return res.status(409).json({ error: 'A role with this name already exists' });
 
@@ -130,6 +134,11 @@ router.put(
       newPermissions = cleanPermissions(body.permissions);
       if (newPermissions === null) {
         return res.status(400).json({ error: 'permissions must be a list of valid permission keys' });
+      }
+      // Permissions the role already has may stay; new ones must be the editor's own.
+      const added = newPermissions.filter((p) => !existing.permissions.some((e) => e.permission === p));
+      if (permissionsNotHeld(currentAdmin(req), added).length > 0) {
+        return res.status(403).json({ error: 'You can only grant permissions you have yourself' });
       }
     }
 

@@ -1,12 +1,31 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
 import { PERM } from '../lib/permissions.ts';
-import { asyncHandler, currentAdmin, hashPassword, requirePermission } from '../lib/auth.ts';
+import { asyncHandler, currentAdmin, hashPassword, permissionsNotHeld, requirePermission, type AdminPayload } from '../lib/auth.ts';
 import { logAudit } from '../lib/audit.ts';
 
 const router = Router();
 
 const ROLE_SELECT = { select: { id: true, name: true, isSuper: true } };
+
+/**
+ * Why `me` may not give this role to an account (null when allowed). Only a
+ * Super Admin assigns the Super Admin role, and nobody assigns a role with
+ * permissions they do not hold themselves.
+ */
+async function roleAssignError(me: AdminPayload, roleId: string): Promise<{ status: number; error: string } | null> {
+  const role = await prisma.role.findUnique({
+    where: { id: roleId },
+    include: { permissions: { select: { permission: true } } },
+  });
+  if (!role) return { status: 400, error: 'Unknown role' };
+  if (me.isSuper) return null;
+  if (role.isSuper) return { status: 403, error: 'Only a Super Admin can assign the Super Admin role' };
+  if (permissionsNotHeld(me, role.permissions.map((p) => p.permission)).length > 0) {
+    return { status: 403, error: 'You can only assign roles whose permissions you have yourself' };
+  }
+  return null;
+}
 
 function adminToApi(a: {
   id: string;
@@ -63,8 +82,8 @@ router.post(
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
     if (roleId) {
-      const role = await prisma.role.findUnique({ where: { id: roleId } });
-      if (!role) return res.status(400).json({ error: 'Unknown role' });
+      const denied = await roleAssignError(currentAdmin(req), roleId);
+      if (denied) return res.status(denied.status).json({ error: denied.error });
     }
 
     try {
@@ -121,8 +140,8 @@ router.patch(
     if (body.roleId !== undefined) {
       const roleId = body.roleId ? String(body.roleId) : null;
       if (roleId) {
-        const role = await prisma.role.findUnique({ where: { id: roleId } });
-        if (!role) return res.status(400).json({ error: 'Unknown role' });
+        const denied = await roleAssignError(me, roleId);
+        if (denied) return res.status(denied.status).json({ error: denied.error });
       }
       if (targetIsSuper) {
         return res.status(403).json({ error: 'The Super Admin role cannot be changed' });
@@ -204,6 +223,13 @@ router.put(
     const me = currentAdmin(req);
     if ((existing.roleRef?.isSuper ?? false) && !me.isSuper) {
       return res.status(403).json({ error: 'Only a Super Admin can modify Super Admin accounts' });
+    }
+    // Taking over a more powerful account is the same as granting its access.
+    if (existing.roleId && existing.id !== me.id) {
+      const target = await prisma.rolePermission.findMany({ where: { roleId: existing.roleId }, select: { permission: true } });
+      if (permissionsNotHeld(me, target.map((p) => p.permission)).length > 0) {
+        return res.status(403).json({ error: "You can only reset passwords of admins whose permissions you have yourself" });
+      }
     }
     await prisma.adminUser.update({
       where: { id },

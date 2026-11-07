@@ -137,6 +137,16 @@ export async function hasPermission(req: Request, permission: string): Promise<b
   }
 }
 
+/**
+ * Permissions in `wanted` that `admin` does not hold themselves. Admins can
+ * only hand out what they have, so nobody can raise their own access through
+ * roles or account management. A Super Admin holds everything.
+ */
+export function permissionsNotHeld(admin: AdminPayload, wanted: readonly string[]): string[] {
+  if (admin.isSuper) return [];
+  return wanted.filter((p) => !admin.permissions.includes(p));
+}
+
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
   const admin = currentAdmin(req);
   if (!admin || !admin.isSuper) {
