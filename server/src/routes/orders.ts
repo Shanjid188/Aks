@@ -8,6 +8,8 @@ import { parseJsonSafe } from '../utils/json.ts';
 import { applyStockDelta } from '../lib/stock.ts';
 import { loadCheckoutConfig } from '../lib/checkout.ts';
 import { createWithUniqueNumbers } from '../lib/numbers.ts';
+import { toPublicOrder } from '../lib/publicOrder.ts';
+import { clientKey, createThrottle } from '../lib/throttle.ts';
 
 const router = Router();
 
@@ -339,24 +341,36 @@ router.post(
       });
     }
 
-    res.status(201).json({ order: orderToApi(order) });
+    // The customer just typed these details, so they get them back in full.
+    res.status(201).json({ order: toPublicOrder(order, { contact: true }) });
   })
 );
 
-/** Public: fetch a single order by its database ID (order confirmation page).
- *  Returns the exact same shape as the POST /orders response so the storefront
- *  confirmation page can re-hydrate the order after a refresh or for guests.
- *  Order IDs are unguessable cuids, and the payload mirrors what POST already
- *  returns — no extra sensitive data is exposed. */
+/* Public lookups (confirmation page, order tracking). Anyone holding a link or
+   a tracking code can call these, so they return the public shape: masked
+   name and phone, the delivery area without the street, no internal fields.
+   Repeated misses from one client are throttled so codes cannot be swept. */
+const PUBLIC_ITEM_INCLUDE = {
+  items: { include: { product: { select: { id: true, name: true, images: true } } } },
+};
+const orderLookupMisses = createThrottle({ windowMs: 15 * 60 * 1000, max: 30 });
+const TOO_MANY_LOOKUPS = 'Too many order lookups. Please try again in a few minutes.';
+
+/** Public: fetch a single order by its database ID (order confirmation page). */
 router.get(
   '/orders/:id',
   asyncHandler(async (req, res) => {
+    const client = clientKey(req);
+    if (orderLookupMisses.isBlocked(client)) return res.status(429).json({ error: TOO_MANY_LOOKUPS });
     const order = await prisma.order.findUnique({
       where: { id: req.params.id },
-      include: ITEM_INCLUDE,
+      include: PUBLIC_ITEM_INCLUDE,
     });
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-    res.json({ order: orderToApi(order) });
+    if (!order) {
+      orderLookupMisses.record(client);
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    res.json({ order: toPublicOrder(order) });
   })
 );
 
@@ -364,12 +378,17 @@ router.get(
 router.get(
   '/orders/track/:trackingCode',
   asyncHandler(async (req, res) => {
+    const client = clientKey(req);
+    if (orderLookupMisses.isBlocked(client)) return res.status(429).json({ error: TOO_MANY_LOOKUPS });
     const order = await prisma.order.findUnique({
       where: { trackingCode: String(req.params.trackingCode).toUpperCase() },
-      include: { items: true },
+      include: PUBLIC_ITEM_INCLUDE,
     });
-    if (!order) return res.status(404).json({ error: 'No order found for that tracking code' });
-    res.json({ order: orderToApi(order) });
+    if (!order) {
+      orderLookupMisses.record(client);
+      return res.status(404).json({ error: 'No order found for that tracking code' });
+    }
+    res.json({ order: toPublicOrder(order) });
   })
 );
 
