@@ -75,8 +75,14 @@ describe('tokens', () => {
 
   it('re-reads permissions from the DB rather than trusting the token payload', async () => {
     // Valid signature (the test secret) but forged claims for the staff account.
-    const me = await api(staff).get('/api/admin/auth/me');
-    const forged = jwt.sign({ ...me.body.admin, isSuper: true, permissions: ['settings.view'] }, 'test-only');
+    // Built from the real token so the session itself is valid (#19).
+    const { iat, exp, ...claims } = jwt.decode(staff) as Record<string, unknown>;
+    void iat; void exp;
+    const forged = jwt.sign({ ...claims, isSuper: true, permissions: ['settings.view'] }, 'test-only');
     assert.equal((await api(forged).get('/api/admin/settings')).status, 403);
+    // Without the password fingerprint the token is not a session at all.
+    const { pv, ...noFingerprint } = claims;
+    void pv;
+    assert.equal((await api(jwt.sign({ ...noFingerprint, isSuper: true }, 'test-only')).get('/api/admin/settings')).status, 401);
   });
 });
