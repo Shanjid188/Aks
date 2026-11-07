@@ -38,6 +38,19 @@ import seoRouter from './routes/seo.ts';
 
 const app = express();
 
+/**
+ * Which proxies may tell us the client's address. The API runs behind nginx on
+ * the same machine, so only loopback is trusted by default: req.ip is then the
+ * address nginx saw, and a client cannot pick its own with X-Forwarded-For.
+ * TRUST_PROXY overrides it (a hop count such as "1", or addresses/subnets).
+ */
+function trustProxySetting(): number | string {
+  const raw = (process.env.TRUST_PROXY ?? '').trim();
+  if (!raw) return 'loopback';
+  return /^\d+$/.test(raw) ? Number(raw) : raw;
+}
+app.set('trust proxy', trustProxySetting());
+
 app.use(cors());
 // Large limit so admin can upload images as base64 data-URLs (max ~12 MB file)
 app.use(express.json({ limit: '15mb' }));

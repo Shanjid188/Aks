@@ -44,11 +44,11 @@ export function createThrottle({
   };
 }
 
-/** Best-effort client identity for throttling (proxy-aware). */
-export function clientKey(req: { ip?: string; headers: Record<string, unknown> }): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.trim() !== '') {
-    return forwarded.split(',')[0].trim();
-  }
+/**
+ * Client identity for throttling. req.ip already accounts for the trusted
+ * proxy (see 'trust proxy' in index.ts); the raw X-Forwarded-For header is
+ * never read here because the client controls its first entries.
+ */
+export function clientKey(req: { ip?: string }): string {
   return req.ip ?? 'unknown';
 }
