@@ -143,3 +143,29 @@ describe('return status and restocking (#101)', () => {
     assert.equal(noted.body.returnRequest.adminNote, 'Called customer');
   });
 });
+
+describe('admin Returns form (#102)', () => {
+  it('a return created the way the form sends it restocks when received', async () => {
+    const { order, productId } = await riceSale(2);
+    const line = order.items[0];
+    const created = await (await admin()).post('/api/admin/returns', {
+      orderId: order.id,
+      productId: line.productId,
+      productName: line.productName,
+      variant: undefined,
+      reason: 'Wrong item',
+      quantity: 2,
+      refundAmount: undefined,
+      refundMethod: 'cash',
+      customerNote: undefined,
+    });
+    assert.equal(created.status, 201, JSON.stringify(created.body));
+    assert.equal(created.body.returnRequest.productId, productId);
+
+    const id = created.body.returnRequest.id;
+    assert.equal((await setStatus(id, 'approved')).status, 200);
+    const before = (await adminProduct(RICE.sku)).stockQuantity;
+    assert.equal((await setStatus(id, 'received')).status, 200);
+    assert.equal((await adminProduct(RICE.sku)).stockQuantity, before + 2);
+  });
+});

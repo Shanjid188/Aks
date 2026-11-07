@@ -17,7 +17,7 @@ export function ReturnsPage() {
   const [rows, setRows] = useState<ReturnRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState<{ orderId: string; reason: string; quantity: number; refundAmount: string; refundMethod: string; customerNote: string } | null>(null);
+  const [form, setForm] = useState<{ orderId: string; lineId: string; reason: string; quantity: number; refundAmount: string; refundMethod: string; customerNote: string } | null>(null);
   const [orderOptions, setOrderOptions] = useState<Order[]>([]);
   const [saving, setSaving] = useState(false);
   const load = useCallback(() => {
@@ -32,15 +32,20 @@ export function ReturnsPage() {
     setError(null);
     try {
       const o = await api.get<{ orders: Order[] }>('/admin/orders');
-      setOrderOptions(o.orders.slice(0, 50));
-      setForm({ orderId: '', reason: '', quantity: 1, refundAmount: '', refundMethod: 'store_credit', customerNote: '' });
+      // Pending and cancelled orders have nothing to return.
+      setOrderOptions(o.orders.filter((x) => x.status !== 'pending' && x.status !== 'cancelled').slice(0, 50));
+      setForm({ orderId: '', lineId: '', reason: '', quantity: 1, refundAmount: '', refundMethod: 'store_credit', customerNote: '' });
     } catch (e) { setError((e as Error).message); }
   };
+  // Order lines that can be returned (and restocked): those still linked to a product.
+  const orderLines = (form && orderOptions.find((o) => o.id === form.orderId)?.items.filter((i) => i.productId)) || [];
+  const line = form ? orderLines.find((i) => i.id === form.lineId) : undefined;
   const save = async () => {
-    if (!form || !form.orderId || !form.reason) return;
+    if (!form || !form.orderId || !form.reason || !line) return;
     setSaving(true);
     try {
-      await api.post('/admin/returns', { orderId: form.orderId, reason: form.reason, quantity: form.quantity, refundAmount: form.refundAmount ? Number(form.refundAmount) : undefined, refundMethod: form.refundMethod, customerNote: form.customerNote || undefined });
+      const variant = [line.size, line.color].filter((v) => v && v !== 'Free Size' && v !== 'Default').join(' / ');
+      await api.post('/admin/returns', { orderId: form.orderId, productId: line.productId, productName: line.productName, variant: variant || undefined, reason: form.reason, quantity: form.quantity, refundAmount: form.refundAmount ? Number(form.refundAmount) : undefined, refundMethod: form.refundMethod, customerNote: form.customerNote || undefined });
       setForm(null); load();
     } catch (e) { setError((e as Error).message); } finally { setSaving(false); }
   };
@@ -113,21 +118,31 @@ export function ReturnsPage() {
         {form && (
           <div className="space-y-4">
             <Field label="Order">
-              <Select value={form.orderId} onChange={(e) => setForm({ ...form, orderId: e.target.value })}>
+              <Select value={form.orderId} onChange={(e) => setForm({ ...form, orderId: e.target.value, lineId: '', quantity: 1 })}>
                 <option value="">Select an order…</option>
                 {orderOptions.map((o) => <option key={o.id} value={o.id}>{o.orderNumber} — {o.customerName}</option>)}
               </Select>
             </Field>
+            <Field label="Product">
+              <Select value={form.lineId} disabled={!form.orderId} onChange={(e) => setForm({ ...form, lineId: e.target.value, quantity: 1 })}>
+                <option value="">{form.orderId && orderLines.length === 0 ? 'No returnable products on this order' : 'Select a product…'}</option>
+                {orderLines.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.productName}{[i.size, i.color].filter((v) => v && v !== 'Free Size' && v !== 'Default').map((v) => ` · ${v}`).join('')} — sold {i.quantity}
+                  </option>
+                ))}
+              </Select>
+            </Field>
             <Field label="Reason"><TextInput value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="e.g. wrong size, damaged" /></Field>
             <div className="grid grid-cols-3 gap-3">
-              <Field label="Quantity"><TextInput type="number" min="1" value={String(form.quantity)} onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) || 1 })} /></Field>
+              <Field label="Quantity"><TextInput type="number" min="1" max={line ? String(line.quantity) : undefined} value={String(form.quantity)} onChange={(e) => setForm({ ...form, quantity: Math.min(line?.quantity ?? Infinity, Math.max(1, Math.trunc(Number(e.target.value)) || 1)) })} /></Field>
               <Field label="Refund amount"><TextInput type="number" min="0" value={form.refundAmount} onChange={(e) => setForm({ ...form, refundAmount: e.target.value })} /></Field>
               <Field label="Refund method"><Select value={form.refundMethod} onChange={(e) => setForm({ ...form, refundMethod: e.target.value })}><option value="store_credit">Store credit</option><option value="cash">Cash</option><option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="bank">Bank</option></Select></Field>
             </div>
             <Field label="Customer note"><TextInput value={form.customerNote} onChange={(e) => setForm({ ...form, customerNote: e.target.value })} /></Field>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={() => setForm(null)}>Cancel</Button>
-              <Button disabled={saving || !form.orderId || !form.reason} onClick={save}>{saving ? 'Saving…' : 'Create Return'}</Button>
+              <Button disabled={saving || !form.orderId || !line || !form.reason} onClick={save}>{saving ? 'Saving…' : 'Create Return'}</Button>
             </div>
           </div>
         )}
