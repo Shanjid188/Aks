@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 import { INITIAL_PRODUCTS, INITIAL_REVIEWS } from '../../src/data/products.ts';
 import { DIVISIONS } from '../../src/data/aksMart.ts';
 import { seedCategories } from './seed-categories.ts';
@@ -16,8 +17,20 @@ const COUPONS = [
   { code: 'FREESHIP', discountType: 'percent', value: 100, minSpend: 0, description: 'Free express courier delivery across Bangladesh' },
 ];
 
-const DEFAULT_ADMIN_EMAIL = 'admin@aksmartbd.com';
-const DEFAULT_ADMIN_PASSWORD = 'Admin@123';
+const DEFAULT_ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@aksmartbd.com').trim().toLowerCase();
+
+/**
+ * Password for the first admin: ADMIN_PASSWORD when set, otherwise a random
+ * one printed once. Never a fixed value, since this repository is public.
+ */
+function firstAdminPassword(): { password: string; generated: boolean } {
+  const fromEnv = process.env.ADMIN_PASSWORD;
+  if (fromEnv) {
+    if (fromEnv.length < 8) throw new Error('ADMIN_PASSWORD must be at least 8 characters');
+    return { password: fromEnv, generated: false };
+  }
+  return { password: crypto.randomBytes(12).toString('base64url'), generated: true };
+}
 
 // Default RBAC roles seeded on every boot; Super Admin is immutable & full-access.
 const DEFAULT_ROLES: { name: string; description: string; isSuper?: boolean; permissions: (keyof typeof PERM)[] | 'all' }[] = [
@@ -132,16 +145,23 @@ async function main() {
   // ---------- Admin users ----------
   const existingAdmin = await prisma.adminUser.findUnique({ where: { email: DEFAULT_ADMIN_EMAIL } });
   if (!existingAdmin) {
+    const { password, generated } = firstAdminPassword();
     await prisma.adminUser.create({
       data: {
         email: DEFAULT_ADMIN_EMAIL,
-        passwordHash: await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10),
+        passwordHash: await bcrypt.hash(password, 10),
         name: 'AKS Super Admin',
         role: 'superadmin',
         roleId: superRole?.id ?? null,
       },
     });
-    console.log(`✅ Admin created → ${DEFAULT_ADMIN_EMAIL} (password not shown — set your own via prisma/set-admin-password.ts)`);
+    if (generated) {
+      console.log(`✅ Admin created → ${DEFAULT_ADMIN_EMAIL}`);
+      console.log(`   One-time password: ${password}`);
+      console.log('   Save it now — it is not stored anywhere else. Change it with prisma/set-admin-password.ts.');
+    } else {
+      console.log(`✅ Admin created → ${DEFAULT_ADMIN_EMAIL} (password from ADMIN_PASSWORD)`);
+    }
   } else {
     await prisma.adminUser.update({
       where: { id: existingAdmin.id },

@@ -394,8 +394,8 @@ cd .. && npm run dev
 ```
 
 ### Admin login (seeded)
-- **Email:** `admin@aksgarments.com.bd`
-- **Password:** `Admin@123`
+- **Email:** `ADMIN_EMAIL` (default `admin@aksmartbd.com`)
+- **Password:** `ADMIN_PASSWORD` when set while seeding; otherwise the seed prints a random one-time password
 
 ### API Summary
 | Method | Endpoint | Auth | Purpose |
