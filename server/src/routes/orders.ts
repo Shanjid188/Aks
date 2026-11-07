@@ -200,6 +200,7 @@ router.post(
     // Coupon validation server-side
     let discount = 0;
     let couponCode: string | null = null;
+    let couponId: string | null = null;
     let freeDeliveryCoupon = false;
     if (body.couponCode) {
       const coupon = await prisma.coupon.findUnique({
@@ -207,13 +208,13 @@ router.post(
       });
       if (coupon && coupon.active && subtotal >= coupon.minSpend) {
         couponCode = coupon.code;
+        couponId = coupon.id;
         // A free-delivery code is applied to the shipping fee, never to the
         // subtotal — otherwise a 100% coupon would give away the whole order.
         freeDeliveryCoupon = isFreeDeliveryCoupon(coupon);
         if (!freeDeliveryCoupon) {
           discount = computeDiscount(subtotal, coupon.discountType, coupon.value);
         }
-        await prisma.coupon.update({ where: { id: coupon.id }, data: { usedCount: { increment: 1 } } });
       }
     }
 
@@ -317,6 +318,12 @@ router.post(
       await giveBack();
       throw err;
     });
+
+    // Count the coupon only once the order exists, so a rejected checkout
+    // does not use it up.
+    if (couponId) {
+      await prisma.coupon.update({ where: { id: couponId }, data: { usedCount: { increment: 1 } } });
+    }
 
     // Record each deduction in the stock ledger.
     if (taken.length > 0) {

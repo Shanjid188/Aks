@@ -172,19 +172,16 @@ describe('checkout coupons', () => {
     assert.equal(bad.body.valid, false);
   });
 
-  it(
-    'does not count coupon usage when the order is rejected',
-    { todo: 'BUG: usedCount is incremented before the delivery area / payment method are validated' },
-    async () => {
-      const before = await couponUsage(COUPONS.percent.code);
-      const res = await placeOrder([{ sku: RICE.sku, quantity: 2 }], {
-        couponCode: COUPONS.percent.code,
-        deliveryMethod: 'mars',
-      });
-      assert.equal(res.status, 400);
-      assert.equal(await couponUsage(COUPONS.percent.code), before);
-    }
-  );
+  it('does not count coupon usage when the order is rejected (#39)', async () => {
+    const before = await couponUsage(COUPONS.percent.code);
+    const rejected = [
+      await placeOrder([{ sku: RICE.sku, quantity: 2 }], { couponCode: COUPONS.percent.code, deliveryMethod: 'mars' }),
+      await placeOrder([{ sku: RICE.sku, quantity: 2 }], { couponCode: COUPONS.percent.code, paymentMethod: 'bkash' }),
+      await placeOrder([{ sku: 'TEST-POTTERY', quantity: 100_000 }], { couponCode: COUPONS.percent.code }),
+    ];
+    assert.deepEqual(rejected.map((r) => r.status), [400, 400, 400]);
+    assert.equal(await couponUsage(COUPONS.percent.code), before);
+  });
 });
 
 describe('checkout validation', () => {
