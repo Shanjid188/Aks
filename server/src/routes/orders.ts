@@ -174,19 +174,24 @@ router.post(
       });
     }
 
-    if (stockTargets.length > 0) {
-      // For products that track stock, ensure enough quantity is available
-      // before committing the order.
-      const tracked = await prisma.product.findMany({
-        where: { id: { in: stockTargets.map((s) => s.productId) }, trackStock: true },
-      });
-      for (const t of stockTargets) {
-        const row = tracked.find((p) => p.id === t.productId);
-        if (row && row.stockQuantity < t.qty) {
-          return res.status(400).json({
-            error: `${row.name} doesn't have enough stock (available: ${row.stockQuantity}, ordered: ${t.qty})`,
-          });
-        }
+    // The same product can arrive on several cart lines (e.g. two sizes), so
+    // stock is checked against the total ordered per product, not per line.
+    const qtyByProduct = new Map<string, number>();
+    for (const t of stockTargets) {
+      qtyByProduct.set(t.productId, (qtyByProduct.get(t.productId) ?? 0) + t.qty);
+    }
+    // For products that track stock, fail fast with a friendly message. This is
+    // only a pre-check: the real guard is the conditional decrement below.
+    const tracked = await prisma.product.findMany({
+      where: { id: { in: [...qtyByProduct.keys()] }, trackStock: true },
+      select: { id: true, name: true, stockQuantity: true },
+    });
+    for (const row of tracked) {
+      const qty = qtyByProduct.get(row.id)!;
+      if (row.stockQuantity < qty) {
+        return res.status(400).json({
+          error: `${row.name} doesn't have enough stock (available: ${row.stockQuantity}, ordered: ${qty})`,
+        });
       }
     }
 
@@ -238,6 +243,40 @@ router.post(
       return res.status(400).json({ error: `${paymentMethod.label} needs the transaction ID` });
     }
 
+    // Take the stock first. Each deduction is one conditional update (only if
+    // enough is on the shelf), so simultaneous checkouts cannot both take the
+    // last units. Single statements rather than an interactive transaction:
+    // SQLite deadlocks concurrent read-then-write transactions, which turned a
+    // burst of checkouts into 500s. Anything taken is given back if a later
+    // product is short or the order cannot be saved.
+    const taken: { productId: string; qty: number }[] = [];
+    const giveBack = async () => {
+      for (const t of taken) {
+        await prisma.product.update({ where: { id: t.productId }, data: { stockQuantity: { increment: t.qty } } });
+      }
+    };
+    for (const row of tracked) {
+      const qty = qtyByProduct.get(row.id)!;
+      const updated = await prisma.product.updateMany({
+        where: { id: row.id, trackStock: true, stockQuantity: { gte: qty } },
+        data: { stockQuantity: { decrement: qty } },
+      });
+      if (updated.count === 1) {
+        taken.push({ productId: row.id, qty });
+        continue;
+      }
+      const now = await prisma.product.findUnique({
+        where: { id: row.id },
+        select: { name: true, stockQuantity: true, trackStock: true },
+      });
+      // Stock tracking was switched off since the pre-check: nothing to deduct.
+      if (now && !now.trackStock) continue;
+      await giveBack();
+      return res.status(400).json({
+        error: `${now?.name ?? row.name} doesn't have enough stock (available: ${now?.stockQuantity ?? 0}, ordered: ${qty})`,
+      });
+    }
+
     const randomSuffix = Math.floor(100000 + Math.random() * 900000);
     const orderNumber = `ORD-${Date.now()}`;
     const trackingCode = `AKS-BD-${randomSuffix}`;
@@ -273,26 +312,23 @@ router.post(
         items: { create: orderItems },
       },
       include: { items: true },
+    }).catch(async (err) => {
+      await giveBack();
+      throw err;
     });
 
-    // Deduct stock for tracked products, logging each movement in the ledger.
-    if (stockTargets.length > 0) {
-      const tracked = await prisma.product.findMany({
-        where: { id: { in: stockTargets.map((s) => s.productId) }, trackStock: true },
-        select: { id: true, trackStock: true },
-      });
-      const trackedIds = new Set(tracked.map((t) => t.id));
-      for (const t of stockTargets) {
-        if (!trackedIds.has(t.productId)) continue;
-        await applyStockDelta({
+    // Record each deduction in the stock ledger.
+    if (taken.length > 0) {
+      await prisma.stockMovement.createMany({
+        data: taken.map((t) => ({
           productId: t.productId,
           change: -t.qty,
           reason: 'order.placed',
           referenceType: 'order',
           referenceId: order.id,
           createdBy: null,
-        });
-      }
+        })),
+      });
     }
 
     res.status(201).json({ order: orderToApi(order) });

@@ -223,3 +223,44 @@ describe('checkout validation', () => {
     assert.equal((await adminProduct('TEST-BASKET')).stockQuantity, before - 2);
   });
 });
+
+describe('checkout stock', () => {
+  it('checks the total of a product split across cart lines (#23)', async () => {
+    const pot = await adminProduct('TEST-POTTERY');
+    const half = Math.floor(pot.stockQuantity / 2) + 1; // two lines together exceed stock
+    const res = await placeOrder([
+      { sku: 'TEST-POTTERY', quantity: half },
+      { sku: 'TEST-POTTERY', quantity: half },
+    ]);
+    assert.equal(res.status, 400, JSON.stringify(res.body));
+    assert.match(res.body.error, /enough stock/);
+    assert.equal((await adminProduct('TEST-POTTERY')).stockQuantity, pot.stockQuantity);
+  });
+
+  it('deducts the combined quantity of split lines', async () => {
+    const before = (await adminProduct('TEST-POTTERY')).stockQuantity;
+    const res = await placeOrder([
+      { sku: 'TEST-POTTERY', quantity: 2 },
+      { sku: 'TEST-POTTERY', quantity: 3 },
+    ]);
+    assert.equal(res.status, 201, JSON.stringify(res.body));
+    assert.equal((await adminProduct('TEST-POTTERY')).stockQuantity, before - 5);
+  });
+
+  it('parallel checkouts never oversell (#22)', async () => {
+    const before = (await adminProduct('TEST-BASKET')).stockQuantity;
+    const qty = 2;
+    const attempts = before; // asks for twice what is on the shelf
+    const results = await Promise.all(
+      Array.from({ length: attempts }, () => placeOrder([{ sku: 'TEST-BASKET', quantity: qty }]))
+    );
+    const placed = results.filter((r) => r.status === 201).length;
+    const after = (await adminProduct('TEST-BASKET')).stockQuantity;
+
+    assert.ok(placed * qty <= before, `${placed} orders of ${qty} placed from a stock of ${before}`);
+    assert.ok(after >= 0, `stock went negative: ${after}`);
+    // Every accepted order took its stock and no rejected one did.
+    assert.equal(after, before - placed * qty);
+    assert.ok(placed > 0, `no order went through: ${results.map((r) => r.status).join(',')}`);
+  });
+});
