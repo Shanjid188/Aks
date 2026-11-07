@@ -3,8 +3,12 @@
 import { isLocalApi, rollbackTestOrder } from './test-cleanup.ts';
 
 const BASE = process.env.API_URL || 'http://localhost:4000';
-const EMAIL = 'admin@aksmartbd.com';
-const PASSWORD = 'Admin@123';
+const EMAIL = process.env.ADMIN_EMAIL || 'admin@aksmartbd.com';
+const PASSWORD = process.env.ADMIN_PASSWORD ?? '';
+if (!PASSWORD) {
+  console.error('Set ADMIN_PASSWORD (and ADMIN_EMAIL if not the default) to the admin login to test with.');
+  process.exit(1);
+}
 
 let pass = 0;
 let fail = 0;

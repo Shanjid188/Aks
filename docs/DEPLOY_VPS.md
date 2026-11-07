@@ -52,7 +52,7 @@ cd admin && npm ci && npm run build && cd ..   # admin → admin/dist/
 cd server && npm ci --no-audit --no-fund
 npm run prisma:generate
 npm run prisma:push                # creates SQLite tables
-npm run seed                       # products, stores, coupons, slides…
+npm run seed                       # products, stores, coupons, slides… (prints a one-time admin password)
 ```
 
 ## 3. 🔐 Set YOUR real admin password (do not skip!)
@@ -61,7 +61,7 @@ npm run seed                       # products, stores, coupons, slides…
 ADMIN_EMAIL="owner@yourdomain.com" ADMIN_PASSWORD="YourStrongPass@123" \
   node --env-file=.env node_modules/tsx/dist/cli.mjs prisma/set-admin-password.ts
 ```
-This replaces the seeded demo account password. Login afterwards at
+This replaces the one-time password the seed printed. Login afterwards at
 `https://yourdomain.com/admin`.
 
 ## 4. Start with PM2
