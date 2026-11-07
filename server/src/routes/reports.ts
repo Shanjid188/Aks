@@ -6,6 +6,13 @@ import { parseJsonSafe } from '../utils/json.ts';
 
 const router = Router();
 
+/**
+ * Orders left out of revenue: cancelled, sent back, or refunded in full. A
+ * refund on one of these is already reflected by dropping the order, so only
+ * refunds on orders still counted are subtracted again.
+ */
+const EXCLUDED_ORDER_STATUSES = ['cancelled', 'returned', 'refunded'];
+
 function daysAgo(n: number): Date {
   return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 }
@@ -41,20 +48,32 @@ router.get(
 
     const [orders, orderItems, expenses, refunds] = await Promise.all([
       prisma.order.findMany({
-        where: { createdAt: dateWindow, status: { notIn: ['cancelled', 'returned', 'refunded'] } },
+        where: { createdAt: dateWindow, status: { notIn: EXCLUDED_ORDER_STATUSES } },
         select: { total: true, source: true, paymentMethod: true, status: true, createdAt: true },
       }),
       prisma.orderItem.findMany({
-        where: { order: { createdAt: dateWindow, status: { notIn: ['cancelled', 'returned', 'refunded'] } } },
+        where: { order: { createdAt: dateWindow, status: { notIn: EXCLUDED_ORDER_STATUSES } } },
         select: { productId: true, productName: true, quantity: true, price: true },
       }),
       prisma.expense.aggregate({ _sum: { amount: true }, where: { expenseDate: dateWindow } }),
-      prisma.refund.aggregate({ _sum: { amount: true }, where: { createdAt: dateWindow } }),
+      prisma.refund.findMany({ where: { createdAt: dateWindow }, select: { amount: true, orderId: true } }),
     ]);
 
     const revenue = orders.reduce((s, o) => s + o.total, 0);
     const totalExpenses = expenses._sum.amount ?? 0;
-    const totalRefunds = refunds._sum.amount ?? 0;
+    const totalRefunds = refunds.reduce((s, r) => s + r.amount, 0);
+    const refundedOrderIds = [...new Set(refunds.map((r) => r.orderId).filter((id): id is string => !!id))];
+    const excludedIds = new Set(
+      (
+        await prisma.order.findMany({
+          where: { id: { in: refundedOrderIds }, status: { in: EXCLUDED_ORDER_STATUSES } },
+          select: { id: true },
+        })
+      ).map((o) => o.id)
+    );
+    const refundsOnCountedOrders = refunds
+      .filter((r) => !r.orderId || !excludedIds.has(r.orderId))
+      .reduce((s, r) => s + r.amount, 0);
 
     const paymentMethod: Record<string, { count: number; revenue: number }> = {};
     const source: Record<string, { count: number; revenue: number }> = {};
@@ -86,7 +105,8 @@ router.get(
       ordersCount: orders.length,
       totalExpenses,
       totalRefunds,
-      netRevenue: Math.max(0, revenue - totalRefunds),
+      // Can go below zero when a period's refunds exceed its sales.
+      netRevenue: revenue - refundsOnCountedOrders,
       profit: null, // cost-price profit is computed when product cost prices exist
       paymentMethod,
       source,
@@ -102,7 +122,7 @@ router.get(
   requirePermission(PERM.REPORTS_VIEW),
   asyncHandler(async (_req, res) => {
     const items = await prisma.orderItem.findMany({
-      where: { order: { status: { notIn: ['cancelled', 'returned', 'refunded'] } } },
+      where: { order: { status: { notIn: EXCLUDED_ORDER_STATUSES } } },
       select: { productId: true, productName: true, quantity: true, price: true },
       take: 5000,
     });
