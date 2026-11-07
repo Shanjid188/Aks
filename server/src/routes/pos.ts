@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma.ts';
 import { asyncHandler, requirePermission, currentAdmin } from '../lib/auth.ts';
 import { PERM } from '../lib/permissions.ts';
 import { logAudit } from '../lib/audit.ts';
-import { applyStockDelta } from '../lib/stock.ts';
+import { reserveStock } from '../lib/stock.ts';
 import { createWithUniqueNumbers } from '../lib/numbers.ts';
 
 const router = Router();
@@ -31,7 +31,14 @@ export interface PosSaleItemInput {
   quantity: number;
   size?: string;
   color?: string;
+  /** Ignored: lines are always charged at the product's current price. */
   price?: number;
+}
+
+/** Whole units ≥ 1, or null. */
+function lineQuantity(raw: unknown): number | null {
+  const qty = Math.trunc(Number(raw));
+  return Number.isFinite(qty) && qty >= 1 ? qty : null;
 }
 
 /**
@@ -54,8 +61,8 @@ router.post(
 
     const quantityByProduct = new Map<string, number>();
     for (const it of itemsRaw) {
-      const qty = Math.trunc(Number(it.quantity));
-      if (!Number.isFinite(qty) || qty < 1) return res.status(400).json({ error: 'Invalid quantity in POS items' });
+      const qty = lineQuantity(it.quantity);
+      if (qty === null) return res.status(400).json({ error: 'Invalid quantity in POS items' });
       quantityByProduct.set(it.productId, (quantityByProduct.get(it.productId) || 0) + qty);
     }
 
@@ -74,13 +81,15 @@ router.post(
       }
     }
 
-    // Build order items, computing subtotal from live product price unless the
-    // client supplied an explicit price for the variant.
+    // Every line is charged at the product's current price. A price sent by
+    // the client is ignored: the POS screen has no price override, and trusting
+    // it let a request sell at any price, including a negative one.
     let subtotal = 0;
     const orderItems = itemsRaw.map((it) => {
       const product = productMap.get(it.productId)!;
-      const price = Number(it.price ?? product.price) || product.price;
-      subtotal += price * it.quantity;
+      const quantity = lineQuantity(it.quantity)!;
+      const price = product.price;
+      subtotal += price * quantity;
       return {
         productId: product.id,
         productName: product.name,
@@ -88,7 +97,7 @@ router.post(
         unitCost: product.costPrice ?? null,
         size: String(it.size ?? '').trim() || 'Free Size',
         color: String(it.color ?? '').trim() || 'Default',
-        quantity: it.quantity,
+        quantity,
         price,
       };
     });
@@ -96,7 +105,7 @@ router.post(
     // Discount + shipping + tax
     const discount = Math.max(0, Number(body.discount) || 0);
     const shippingFee = 0; // POS sales are in-store; no shipping
-    const taxPercent = body.taxPercent !== undefined ? Number(body.taxPercent) || 0 : 0;
+    const taxPercent = Math.min(100, Math.max(0, Number(body.taxPercent) || 0));
     const taxable = Math.max(0, subtotal - discount);
     const tax = Math.round(taxable * taxPercent) / 100;
     const total = Math.max(0, taxable) + tax + shippingFee;
@@ -112,6 +121,15 @@ router.post(
     );
     const dueAmount = Math.max(0, Math.round((total - paidAmount) * 100) / 100);
     const paymentStatus = dueAmount <= 0 ? 'paid' : paidAmount > 0 ? 'partial' : 'due';
+
+    // Take the stock now, atomically per product; given back if the sale
+    // cannot be saved.
+    const reserved = await reserveStock(
+      [...quantityByProduct]
+        .filter(([pid]) => productMap.get(pid)!.trackStock)
+        .map(([pid, qty]) => ({ productId: pid, name: productMap.get(pid)!.name, qty }))
+    );
+    if (!reserved.ok) return res.status(400).json({ error: reserved.error });
 
     const order = await createWithUniqueNumbers((n) =>
       prisma.order.create({
@@ -152,22 +170,17 @@ router.post(
         },
         include: { items: true, payments: true },
       })
-    );
+    ).catch(async (err) => {
+      await reserved.reservation.release();
+      throw err;
+    });
 
-
-    // Deduct stock for tracked products.
-    for (const [pid, qty] of quantityByProduct) {
-      const p = productMap.get(pid)!;
-      if (!p.trackStock) continue;
-      await applyStockDelta({
-        productId: pid,
-        change: -qty,
-        reason: 'pos.sale',
-        referenceType: 'order',
-        referenceId: order.id,
-        createdBy: admin.email,
-      });
-    }
+    await reserved.reservation.record({
+      reason: 'pos.sale',
+      referenceType: 'order',
+      referenceId: order.id,
+      createdBy: admin.email,
+    });
 
     // A sale completed from a resumed hold replaces that hold.
     await removeHold(body.holdId);
@@ -229,8 +242,7 @@ router.post(
     const itemsRaw = Array.isArray(body.items) ? (body.items as PosSaleItemInput[]) : [];
     if (itemsRaw.length === 0) return res.status(400).json({ error: 'Nothing to hold' });
     for (const it of itemsRaw) {
-      const qty = Math.trunc(Number(it.quantity));
-      if (!Number.isFinite(qty) || qty < 1) return res.status(400).json({ error: 'Invalid quantity in held items' });
+      if (lineQuantity(it.quantity) === null) return res.status(400).json({ error: 'Invalid quantity in held items' });
     }
 
     const products = await prisma.product.findMany({ where: { id: { in: itemsRaw.map((i) => i.productId) } } });
@@ -238,11 +250,13 @@ router.post(
     const missing = itemsRaw.map((i) => i.productId).filter((id) => !productMap.has(id));
     if (missing.length > 0) return res.status(400).json({ error: `Unknown product(s): ${missing.join(', ')}` });
 
+    // Same pricing rule as a sale: the product's current price.
     let subtotal = 0;
     const orderItems = itemsRaw.map((it) => {
       const product = productMap.get(it.productId)!;
-      const price = Number(it.price ?? product.price) || product.price;
-      subtotal += price * it.quantity;
+      const quantity = lineQuantity(it.quantity)!;
+      const price = product.price;
+      subtotal += price * quantity;
       return {
         productId: product.id,
         productName: product.name,
@@ -250,7 +264,7 @@ router.post(
         unitCost: product.costPrice ?? null,
         size: String(it.size ?? '').trim() || 'Free Size',
         color: String(it.color ?? '').trim() || 'Default',
-        quantity: it.quantity,
+        quantity,
         price,
       };
     });

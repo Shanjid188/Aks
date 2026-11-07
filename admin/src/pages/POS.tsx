@@ -248,15 +248,19 @@ export function PosPage() {
   const resumeHold = async (h: HoldRow) => {
     setBusy(true); setError(null); setOk(null);
     try {
-      const lines: CartLine[] = h.items.map((it) => ({
-        productId: it.productId || it.id,
-        name: it.productName,
-        sku: it.productSku,
-        price: it.price,
-        quantity: it.quantity,
-        available: 9999,
-        trackStock: false,
-      }));
+      // The sale is charged at today's price, so show today's price and stock.
+      const lines: CartLine[] = h.items.map((it) => {
+        const live = catalog.find((p) => p.id === it.productId);
+        return {
+          productId: it.productId || it.id,
+          name: it.productName,
+          sku: it.productSku,
+          price: live?.price ?? it.price,
+          quantity: it.quantity,
+          available: live?.available ?? 9999,
+          trackStock: live?.trackStock ?? false,
+        };
+      });
       setCart(lines);
       setCustomerName(h.customerName === 'Walk-in Customer' ? '' : h.customerName || '');
       setCustomerPhone(h.customerPhone || '');
