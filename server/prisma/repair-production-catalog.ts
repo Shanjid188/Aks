@@ -174,7 +174,7 @@ async function main() {
   for (const a of admins) console.log(`  • ${a.email} role=${a.roleRef?.name ?? 'NONE'} active=${a.isActive}`);
   const usable = admins.filter((a) => a.isActive && a.roleRef);
   console.log(`  usable (active + has role): ${usable.length}`);
-  if (usable.length === 0) console.log('  ⚠️  none usable — repair will re-attach Super Admin.');
+  if (usable.length === 0) console.log('  ⚠️  none usable — repair re-attaches Super Admin to legacy superadmin accounts only.');
 
   const orders = await prisma.order.count();
   const customers = await prisma.customer.count();
