@@ -19,6 +19,20 @@ export function productToApi(p: Product) {
   };
 }
 
+/**
+ * Most units the storefront is ever told about. It only needs to know whether
+ * a tracked product is sold out and how many one cart line may take; exact
+ * stock levels above this stay private.
+ */
+export const PUBLIC_STOCK_CEILING = 100;
+
+/** Remove merchant-only fields (cost, exact stock, reorder level) before a product goes public. */
+export function toPublicProduct(p: Record<string, unknown>): Record<string, unknown> {
+  const { costPrice: _cost, lowStockThreshold: _threshold, stockQuantity, ...rest } = p;
+  if (!p.trackStock) return rest;
+  return { ...rest, stockQuantity: Math.min(Math.max(0, Number(stockQuantity) || 0), PUBLIC_STOCK_CEILING) };
+}
+
 const JSON_FIELDS = ['features', 'materials', 'colors', 'sizes', 'images', 'tags'] as const;
 const NUMBER_FIELDS = [
   'price',
