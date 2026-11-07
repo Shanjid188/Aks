@@ -311,11 +311,13 @@ router.patch(
   asyncHandler(async (req, res) => {
     const id = req.params.id;
     const { held } = (req.body || {}) as { held?: boolean };
-    const order = await prisma.order.update({
-      where: { id },
-      data: { heldAt: held === false ? null : new Date(), status: 'pending' },
-      include: { items: true, payments: true },
+    // Only held carts can be touched here; any other order is not found.
+    const updated = await prisma.order.updateMany({
+      where: { id, ...HOLD_WHERE },
+      data: { heldAt: held === false ? null : new Date() },
     });
+    if (updated.count === 0) return res.status(404).json({ error: 'Held sale not found' });
+    const order = await prisma.order.findUniqueOrThrow({ where: { id }, include: { items: true, payments: true } });
     res.json({ order });
   })
 );

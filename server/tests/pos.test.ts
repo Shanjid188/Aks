@@ -128,3 +128,26 @@ describe('POS held carts (#87)', () => {
     assert.equal(del.status, 404);
   });
 });
+
+describe('POS hold updates (#8)', () => {
+  it('cannot change an order that is not a held cart', async () => {
+    const token = await login('super');
+    const list = await api(token).get('/api/admin/orders?status=delivered');
+    const delivered = list.body.orders[0];
+    assert.ok(delivered, 'seeded delivered order');
+    const res = await api(token).patch(`/api/pos/holds/${delivered.id}`, { held: true });
+    assert.equal(res.status, 404);
+    const after = await api(token).get(`/api/admin/orders/${delivered.id}`);
+    assert.equal(after.body.order.status, 'delivered');
+    assert.equal(after.body.order.heldAt, null);
+  });
+
+  it('still updates a held cart', async () => {
+    const rice = await adminProduct(RICE.sku);
+    const token = await login('super');
+    const h = (await api(token).post('/api/pos/holds', { items: [{ productId: rice.id, quantity: 1 }] })).body.order;
+    const res = await api(token).patch(`/api/pos/holds/${h.id}`, { held: true });
+    assert.equal(res.status, 200, JSON.stringify(res.body));
+    assert.equal(res.body.order.status, 'pending');
+  });
+});
