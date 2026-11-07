@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.ts';
 import { asyncHandler, requireAuth, requirePermission, currentAdmin, hasPermission } from '../lib/auth.ts';
 import { PERM } from '../lib/permissions.ts';
@@ -6,6 +7,7 @@ import { logAudit } from '../lib/audit.ts';
 import { parseJsonSafe } from '../utils/json.ts';
 import { applyStockDelta } from '../lib/stock.ts';
 import { loadCheckoutConfig } from '../lib/checkout.ts';
+import { createWithUniqueNumbers } from '../lib/numbers.ts';
 
 const router = Router();
 
@@ -150,7 +152,7 @@ router.post(
     // rejected — otherwise it would be charged at whatever price the client sent.
     let subtotal = 0;
     const stockTargets: { productId: string; qty: number }[] = [];
-    const orderItems = [];
+    const orderItems: Prisma.OrderItemUncheckedCreateWithoutOrderInput[] = [];
     for (const raw of items) {
       const it = (raw || {}) as Record<string, unknown>;
       const qty = Math.floor(Number(it.quantity));
@@ -277,42 +279,41 @@ router.post(
       });
     }
 
-    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-    const orderNumber = `ORD-${Date.now()}`;
-    const trackingCode = `AKS-BD-${randomSuffix}`;
-    const order = await prisma.order.create({
-      data: {
-        orderNumber,
-        trackingCode,
-        invoiceNumber: `INV-${Date.now()}`,
-        status: 'pending',
-        source: 'online', // storefront checkout — POS orders will set 'pos'
-        customerName: String(customerAddress.fullName),
-        customerPhone: String(customerAddress.phone),
-        customerEmail: String(customerAddress.email || ''),
-        customerAddress: JSON.stringify(customerAddress),
-        deliveryMethod,
-        pickupStore: deliveryMethod === 'pickup' ? String(body.pickupStore || '') : null,
-        paymentMethod: paymentMethod.id,
-        // Storefront orders start unpaid. A customer-declared transfer keeps the
-        // order unpaid until an admin verifies it — we never claim money arrived.
-        paymentStatus: 'unpaid',
-        paidAmount: 0,
-        dueAmount: total,
-        // The customer's declared transaction ID for a manual transfer. The order
-        // stays unpaid until an admin checks it against the account.
-        paymentReference: paymentMethod.manual ? paymentReference : null,
-        subtotal,
-        discount,
-        shippingFee,
-        tax: Number(body.tax) || 0,
-        total,
-        couponCode,
-        estimatedDelivery: 'Delivery time will be confirmed after your order is placed.',
-        items: { create: orderItems },
-      },
-      include: { items: true },
-    }).catch(async (err) => {
+    const order = await createWithUniqueNumbers((n) =>
+      prisma.order.create({
+        data: {
+          orderNumber: `ORD-${n.stamp}`,
+          trackingCode: `AKS-BD-${n.digits}`,
+          invoiceNumber: `INV-${n.stamp}`,
+          status: 'pending',
+          source: 'online', // storefront checkout — POS orders will set 'pos'
+          customerName: String(customerAddress.fullName),
+          customerPhone: String(customerAddress.phone),
+          customerEmail: String(customerAddress.email || ''),
+          customerAddress: JSON.stringify(customerAddress),
+          deliveryMethod,
+          pickupStore: deliveryMethod === 'pickup' ? String(body.pickupStore || '') : null,
+          paymentMethod: paymentMethod.id,
+          // Storefront orders start unpaid. A customer-declared transfer keeps the
+          // order unpaid until an admin verifies it — we never claim money arrived.
+          paymentStatus: 'unpaid',
+          paidAmount: 0,
+          dueAmount: total,
+          // The customer's declared transaction ID for a manual transfer. The order
+          // stays unpaid until an admin checks it against the account.
+          paymentReference: paymentMethod.manual ? paymentReference : null,
+          subtotal,
+          discount,
+          shippingFee,
+          tax: Number(body.tax) || 0,
+          total,
+          couponCode,
+          estimatedDelivery: 'Delivery time will be confirmed after your order is placed.',
+          items: { create: orderItems },
+        },
+        include: { items: true },
+      })
+    ).catch(async (err) => {
       await giveBack();
       throw err;
     });

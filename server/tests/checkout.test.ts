@@ -263,4 +263,22 @@ describe('checkout stock', () => {
     assert.equal(after, before - placed * qty);
     assert.ok(placed > 0, `no order went through: ${results.map((r) => r.status).join(',')}`);
   });
+
+  it('a burst of parallel checkouts all succeed with distinct numbers (#24)', async () => {
+    const results = await Promise.all(
+      Array.from({ length: 20 }, () => placeOrder([{ sku: RICE.sku, quantity: 1 }]))
+    );
+    assert.deepEqual(
+      results.map((r) => r.status),
+      results.map(() => 201),
+      JSON.stringify(results.find((r) => r.status !== 201)?.body)
+    );
+    const orders = results.map((r) => r.body.order);
+    assert.equal(new Set(orders.map((o) => o.orderNumber)).size, orders.length);
+    assert.equal(new Set(orders.map((o) => o.invoiceNumber)).size, orders.length);
+    for (const o of orders) {
+      assert.match(o.orderNumber, /^ORD-\d{13}$/);
+      assert.match(o.invoiceNumber, /^INV-\d{13}$/);
+    }
+  });
 });

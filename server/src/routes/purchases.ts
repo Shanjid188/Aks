@@ -4,6 +4,7 @@ import { asyncHandler, requirePermission, currentAdmin } from '../lib/auth.ts';
 import { PERM } from '../lib/permissions.ts';
 import { logAudit } from '../lib/audit.ts';
 import { applyStockDelta } from '../lib/stock.ts';
+import { createWithUniqueNumbers } from '../lib/numbers.ts';
 
 const router = Router();
 
@@ -35,30 +36,32 @@ router.post(
     const dueAmount = Math.max(0, totalCost - paidAmount);
     const status = b.status === 'received' ? 'received' : 'pending';
 
-    const purchase = await prisma.purchase.create({
-      data: {
-        purchaseNumber: `PR-${Date.now()}`,
-        supplierId: b.supplierId ? String(b.supplierId) : null,
-        status,
-        totalCost,
-        paidAmount,
-        dueAmount,
-        purchaseDate: b.purchaseDate ? new Date(String(b.purchaseDate)) : new Date(),
-        notes: b.notes ? String(b.notes) : null,
-        createdBy: currentAdmin(req)?.email ?? null,
-        items: {
-          create: itemsRaw.map((it) => ({
-            productId: it.productId ? String(it.productId) : null,
-            productName: String(it.name || 'Unknown'),
-            sku: it.sku ? String(it.sku) : null,
-            quantity: Math.max(0, Math.trunc(Number(it.quantity) || 0)),
-            costPrice: Number(it.costPrice) || 0,
-            total: (Number(it.quantity) || 0) * (Number(it.costPrice) || 0),
-          })),
+    const purchase = await createWithUniqueNumbers((n) =>
+      prisma.purchase.create({
+        data: {
+          purchaseNumber: `PR-${n.stamp}`,
+          supplierId: b.supplierId ? String(b.supplierId) : null,
+          status,
+          totalCost,
+          paidAmount,
+          dueAmount,
+          purchaseDate: b.purchaseDate ? new Date(String(b.purchaseDate)) : new Date(),
+          notes: b.notes ? String(b.notes) : null,
+          createdBy: currentAdmin(req)?.email ?? null,
+          items: {
+            create: itemsRaw.map((it) => ({
+              productId: it.productId ? String(it.productId) : null,
+              productName: String(it.name || 'Unknown'),
+              sku: it.sku ? String(it.sku) : null,
+              quantity: Math.max(0, Math.trunc(Number(it.quantity) || 0)),
+              costPrice: Number(it.costPrice) || 0,
+              total: (Number(it.quantity) || 0) * (Number(it.costPrice) || 0),
+            })),
+          },
         },
-      },
-      include: { items: true, supplier: true },
-    });
+        include: { items: true, supplier: true },
+      })
+    );
 
     // Receiving the purchase increases inventory for tracked products.
     if (status === 'received') {

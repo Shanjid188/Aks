@@ -4,6 +4,7 @@ import { asyncHandler, requirePermission, currentAdmin } from '../lib/auth.ts';
 import { PERM } from '../lib/permissions.ts';
 import { logAudit } from '../lib/audit.ts';
 import { applyStockDelta } from '../lib/stock.ts';
+import { createWithUniqueNumbers } from '../lib/numbers.ts';
 
 const router = Router();
 
@@ -94,45 +95,46 @@ router.post(
     const dueAmount = Math.max(0, Math.round((total - paidAmount) * 100) / 100);
     const paymentStatus = dueAmount <= 0 ? 'paid' : paidAmount > 0 ? 'partial' : 'due';
 
-    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-    const order = await prisma.order.create({
-      data: {
-        orderNumber: `POS-${Date.now()}`,
-        trackingCode: `AKS-BD-${randomSuffix}`,
-        invoiceNumber: `POS-INV-${Date.now()}`,
-        status: 'confirmed', // POS sales are paid on the spot (or partial due)
-        source: 'pos',
-        customerName,
-        customerPhone,
-        customerEmail,
-        customerAddress: JSON.stringify({ fullName: customerName, phone: customerPhone, email: customerEmail }),
-        deliveryMethod: 'pickup',
-        pickupStore: null,
-        paymentMethod: paymentsRaw[0]?.method ?? 'cash',
-        paymentStatus,
-        paidAmount,
-        dueAmount,
-        cashierId: admin.id,
-        subtotal,
-        discount,
-        shippingFee,
-        tax,
-        total,
-        customerNote: String(body.note ?? '') || null,
-        packedStatus: 'not_packed',
-        items: { create: orderItems },
-        payments: {
-          create: paymentsRaw
-            .filter((p) => (Number(p.amount) || 0) > 0)
-            .map((p) => ({
-              amount: Number(p.amount),
-              method: String(p.method).trim() || 'cash',
-              receivedBy: admin.email,
-            })),
+    const order = await createWithUniqueNumbers((n) =>
+      prisma.order.create({
+        data: {
+          orderNumber: `POS-${n.stamp}`,
+          trackingCode: `AKS-BD-${n.digits}`,
+          invoiceNumber: `POS-INV-${n.stamp}`,
+          status: 'confirmed', // POS sales are paid on the spot (or partial due)
+          source: 'pos',
+          customerName,
+          customerPhone,
+          customerEmail,
+          customerAddress: JSON.stringify({ fullName: customerName, phone: customerPhone, email: customerEmail }),
+          deliveryMethod: 'pickup',
+          pickupStore: null,
+          paymentMethod: paymentsRaw[0]?.method ?? 'cash',
+          paymentStatus,
+          paidAmount,
+          dueAmount,
+          cashierId: admin.id,
+          subtotal,
+          discount,
+          shippingFee,
+          tax,
+          total,
+          customerNote: String(body.note ?? '') || null,
+          packedStatus: 'not_packed',
+          items: { create: orderItems },
+          payments: {
+            create: paymentsRaw
+              .filter((p) => (Number(p.amount) || 0) > 0)
+              .map((p) => ({
+                amount: Number(p.amount),
+                method: String(p.method).trim() || 'cash',
+                receivedBy: admin.email,
+              })),
+          },
         },
-      },
-      include: { items: true, payments: true },
-    });
+        include: { items: true, payments: true },
+      })
+    );
 
 
     // Deduct stock for tracked products.
@@ -237,33 +239,35 @@ router.post(
     const customerName = String(body.customerName ?? '').trim() || 'Walk-in Customer';
     const customerPhone = String(body.customerPhone ?? '').trim();
 
-    const order = await prisma.order.create({
-      data: {
-        orderNumber: `HOLD-${Date.now()}`,
-        trackingCode: `AKS-${Math.floor(100000 + Math.random() * 900000)}`,
-        invoiceNumber: null,
-        status: 'pending',
-        source: 'pos',
-        heldAt: new Date(),
-        customerName,
-        customerPhone,
-        customerEmail: String(body.customerEmail ?? '').trim(),
-        customerAddress: JSON.stringify({ fullName: customerName, phone: customerPhone }),
-        deliveryMethod: 'pickup',
-        paymentMethod: String(body.paymentMethod ?? 'cash'),
-        paymentStatus: 'due',
-        paidAmount: 0,
-        dueAmount: total,
-        subtotal,
-        discount,
-        shippingFee: 0,
-        tax: 0,
-        total,
-        packedStatus: 'not_packed',
-        items: { create: orderItems },
-      },
-      include: { items: true },
-    });
+    const order = await createWithUniqueNumbers((n) =>
+      prisma.order.create({
+        data: {
+          orderNumber: `HOLD-${n.stamp}`,
+          trackingCode: `AKS-${n.digits}`,
+          invoiceNumber: null,
+          status: 'pending',
+          source: 'pos',
+          heldAt: new Date(),
+          customerName,
+          customerPhone,
+          customerEmail: String(body.customerEmail ?? '').trim(),
+          customerAddress: JSON.stringify({ fullName: customerName, phone: customerPhone }),
+          deliveryMethod: 'pickup',
+          paymentMethod: String(body.paymentMethod ?? 'cash'),
+          paymentStatus: 'due',
+          paidAmount: 0,
+          dueAmount: total,
+          subtotal,
+          discount,
+          shippingFee: 0,
+          tax: 0,
+          total,
+          packedStatus: 'not_packed',
+          items: { create: orderItems },
+        },
+        include: { items: true },
+      })
+    );
 
     await logAudit({
       admin: currentAdmin(req),
