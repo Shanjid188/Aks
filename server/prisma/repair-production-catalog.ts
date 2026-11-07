@@ -242,13 +242,25 @@ async function apply(
     update: { isSuper: true },
     create: { name: 'Super Admin', description: 'Full access.', isSuper: true, isSystem: true },
   });
-  const orphanAdmins = await prisma.adminUser.findMany({ where: { roleId: null }, select: { id: true } });
-  if (orphanAdmins.length) {
+  // Only accounts that were Super Admins under the legacy role column get it
+  // back (same rule as backfill-admin-roles.ts). Any other admin without a role
+  // keeps no access until someone assigns one in Admin → Admins.
+  const orphanAdmins = await prisma.adminUser.findMany({
+    where: { roleId: null },
+    select: { id: true, email: true, role: true },
+  });
+  const legacySupers = orphanAdmins.filter((a) => a.role === 'superadmin');
+  if (legacySupers.length) {
     await prisma.adminUser.updateMany({
-      where: { id: { in: orphanAdmins.map((a) => a.id) } },
+      where: { id: { in: legacySupers.map((a) => a.id) }, roleId: null },
       data: { roleId: superRole.id },
     });
-    console.log(`  re-attached Super Admin to ${orphanAdmins.length} admin(s)`);
+    console.log(`  re-attached Super Admin to ${legacySupers.length} legacy superadmin account(s)`);
+  }
+  const unassigned = orphanAdmins.filter((a) => a.role !== 'superadmin');
+  if (unassigned.length) {
+    console.log(`  ${unassigned.length} admin(s) still have no role (assign one in Admin → Admins):`);
+    for (const a of unassigned) console.log(`    - ${a.email}`);
   }
 
   console.log('\n  ✅ DONE.');
