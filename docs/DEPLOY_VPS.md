@@ -52,7 +52,7 @@ cd admin && npm ci && npm run build && cd ..   # admin → admin/dist/
 cd server && npm ci --no-audit --no-fund
 npm run prisma:generate
 npm run prisma:push                # creates SQLite tables
-npm run seed                       # products, stores, coupons, slides… (prints a one-time admin password)
+npm run seed                       # first deploy only: demo catalog + one-time admin password
 ```
 
 ## 3. 🔐 Set YOUR real admin password (do not skip!)
@@ -165,6 +165,10 @@ npm run backfill:roles && pm2 restart aks-store && pm2 logs aks-store --lines 30
 > with the local ones. Only do this when local really is the state you want.
 
 ### Do NOT use "reset + seed" to resync
+
+`npm run seed` does nothing on a database that already has admins or orders.
+Forcing it with `SEED_FORCE=1` overwrites products, coupons, roles and hero
+slides with demo data — never do that on production.
 
 `npm run prisma:push --force-reset && npm run seed` produces a *fresh*
 database, not your local one. The four banner tables (`SideBanner`,
