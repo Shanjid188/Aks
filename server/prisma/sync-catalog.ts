@@ -19,7 +19,7 @@
  *   cd server && npm run sync:catalog                      # dry run
  *   cd server && npm run sync:catalog -- --apply           # write
  */
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -133,7 +133,8 @@ async function main() {
   console.log(`  Subcategory  +${subNew.length} new  ~${subUpd.length} update  -${subGone.length} remove`);
   console.log(`  Product      +${prodNew.length} new  ~${prodUpd.length} update  -${prodGone.length} deactivate`);
   console.log(`  HeroSlide    +${slideNew.length} new  ~${slideUpd.length} update`);
-  console.log('  Banners      replaced by position (no FK dependents)');
+  console.log('  Banners      replaced from the snapshot; a type with none in the snapshot is kept');
+  console.log('  Products     existing stock, cost, low-stock threshold and ratings are kept');
 
   if (prodNew.length) { console.log('\n  products to CREATE:'); prodNew.forEach((p) => console.log(`    + ${p.name} [${p.sku}]`)); }
   if (prodUpd.length) { console.log('\n  products to UPDATE (primary key preserved):'); prodUpd.forEach((p) => console.log(`    ~ ${p.name} [${p.sku}]`)); }
@@ -200,6 +201,19 @@ function clean(row: Record<string, unknown>) {
   return rest;
 }
 
+/**
+ * Product columns the live shop owns: stock is counted at the counter, cost
+ * comes from purchases and ratings from customer reviews. Syncing the catalog
+ * updates names, prices, images and copy, but never these on an existing product.
+ */
+const PRODUCTION_OWNED_PRODUCT_FIELDS = ['stockQuantity', 'costPrice', 'lowStockThreshold', 'trackStock', 'rating', 'reviewsCount'];
+
+function catalogFields(row: Record<string, unknown>) {
+  const data = clean(row);
+  for (const key of PRODUCTION_OWNED_PRODUCT_FIELDS) delete data[key];
+  return data;
+}
+
 type Plan = {
   catNew: Array<Record<string, unknown> & { slug: string }>;
   catUpd: Array<Record<string, unknown> & { slug: string }>;
@@ -216,26 +230,33 @@ type Plan = {
 
 async function apply(snap: Snap, p: Plan, backupPath: string | null) {
   console.log('\n── APPLYING ────────────────────────────────────');
+  // One transaction: a failure part-way (e.g. a bad banner row after the old
+  // banners were deleted) rolls everything back instead of leaving a half-synced shop.
+  await prisma.$transaction((tx) => applyWith(tx, snap, p), { maxWait: 30_000, timeout: 5 * 60_000 });
+  console.log('\n  ✅ DONE — Orders, Customers, Admins and Roles untouched.');
+  console.log(`  Restore point: ${backupPath}`);
+}
 
+async function applyWith(tx: Prisma.TransactionClient, snap: Snap, p: Plan) {
   // ORDER MATTERS: Category -> Subcategory -> Product -> Slide -> Banner.
-  for (const c of p.catNew) await prisma.category.create({ data: clean(c) as never });
-  for (const c of p.catUpd) await prisma.category.update({ where: { slug: c.slug }, data: clean(c) as never });
+  for (const c of p.catNew) await tx.category.create({ data: clean(c) as never });
+  for (const c of p.catUpd) await tx.category.update({ where: { slug: c.slug }, data: clean(c) as never });
   console.log(`  categories    +${p.catNew.length} ~${p.catUpd.length}`);
 
   const catBySlug = new Map(
-    (await prisma.category.findMany({ select: { id: true, slug: true } })).map((c) => [c.slug, c.id])
+    (await tx.category.findMany({ select: { id: true, slug: true } })).map((c) => [c.slug, c.id])
   );
   let subAdded = 0;
   for (const s of p.subNew) {
     const { categorySlug, ...rest } = s;
     if (!categorySlug || !catBySlug.has(categorySlug)) continue;
-    await prisma.subcategory.create({ data: { ...clean(rest), categoryId: catBySlug.get(categorySlug)! } as never });
+    await tx.subcategory.create({ data: { ...clean(rest), categoryId: catBySlug.get(categorySlug)! } as never });
     subAdded += 1;
   }
   for (const s of p.subUpd) {
     const { categorySlug, ...rest } = s;
     const cid = categorySlug ? catBySlug.get(categorySlug) : undefined;
-    await prisma.subcategory.update({
+    await tx.subcategory.update({
       where: { slug: s.slug },
       data: { ...clean(rest), ...(cid ? { categoryId: cid } : {}) } as never,
     });
@@ -244,41 +265,47 @@ async function apply(snap: Snap, p: Plan, backupPath: string | null) {
 
   // Upsert by SKU: the primary key survives, so OrderItem/StockMovement links
   // stay valid and order history is never broken.
-  for (const row of p.prodNew) await prisma.product.create({ data: clean(row) as never });
-  for (const row of p.prodUpd) await prisma.product.update({ where: { sku: row.sku }, data: clean(row) as never });
+  for (const row of p.prodNew) await tx.product.create({ data: clean(row) as never });
+  for (const row of p.prodUpd) await tx.product.update({ where: { sku: row.sku }, data: catalogFields(row) as never });
   console.log(`  products     +${p.prodNew.length} ~${p.prodUpd.length}`);
 
   // Production-only products are hidden, never deleted.
-  for (const row of p.prodGone) await prisma.product.update({ where: { id: row.id }, data: { isActive: false } });
+  for (const row of p.prodGone) await tx.product.update({ where: { id: row.id }, data: { isActive: false } });
   if (p.prodGone.length) console.log(`  products      ${p.prodGone.length} deactivated (kept for order history)`);
 
-  for (const s of p.slideNew) await prisma.heroSlide.create({ data: clean(s) as never });
+  for (const s of p.slideNew) await tx.heroSlide.create({ data: clean(s) as never });
   for (const s of p.slideUpd) {
-    const first = await prisma.heroSlide.findFirst({ where: { title: s.title } });
-    if (first) await prisma.heroSlide.update({ where: { id: first.id }, data: clean(s) as never });
+    const first = await tx.heroSlide.findFirst({ where: { title: s.title } });
+    if (first) await tx.heroSlide.update({ where: { id: first.id }, data: clean(s) as never });
   }
   console.log(`  hero slides  +${p.slideNew.length} ~${p.slideUpd.length}`);
 
-  // Banners have no natural key and no FK dependents: replace wholesale.
-  await prisma.sideBanner.deleteMany({});
-  await prisma.galleryBanner.deleteMany({});
-  await prisma.offerBanner.deleteMany({});
-  await prisma.loveBanner.deleteMany({});
-  for (const b of snap.sideBanners) await prisma.sideBanner.create({ data: clean(b) as never });
-  for (const b of snap.galleryBanners) await prisma.galleryBanner.create({ data: clean(b) as never });
-  for (const b of snap.offerBanners) await prisma.offerBanner.create({ data: clean(b) as never });
-  for (const b of snap.loveBanners) await prisma.loveBanner.create({ data: clean(b) as never });
-  console.log('  banners      replaced from snapshot');
+  // Banners have no natural key and no FK dependents: replace wholesale. A
+  // banner type the snapshot has none of is left as it is, so exporting from a
+  // database without banners can never empty the live homepage.
+  const banners = [
+    ['side', snap.sideBanners, tx.sideBanner],
+    ['gallery', snap.galleryBanners, tx.galleryBanner],
+    ['offer', snap.offerBanners, tx.offerBanner],
+    ['love', snap.loveBanners, tx.loveBanner],
+  ] as const;
+  for (const [label, rows, table] of banners) {
+    if (!rows?.length) {
+      console.log(`  ${label} banners kept (none in snapshot)`);
+      continue;
+    }
+    const delegate = table as unknown as { deleteMany(a: object): Promise<unknown>; create(a: object): Promise<unknown> };
+    await delegate.deleteMany({});
+    for (const b of rows) await delegate.create({ data: clean(b) });
+    console.log(`  ${label} banners replaced from snapshot (${rows.length})`);
+  }
 
   // Catalog rows no longer in the snapshot.
-  if (p.subGone.length) await prisma.subcategory.deleteMany({ where: { id: { in: p.subGone.map((s) => s.id) } } });
-  if (p.catGone.length) await prisma.category.deleteMany({ where: { id: { in: p.catGone.map((c) => c.id) } } });
+  if (p.subGone.length) await tx.subcategory.deleteMany({ where: { id: { in: p.subGone.map((s) => s.id) } } });
+  if (p.catGone.length) await tx.category.deleteMany({ where: { id: { in: p.catGone.map((c) => c.id) } } });
   if (p.subGone.length || p.catGone.length) {
     console.log(`  removed ${p.catGone.length} category(ies), ${p.subGone.length} subcategory(ies)`);
   }
-
-  console.log('\n  ✅ DONE — Orders, Customers, Admins and Roles untouched.');
-  console.log(`  Restore point: ${backupPath}`);
 }
 
 main()
