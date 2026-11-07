@@ -8,6 +8,10 @@
 export interface Throttle {
   /** Records this hit and returns true when the caller is over the limit. */
   isLimited(key: string): boolean;
+  /** True when `key` already used up the window; records nothing. */
+  isBlocked(key: string): boolean;
+  /** Record a hit for `key` without checking it. */
+  record(key: string): void;
   /** Test/ops helper — forget every recorded hit. */
   reset(): void;
 }
@@ -23,20 +27,30 @@ export function createThrottle({
   maxKeys?: number;
 }): Throttle {
   const hits = new Map<string, number[]>();
+  const recentHits = (key: string, now: number) => (hits.get(key) ?? []).filter((t) => now - t < windowMs);
+  const record = (key: string): number => {
+    const now = Date.now();
+    const recent = recentHits(key, now);
+    recent.push(now);
+    hits.set(key, recent);
+
+    if (hits.size > maxKeys) {
+      for (const [k, v] of hits) {
+        if (v.every((t) => now - t >= windowMs)) hits.delete(k);
+      }
+    }
+    return recent.length;
+  };
 
   return {
     isLimited(key: string): boolean {
-      const now = Date.now();
-      const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
-      recent.push(now);
-      hits.set(key, recent);
-
-      if (hits.size > maxKeys) {
-        for (const [k, v] of hits) {
-          if (v.every((t) => now - t >= windowMs)) hits.delete(k);
-        }
-      }
-      return recent.length > max;
+      return record(key) > max;
+    },
+    isBlocked(key: string): boolean {
+      return recentHits(key, Date.now()).length >= max;
+    },
+    record(key: string): void {
+      record(key);
     },
     reset() {
       hits.clear();
