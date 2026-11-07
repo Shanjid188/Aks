@@ -169,3 +169,85 @@ describe('admin Returns form (#102)', () => {
     assert.equal((await adminProduct(RICE.sku)).stockQuantity, before + 2);
   });
 });
+
+describe('refunds (#103)', () => {
+  async function refund(id: string, body: Record<string, unknown>) {
+    return (await admin()).post(`/api/admin/returns/${id}/refund`, body);
+  }
+  async function order(id: string) {
+    return (await (await admin()).get(`/api/admin/orders/${id}`)).body.order;
+  }
+  /** A received return of `quantity` rice from a sale of `sold`. */
+  async function receivedReturn(sold: number, quantity: number, extra: Record<string, unknown> = {}) {
+    const { order: o, productId } = await riceSale(sold);
+    const res = await createReturn({ orderId: o.id, productId, quantity, ...extra });
+    const id = res.body.returnRequest.id;
+    assert.equal((await setStatus(id, 'approved')).status, 200);
+    assert.equal((await setStatus(id, 'received')).status, 200);
+    return { id, order: o };
+  }
+
+  it('cannot refund a return that has not been received', async () => {
+    const { order: o, productId } = await riceSale(1);
+    const res = await createReturn({ orderId: o.id, productId, quantity: 1 });
+    const r = await refund(res.body.returnRequest.id, { amount: 100 });
+    assert.equal(r.status, 400);
+  });
+
+  it('falls back to the return amount when none is sent', async () => {
+    const { id } = await receivedReturn(1, 1, { refundAmount: 100 });
+    const r = await refund(id, {});
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    assert.equal(r.body.refund.amount, 100);
+  });
+
+  it('rejects a missing, zero or non-numeric amount', async () => {
+    const { id } = await receivedReturn(1, 1);
+    assert.equal((await refund(id, {})).status, 400); // refundAmount defaults to 0
+    assert.equal((await refund(id, { amount: 0 })).status, 400);
+    assert.equal((await refund(id, { amount: 'abc' })).status, 400);
+  });
+
+  it('caps the refund at the value of the returned goods', async () => {
+    const { id } = await receivedReturn(2, 1);
+    const r = await refund(id, { amount: RICE.price + 1 });
+    assert.equal(r.status, 400);
+    assert.match(r.body.error, new RegExp(`most that can be refunded for this return is ${RICE.price}`));
+  });
+
+  it('refunds a return only once', async () => {
+    const { id } = await receivedReturn(1, 1);
+    assert.equal((await refund(id, { amount: 100 })).status, 201);
+    const again = await refund(id, { amount: 100 });
+    assert.equal(again.status, 400);
+    assert.match(again.body.error, /already been refunded/);
+  });
+
+  it('parallel refunds of one return pay out once', async () => {
+    const { id } = await receivedReturn(1, 1);
+    const results = await Promise.all(Array.from({ length: 4 }, () => refund(id, { amount: 100 })));
+    assert.equal(results.filter((r) => r.status === 201).length, 1, results.map((r) => r.status).join(','));
+    for (const r of results) assert.ok([201, 400, 409].includes(r.status), String(r.status));
+  });
+
+  it('a partial refund leaves the order as it was', async () => {
+    const { id, order: o } = await receivedReturn(2, 1);
+    assert.equal((await refund(id, { amount: RICE.price })).status, 201);
+    const after = await order(o.id);
+    assert.equal(after.status, o.status);
+    assert.equal(after.paymentStatus, 'paid');
+  });
+
+  it('refunding everything collected marks the order refunded', async () => {
+    const { id, order: o } = await receivedReturn(1, 1);
+    assert.equal((await refund(id, { amount: RICE.price })).status, 201);
+    const after = await order(o.id);
+    assert.equal(after.status, 'refunded');
+    assert.equal(after.paymentStatus, 'refunded');
+  });
+
+  it('a status change cannot mark a return refunded', async () => {
+    const { id } = await receivedReturn(1, 1);
+    assert.equal((await setStatus(id, 'refunded')).status, 400);
+  });
+});

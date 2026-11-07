@@ -15,7 +15,7 @@ const router = Router();
 const RETURN_TRANSITIONS: Record<string, readonly string[]> = {
   requested: ['approved', 'rejected', 'cancelled'],
   approved: ['received', 'rejected', 'cancelled'],
-  received: ['refunded'],
+  received: [], // refunded only through POST /admin/returns/:id/refund
   rejected: [],
   cancelled: [],
   refunded: [],
@@ -199,7 +199,50 @@ router.post(
     const ret = await prisma.returnRequest.findUnique({ where: { id } });
     if (!ret) return res.status(404).json({ error: 'Return not found' });
 
-    const amount = Math.max(0, Number(body.amount) ?? ret.refundAmount);
+    // Goods come back first: refund a received return, or an approved one
+    // that has no product to send back. Each return is refunded once.
+    const refundableFrom = ret.productId ? ['received'] : ['approved', 'received'];
+    if (!refundableFrom.includes(ret.status)) {
+      return res.status(400).json({
+        error: ret.status === 'refunded' ? 'This return has already been refunded' : `A ${ret.status} return cannot be refunded`,
+      });
+    }
+
+    const amount = body.amount === undefined || body.amount === null || body.amount === '' ? ret.refundAmount : Number(body.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Refund amount must be more than 0' });
+    }
+
+    // Never refund more than the customer paid for the returned goods, nor
+    // more than is left of what the order collected after earlier refunds.
+    const order = ret.orderId
+      ? await prisma.order.findUnique({ where: { id: ret.orderId }, include: { items: true } })
+      : null;
+    let collected = 0;
+    if (order) {
+      // A delivered or completed order was paid in full (cash on delivery is
+      // collected by the courier even when the order was never marked paid).
+      collected = ['delivered', 'completed'].includes(order.status)
+        ? Math.max(order.paidAmount, order.total)
+        : order.paidAmount;
+      const earlier = await prisma.refund.aggregate({ where: { orderId: order.id }, _sum: { amount: true } });
+      const remaining = Math.max(0, collected - (earlier._sum.amount ?? 0));
+      const line = ret.productId ? order.items.find((i) => i.productId === ret.productId) : undefined;
+      const cap = line ? Math.min(remaining, line.price * ret.quantity) : remaining;
+      if (amount > cap) {
+        return res.status(400).json({ error: `The most that can be refunded for this return is ${cap}` });
+      }
+    }
+
+    // Claim the return before paying out, so two clicks cannot both refund it.
+    const claimed = await prisma.returnRequest.updateMany({
+      where: { id, status: ret.status },
+      data: { status: 'refunded', refundAmount: amount, refundedAt: new Date() },
+    });
+    if (claimed.count === 0) {
+      return res.status(409).json({ error: 'This return was just updated by someone else. Please refresh and try again.' });
+    }
+
     const refund = await prisma.refund.create({
       data: {
         returnId: ret.id,
@@ -211,17 +254,16 @@ router.post(
       },
     });
 
-    await prisma.returnRequest.update({
-      where: { id },
-      data: { status: 'refunded', refundAmount: amount, refundedAt: new Date() },
-    });
-
-    // If the linked order is being fully refunded, flip its payment ledger.
-    if (ret.orderId) {
-      await prisma.order.update({
-        where: { id: ret.orderId },
-        data: { status: 'refunded', paymentStatus: 'refunded', dueAmount: 0 },
-      });
+    // Only a refund of everything the order collected marks the whole order
+    // refunded; a partial refund leaves the order as it is.
+    if (order) {
+      const refunded = await prisma.refund.aggregate({ where: { orderId: order.id }, _sum: { amount: true } });
+      if ((refunded._sum.amount ?? 0) >= collected) {
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { status: 'refunded', paymentStatus: 'refunded', dueAmount: 0 },
+        });
+      }
     }
 
     await logAudit({
