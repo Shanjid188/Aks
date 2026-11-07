@@ -151,3 +151,79 @@ describe('POS hold updates (#8)', () => {
     assert.equal(res.body.order.status, 'pending');
   });
 });
+
+describe('POS stock under concurrency (#88)', () => {
+  it('parallel sales never sell more than is on the shelf', async () => {
+    const BASKET = fixture('TEST-BASKET');
+    const basket = await adminProduct(BASKET.sku);
+    const onShelf = basket.stockQuantity;
+    const token = await login('super');
+    const results = await Promise.all(
+      Array.from({ length: onShelf + 5 }, () =>
+        api(token).post('/api/pos/sales', {
+          items: [{ productId: basket.id, quantity: 1 }],
+          payments: [{ method: 'cash', amount: BASKET.price }],
+        })
+      )
+    );
+    const statuses = results.map((r) => r.status);
+    assert.equal(statuses.filter((s) => s === 201).length, onShelf, statuses.join(','));
+    assert.equal(statuses.filter((s) => s === 400).length, 5, statuses.join(','));
+    assert.equal((await adminProduct(BASKET.sku)).stockQuantity, 0);
+  });
+
+  it('a short line gives back what other lines took', async () => {
+    const rice = await adminProduct(RICE.sku);
+    const oil = await adminProduct(fixture('TEST-OIL-1L').sku);
+    const res = await api(await login('super')).post('/api/pos/sales', {
+      items: [{ productId: rice.id, quantity: 1 }, { productId: oil.id, quantity: oil.stockQuantity + 1 }],
+      payments: [{ method: 'cash', amount: 1 }],
+    });
+    assert.equal(res.status, 400);
+    assert.equal((await adminProduct(RICE.sku)).stockQuantity, rice.stockQuantity);
+    assert.equal((await adminProduct(fixture('TEST-OIL-1L').sku)).stockQuantity, oil.stockQuantity);
+  });
+});
+
+describe('POS pricing (#89)', () => {
+  it('charges the product price, whatever price the request sends', async () => {
+    const rice = await adminProduct(RICE.sku);
+    for (const price of [1, -100, 0]) {
+      const res = await api(await login('super')).post('/api/pos/sales', {
+        items: [{ productId: rice.id, quantity: 2, price }],
+        payments: [{ method: 'cash', amount: RICE.price * 2 }],
+      });
+      assert.equal(res.status, 201, JSON.stringify(res.body));
+      assert.equal(res.body.order.items[0].price, RICE.price);
+      assert.equal(res.body.order.total, RICE.price * 2);
+      assert.equal(res.body.order.paymentStatus, 'paid');
+    }
+  });
+
+  it('a negative tax rate cannot lower the total', async () => {
+    const rice = await adminProduct(RICE.sku);
+    const res = await sell(rice.id, 1, { taxPercent: -50 });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.order.tax, 0);
+    assert.equal(res.body.order.total, RICE.price);
+  });
+
+  it('a fractional quantity is sold and charged as whole units', async () => {
+    const rice = await adminProduct(RICE.sku);
+    const res = await api(await login('super')).post('/api/pos/sales', {
+      items: [{ productId: rice.id, quantity: 2.5 }],
+      payments: [{ method: 'cash', amount: RICE.price * 2 }],
+    });
+    assert.equal(res.status, 201, JSON.stringify(res.body));
+    assert.equal(res.body.order.items[0].quantity, 2);
+    assert.equal(res.body.order.total, RICE.price * 2);
+    assert.equal((await adminProduct(RICE.sku)).stockQuantity, rice.stockQuantity - 2);
+  });
+
+  it('a held cart is priced the same way', async () => {
+    const rice = await adminProduct(RICE.sku);
+    const res = await api(await login('super')).post('/api/pos/holds', { items: [{ productId: rice.id, quantity: 1, price: -5 }] });
+    assert.equal(res.status, 201, JSON.stringify(res.body));
+    assert.equal(res.body.order.total, RICE.price);
+  });
+});
