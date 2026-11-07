@@ -7,6 +7,26 @@ import { applyStockDelta } from '../lib/stock.ts';
 
 const router = Router();
 
+/**
+ * Allowed return status moves. Receiving is the only step that restocks and
+ * can only be reached from approved, so a return is restocked at most once.
+ * Refunds are recorded through POST /admin/returns/:id/refund.
+ */
+const RETURN_TRANSITIONS: Record<string, readonly string[]> = {
+  requested: ['approved', 'rejected', 'cancelled'],
+  approved: ['received', 'rejected', 'cancelled'],
+  received: ['refunded'],
+  rejected: [],
+  cancelled: [],
+  refunded: [],
+};
+
+/** Returns that still claim goods from their order line. */
+const OPEN_RETURN_STATUSES = ['requested', 'approved', 'received', 'refunded'];
+
+/** Orders that have not been fulfilled (or were undone) have nothing to return. */
+const NON_RETURNABLE_ORDER_STATUSES = ['pending', 'cancelled'];
+
 /** Admin: list return requests. */
 router.get(
   '/admin/returns',
@@ -35,18 +55,54 @@ router.post(
     if (!body.orderId || !body.reason) {
       return res.status(400).json({ error: 'orderId and reason are required' });
     }
-    const order = await prisma.order.findUnique({ where: { id: String(body.orderId) } });
+    const order = await prisma.order.findUnique({
+      where: { id: String(body.orderId) },
+      include: { items: { select: { productId: true, productName: true, quantity: true } } },
+    });
     if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (NON_RETURNABLE_ORDER_STATUSES.includes(order.status)) {
+      return res.status(400).json({ error: `A ${order.status} order cannot have a return` });
+    }
+
+    const rawQty = body.quantity === undefined ? 1 : Number(body.quantity);
+    if (!Number.isInteger(rawQty) || rawQty < 1) {
+      return res.status(400).json({ error: 'Quantity must be a whole number of at least 1' });
+    }
+
+    // A return of a product must match a line of the order, and cannot take
+    // back more than was sold minus what earlier returns already claimed.
+    const productId = body.productId ? String(body.productId) : null;
+    let productName = body.productName ? String(body.productName) : null;
+    if (productId) {
+      const lines = order.items.filter((i) => i.productId === productId);
+      if (lines.length === 0) {
+        return res.status(400).json({ error: 'That product is not part of this order' });
+      }
+      const sold = lines.reduce((s, i) => s + i.quantity, 0);
+      const earlier = await prisma.returnRequest.aggregate({
+        where: { orderId: order.id, productId, status: { in: OPEN_RETURN_STATUSES } },
+        _sum: { quantity: true },
+      });
+      const returnable = sold - (earlier._sum.quantity ?? 0);
+      if (rawQty > returnable) {
+        return res.status(400).json({
+          error: returnable > 0
+            ? `Only ${returnable} of this product can still be returned`
+            : 'This product has already been fully returned',
+        });
+      }
+      productName = productName ?? lines[0].productName;
+    }
 
     const ret = await prisma.returnRequest.create({
       data: {
         orderId: order.id,
         customerName: String(body.customerName ?? order.customerName),
         customerPhone: String(body.customerPhone ?? order.customerPhone),
-        productId: body.productId ? String(body.productId) : null,
-        productName: body.productName ? String(body.productName) : null,
+        productId,
+        productName,
         variant: body.variant ? String(body.variant) : null,
-        quantity: Math.max(1, Math.trunc(Number(body.quantity) || 1)),
+        quantity: rawQty,
         reason: String(body.reason),
         customerNote: body.customerNote ? String(body.customerNote) : null,
         adminNote: body.adminNote ? String(body.adminNote) : null,
@@ -78,20 +134,39 @@ router.patch(
     if (!existing) return res.status(404).json({ error: 'Return not found' });
 
     const next = String(status || '');
-    if (!['requested', 'approved', 'rejected', 'received', 'refunded', 'cancelled'].includes(next)) {
+    if (!(next in RETURN_TRANSITIONS)) {
       return res.status(400).json({ error: 'Invalid return status' });
+    }
+    // Same status: only the note can change.
+    if (next === existing.status) {
+      const ret = adminNote === undefined
+        ? existing
+        : await prisma.returnRequest.update({ where: { id }, data: { adminNote: String(adminNote) } });
+      return res.json({ returnRequest: ret });
+    }
+    if (!RETURN_TRANSITIONS[existing.status]?.includes(next)) {
+      return res.status(400).json({ error: `A return cannot move from ${existing.status} to ${next}` });
     }
 
     const data: Record<string, unknown> = { status: next };
     if (adminNote !== undefined) data.adminNote = String(adminNote);
     if (next === 'approved' && !existing.approvedAt) data.approvedAt = new Date();
-    if (next === 'received' && !existing.receivedAt) data.receivedAt = new Date();
+    if (next === 'received') data.receivedAt = new Date();
     if (next === 'refunded' && !existing.refundedAt) data.refundedAt = new Date();
 
-    const ret = await prisma.returnRequest.update({ where: { id }, data });
+    // Only move the return if nobody changed it in the meantime; receivedAt
+    // marks a return that has already been restocked, so it never is twice.
+    const moved = await prisma.returnRequest.updateMany({
+      where: { id, status: existing.status, ...(next === 'received' ? { receivedAt: null } : {}) },
+      data,
+    });
+    if (moved.count === 0) {
+      return res.status(409).json({ error: 'This return was just updated by someone else. Please refresh and try again.' });
+    }
+    const ret = await prisma.returnRequest.findUniqueOrThrow({ where: { id } });
 
     // When a return is RECEIVED, add the returned stock back for the product.
-    if (next === 'received' && existing.productId && existing.status !== 'received') {
+    if (next === 'received' && existing.productId) {
       await applyStockDelta({
         productId: existing.productId,
         change: existing.quantity,
