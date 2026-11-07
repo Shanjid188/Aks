@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
+import { NOT_HELD } from '../lib/holds.ts';
 import { parseJsonSafe } from '../utils/json.ts';
 import { asyncHandler, requirePermission } from '../lib/auth.ts';
 import { PERM } from '../lib/permissions.ts';
@@ -63,13 +64,14 @@ router.get(
       itemRows,
       allProducts,
     ] = await Promise.all([
-      prisma.order.aggregate({ _sum: { total: true }, where: { status: { not: 'cancelled' } } }),
-      prisma.order.count(),
+      // Held POS carts are not sales: NOT_HELD keeps them out of every figure.
+      prisma.order.aggregate({ _sum: { total: true }, where: { status: { not: 'cancelled' }, ...NOT_HELD } }),
+      prisma.order.count({ where: NOT_HELD }),
       prisma.order.count({ where: { status: 'delivered' } }),
-      prisma.order.count({ where: { status: 'pending' } }),
+      prisma.order.count({ where: { status: 'pending', ...NOT_HELD } }),
       prisma.order.count({ where: { status: 'confirmed' } }),
       prisma.order.count({
-        where: { status: { in: ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery'] } },
+        where: { status: { in: ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery'] }, ...NOT_HELD },
       }),
       prisma.order.count({ where: { status: 'shipped' } }),
       prisma.order.count({ where: { status: 'cancelled' } }),
@@ -78,14 +80,15 @@ router.get(
       prisma.coupon.count({ where: { active: true } }),
       prisma.order.aggregate({
         _sum: { total: true },
-        where: { status: { not: 'cancelled' }, createdAt: { gte: current30 } },
+        where: { status: { not: 'cancelled' }, createdAt: { gte: current30 }, ...NOT_HELD },
       }),
       prisma.order.aggregate({
         _sum: { total: true },
-        where: { status: { not: 'cancelled' }, createdAt: { gte: previous60, lt: current30 } },
+        where: { status: { not: 'cancelled' }, createdAt: { gte: previous60, lt: current30 }, ...NOT_HELD },
       }),
-      prisma.order.findMany({ select: { customerPhone: true } }),
+      prisma.order.findMany({ where: NOT_HELD, select: { customerPhone: true } }),
       prisma.order.findMany({
+        where: NOT_HELD,
         orderBy: { createdAt: 'desc' },
         take: 8,
         include: {
@@ -100,7 +103,7 @@ router.get(
       }),
       prisma.order.count({ where: { status: 'returned' } }),
       prisma.orderItem.findMany({
-        where: { order: { status: { not: 'cancelled' } } },
+        where: { order: { status: { not: 'cancelled' }, ...NOT_HELD } },
         select: {
           id: true,
           orderId: true,
@@ -281,7 +284,7 @@ router.get(
     }
 
     const orders = await prisma.order.findMany({
-      where: { status: { not: 'cancelled' }, createdAt: { gte: since } },
+      where: { status: { not: 'cancelled' }, createdAt: { gte: since }, ...NOT_HELD },
       select: { createdAt: true, total: true },
     });
 
@@ -330,6 +333,7 @@ router.get(
   requirePermission(PERM.CUSTOMERS_VIEW),
   asyncHandler(async (_req, res) => {
     const orders = await prisma.order.findMany({
+      where: NOT_HELD,
       select: {
         id: true,
         orderNumber: true,

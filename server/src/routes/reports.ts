@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
+import { NOT_HELD } from '../lib/holds.ts';
 import { asyncHandler, requirePermission } from '../lib/auth.ts';
 import { PERM } from '../lib/permissions.ts';
 import { parseJsonSafe } from '../utils/json.ts';
@@ -48,11 +49,11 @@ router.get(
 
     const [orders, orderItems, expenses, refunds] = await Promise.all([
       prisma.order.findMany({
-        where: { createdAt: dateWindow, status: { notIn: EXCLUDED_ORDER_STATUSES } },
+        where: { createdAt: dateWindow, status: { notIn: EXCLUDED_ORDER_STATUSES }, ...NOT_HELD },
         select: { total: true, source: true, paymentMethod: true, status: true, createdAt: true },
       }),
       prisma.orderItem.findMany({
-        where: { order: { createdAt: dateWindow, status: { notIn: EXCLUDED_ORDER_STATUSES } } },
+        where: { order: { createdAt: dateWindow, status: { notIn: EXCLUDED_ORDER_STATUSES }, ...NOT_HELD } },
         select: { productId: true, productName: true, quantity: true, price: true },
       }),
       prisma.expense.aggregate({ _sum: { amount: true }, where: { expenseDate: dateWindow } }),
@@ -122,7 +123,7 @@ router.get(
   requirePermission(PERM.REPORTS_VIEW),
   asyncHandler(async (_req, res) => {
     const items = await prisma.orderItem.findMany({
-      where: { order: { status: { notIn: EXCLUDED_ORDER_STATUSES } } },
+      where: { order: { status: { notIn: EXCLUDED_ORDER_STATUSES }, ...NOT_HELD } },
       select: { productId: true, productName: true, quantity: true, price: true },
       take: 5000,
     });

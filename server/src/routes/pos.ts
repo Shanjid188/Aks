@@ -5,6 +5,7 @@ import { PERM } from '../lib/permissions.ts';
 import { logAudit } from '../lib/audit.ts';
 import { reserveStock } from '../lib/stock.ts';
 import { createWithUniqueNumbers } from '../lib/numbers.ts';
+import { HOLD_WHERE } from '../lib/holds.ts';
 
 const router = Router();
 
@@ -13,12 +14,7 @@ const router = Router();
  * on that rather than `heldAt`, which older admin builds clear on resume —
  * that left resumed carts behind as pending orders nobody could remove.
  */
-const HOLD_WHERE = {
-  source: 'pos',
-  orderNumber: { startsWith: 'HOLD-' },
-  invoiceNumber: null,
-  status: { in: ['pending', 'held'] },
-};
+
 
 /** Remove a held cart once it has been sold or re-held; ignores anything that is not a hold. */
 async function removeHold(holdId: unknown): Promise<void> {

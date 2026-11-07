@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
+import { NOT_HELD } from '../lib/holds.ts';
 import { asyncHandler, requirePermission } from '../lib/auth.ts';
 import { PERM } from '../lib/permissions.ts';
 import { orderToApi } from './orders.ts';
@@ -24,7 +25,8 @@ router.get(
   requirePermission(PERM.INVOICES_VIEW),
   asyncHandler(async (_req, res) => {
     const q = _req.query as Record<string, string | undefined>;
-    const where: Record<string, unknown> = {};
+    // A held POS cart has not been sold, so it has no invoice.
+    const where: Record<string, unknown> = { ...NOT_HELD };
     if (q.status && (INVOICE_STATUS as readonly string[]).includes(q.status)) {
       where.paymentStatus = q.status;
     }

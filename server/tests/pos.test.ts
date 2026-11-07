@@ -85,9 +85,9 @@ describe('POS held carts (#87)', () => {
 
     assert.ok(!(await holdIds()).includes(h.id));
     const after = await stats();
-    // The hold (pending) is gone and the sale (confirmed) is the only new order.
-    assert.equal(after.pendingOrdersCount, before.pendingOrdersCount - 1);
-    assert.equal(after.ordersCount, before.ordersCount);
+    // Holds never counted (#91); the sale (confirmed) is the only new order.
+    assert.equal(after.pendingOrdersCount, before.pendingOrdersCount);
+    assert.equal(after.ordersCount, before.ordersCount + 1);
   });
 
   it('a sale never deletes a real order passed as holdId', async () => {
@@ -282,5 +282,47 @@ describe('POS tendered amounts (#90)', () => {
       ['cash', RICE.price - 400, 100],
     ]);
     assert.equal(res.body.order.paymentStatus, 'paid');
+  });
+});
+
+describe('held carts are not sales (#91)', () => {
+  it('a hold changes no revenue, order, customer or invoice figure', async () => {
+    const token = await login('super');
+    const admin = api(token);
+    const rice = await adminProduct(RICE.sku);
+    const snapshot = async () => {
+      const stats = (await admin.get('/api/admin/stats')).body;
+      const report = (await admin.get('/api/admin/reports?range=today')).body;
+      const invoices = (await admin.get('/api/admin/invoices')).body.invoices;
+      const customers = (await admin.get('/api/admin/customers')).body.customers;
+      return {
+        revenue: stats.revenue,
+        ordersCount: stats.ordersCount,
+        pending: stats.pendingOrdersCount,
+        active: stats.activeOrdersCount,
+        customers: stats.customersCount,
+        reportRevenue: report.revenue,
+        reportOrders: report.ordersCount,
+        invoices: invoices.length,
+        customerRows: customers.length,
+      };
+    };
+
+    const before = await snapshot();
+    const hold = await admin.post('/api/pos/holds', {
+      items: [{ productId: rice.id, quantity: 2 }],
+      customerName: 'Held Only Customer',
+      customerPhone: '01999999991',
+    });
+    assert.equal(hold.status, 201, JSON.stringify(hold.body));
+    assert.deepEqual(await snapshot(), before);
+
+    // Selling it is what counts.
+    const sale = await sell(rice.id, 2, { holdId: hold.body.order.id });
+    assert.equal(sale.status, 201);
+    const after = await snapshot();
+    assert.equal(after.revenue, before.revenue + RICE.price * 2);
+    assert.equal(after.reportRevenue, before.reportRevenue + RICE.price * 2);
+    assert.equal(after.invoices, before.invoices + 1);
   });
 });
