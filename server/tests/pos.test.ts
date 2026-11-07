@@ -59,3 +59,72 @@ describe('POS sales', () => {
     for (const n of numbers) assert.match(n, /^HOLD-\d{13}$/);
   });
 });
+
+describe('POS held carts (#87)', () => {
+  async function hold(productId: string, quantity: number, extra: Record<string, unknown> = {}) {
+    const res = await api(await login('super')).post('/api/pos/holds', { items: [{ productId, quantity }], ...extra });
+    assert.equal(res.status, 201, JSON.stringify(res.body));
+    return res.body.order;
+  }
+  async function holdIds(): Promise<string[]> {
+    const res = await api(await login('super')).get('/api/pos/holds');
+    return res.body.holds.map((h: any) => h.id);
+  }
+  async function stats() {
+    return (await api(await login('super')).get('/api/admin/stats')).body;
+  }
+
+  it('a sale completed from a resumed hold removes the hold', async () => {
+    const rice = await adminProduct(RICE.sku);
+    const h = await hold(rice.id, 2);
+    assert.ok((await holdIds()).includes(h.id));
+
+    const before = await stats();
+    const sale = await sell(rice.id, 2, { holdId: h.id });
+    assert.equal(sale.status, 201, JSON.stringify(sale.body));
+
+    assert.ok(!(await holdIds()).includes(h.id));
+    const after = await stats();
+    // The hold (pending) is gone and the sale (confirmed) is the only new order.
+    assert.equal(after.pendingOrdersCount, before.pendingOrdersCount - 1);
+    assert.equal(after.ordersCount, before.ordersCount);
+  });
+
+  it('a sale never deletes a real order passed as holdId', async () => {
+    const rice = await adminProduct(RICE.sku);
+    const first = (await sell(rice.id, 1)).body.order;
+    const res = await sell(rice.id, 1, { holdId: first.id });
+    assert.equal(res.status, 201);
+    const detail = await api(await login('super')).get(`/api/admin/orders/${first.id}`);
+    assert.equal(detail.status, 200);
+  });
+
+  it('holding a resumed cart again replaces the earlier hold', async () => {
+    const rice = await adminProduct(RICE.sku);
+    const first = await hold(rice.id, 1);
+    const second = await hold(rice.id, 3, { holdId: first.id });
+    const ids = await holdIds();
+    assert.ok(!ids.includes(first.id));
+    assert.ok(ids.includes(second.id));
+  });
+
+  it('a hold released by an older admin build can still be listed and discarded', async () => {
+    const rice = await adminProduct(RICE.sku);
+    const token = await login('super');
+    const h = await hold(rice.id, 1);
+    // Older admin builds clear heldAt when a hold is resumed.
+    await api(token).patch(`/api/pos/holds/${h.id}`, { held: false });
+    assert.ok((await holdIds()).includes(h.id));
+
+    const del = await api(token).delete(`/api/pos/holds/${h.id}`);
+    assert.equal(del.status, 200, JSON.stringify(del.body));
+    assert.ok(!(await holdIds()).includes(h.id));
+  });
+
+  it('discarding refuses an order that is not a hold', async () => {
+    const rice = await adminProduct(RICE.sku);
+    const sale = (await sell(rice.id, 1)).body.order;
+    const del = await api(await login('super')).delete(`/api/pos/holds/${sale.id}`);
+    assert.equal(del.status, 404);
+  });
+});

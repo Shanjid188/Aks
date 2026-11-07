@@ -8,6 +8,24 @@ import { createWithUniqueNumbers } from '../lib/numbers.ts';
 
 const router = Router();
 
+/**
+ * A held POS cart: an order row with a HOLD- number and no invoice yet. Matched
+ * on that rather than `heldAt`, which older admin builds clear on resume —
+ * that left resumed carts behind as pending orders nobody could remove.
+ */
+const HOLD_WHERE = {
+  source: 'pos',
+  orderNumber: { startsWith: 'HOLD-' },
+  invoiceNumber: null,
+  status: { in: ['pending', 'held'] },
+};
+
+/** Remove a held cart once it has been sold or re-held; ignores anything that is not a hold. */
+async function removeHold(holdId: unknown): Promise<void> {
+  if (typeof holdId !== 'string' || !holdId) return;
+  await prisma.order.deleteMany({ where: { id: holdId, ...HOLD_WHERE } });
+}
+
 export interface PosSaleItemInput {
   productId: string;
   quantity: number;
@@ -151,6 +169,9 @@ router.post(
       });
     }
 
+    // A sale completed from a resumed hold replaces that hold.
+    await removeHold(body.holdId);
+
     await logAudit({
       admin,
       action: 'pos.sale.completed',
@@ -190,11 +211,11 @@ router.get(
   requirePermission(PERM.POS_VIEW),
   asyncHandler(async (_req, res) => {
     const held = await prisma.order.findMany({
-      where: { source: 'pos', heldAt: { not: null }, status: { in: ['pending', 'held'] } },
+      where: HOLD_WHERE,
       include: { items: true },
-      orderBy: { heldAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
-    res.json({ holds: held });
+    res.json({ holds: held.map((h) => ({ ...h, heldAt: h.heldAt ?? h.createdAt })) });
   })
 );
 
@@ -276,6 +297,8 @@ router.post(
       entityId: order.id,
       details: `${order.orderNumber} — held for ${customerName}, total ${total}`,
     });
+    // Holding a resumed cart again replaces the earlier hold.
+    await removeHold(body.holdId);
 
     res.status(201).json({ order });
   })
@@ -302,8 +325,8 @@ router.delete(
   '/pos/holds/:id',
   requirePermission(PERM.POS_HOLD),
   asyncHandler(async (req, res) => {
-    const existing = await prisma.order.findUnique({ where: { id: req.params.id } });
-    if (!existing || existing.source !== 'pos' || !existing.heldAt) {
+    const existing = await prisma.order.findFirst({ where: { id: req.params.id, ...HOLD_WHERE } });
+    if (!existing) {
       return res.status(404).json({ error: 'Held sale not found' });
     }
     await prisma.order.delete({ where: { id: existing.id } });

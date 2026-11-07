@@ -63,6 +63,8 @@ export function PosPage() {
   const [holds, setHolds] = useState<HoldRow[]>([]);
   const [showHolds, setShowHolds] = useState(false);
   const [resumedHoldId, setResumedHoldId] = useState<string | null>(null);
+  // A resumed hold stays saved until it is sold or discarded; hide it while it is in the cart.
+  const visibleHolds = holds.filter((h) => h.id !== resumedHoldId);
   const [ok, setOk] = useState<string | null>(null);
   const [directPrint, setDirectPrint] = useState(readDirectPrint);
 
@@ -194,10 +196,9 @@ export function PosPage() {
         customerName: customerName.trim() || 'Walk-in Customer',
         customerPhone: customerPhone.trim() || undefined,
         note: note.trim() || undefined,
+        // The server removes the resumed hold once the sale is saved.
+        holdId: resumedHoldId || undefined,
       });
-      if (resumedHoldId) {
-        try { await api.del(`/pos/holds/${resumedHoldId}`); } catch { /* best-effort cleanup */ }
-      }
       // Professional 80mm thermal receipt (shared module) from the real sale.
       // Direct print goes straight to the printer via the local print agent and
       // falls back to the normal print dialog if the agent is not reachable.
@@ -231,6 +232,8 @@ export function PosPage() {
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
         paymentMethod,
+        // Holding a resumed cart again replaces its earlier hold.
+        holdId: resumedHoldId || undefined,
       });
       clearCart();
       loadHolds(); setShowHolds(true);
@@ -245,7 +248,6 @@ export function PosPage() {
   const resumeHold = async (h: HoldRow) => {
     setBusy(true); setError(null); setOk(null);
     try {
-      await api.patch(`/pos/holds/${h.id}`, { held: false });
       const lines: CartLine[] = h.items.map((it) => ({
         productId: it.productId || it.id,
         name: it.productName,
@@ -286,8 +288,8 @@ export function PosPage() {
         icon={<Calculator className="w-5 h-5" />}
         actions={
           <>
-            {holds.length > 0 && (
-              <Button variant="secondary" onClick={() => setShowHolds(!showHolds)}><Pause className="w-3.5 h-3.5" /> Holds ({holds.length})</Button>
+            {visibleHolds.length > 0 && (
+              <Button variant="secondary" onClick={() => setShowHolds(!showHolds)}><Pause className="w-3.5 h-3.5" /> Holds ({visibleHolds.length})</Button>
             )}
             <button onClick={() => { load(); loadHolds(); }} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-2 bg-white/10 border border-white/15 text-white hover:bg-white/20 cursor-pointer" title="Refresh catalog"><RefreshCw className="w-3.5 h-3.5" /></button>
           </>
@@ -297,14 +299,14 @@ export function PosPage() {
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
       {ok && <p className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{ok}</p>}
 
-      {showHolds && holds.length > 0 && (
+      {showHolds && visibleHolds.length > 0 && (
         <section className="bg-white rounded-2xl border border-neutral-200">
           <header className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between">
             <h3 className="text-sm font-black text-neutral-900 flex items-center gap-2"><Pause className="w-4 h-4 text-amber-500" /> Held Sales</h3>
             <button onClick={() => setShowHolds(false)} className="text-[11px] font-bold text-neutral-400 hover:text-neutral-700 cursor-pointer">Close</button>
           </header>
           <div className="divide-y divide-neutral-100 max-h-64 overflow-y-auto">
-            {holds.map((h) => (
+            {visibleHolds.map((h) => (
               <div key={h.id} className="px-5 py-3 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-neutral-900">{h.orderNumber} <span className="text-neutral-400 font-mono text-[10px]">· {formatDate(h.heldAt)}</span></p>
