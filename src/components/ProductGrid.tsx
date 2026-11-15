@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { trackViewItemList } from '../lib/tracking';
 import { useStore } from '../context/StoreContext';
 import { ProductCard } from './ProductCard';
 import { SubcategoryType } from '../types';
@@ -117,6 +118,29 @@ export const ProductGrid: React.FC = () => {
         return list.sort((a, b) => (a.featuredOrder || 99) - (b.featuredOrder || 99));
     }
   }, [filteredProducts, filters.sortOption]);
+
+  // GA4 view_item_list — settles for a moment so fiddling with filters sends
+  // only the list the shopper actually stopped on.
+  const listId = filters.searchQuery.trim()
+    ? 'search_results'
+    : filters.category && filters.category !== 'all'
+    ? `category_${filters.category}`
+    : 'all_products';
+  const listSignature = sortedProducts.slice(0, 30).map((p) => p.id).join(',');
+  useEffect(() => {
+    if (!listSignature) return;
+    const timer = setTimeout(() => {
+      const name =
+        listId === 'search_results'
+          ? 'Search results'
+          : listId === 'all_products'
+          ? 'All products'
+          : `Category: ${filters.category}`;
+      trackViewItemList(sortedProducts, listId, name);
+    }, 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listId, listSignature]);
 
   const toggleBrand = (brandName: string) => {
     setFilters((prev) => {

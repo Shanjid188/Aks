@@ -6,6 +6,7 @@ import { logAudit } from '../lib/audit.ts';
 import { parseJsonSafe } from '../utils/json.ts';
 import { applyStockDelta } from '../lib/stock.ts';
 import { loadCheckoutConfig } from '../lib/checkout.ts';
+import { parseCheckoutTracking, REVERSAL_STATUSES, trackOrderPlaced, trackOrderRefund } from '../lib/tracking/orders.ts';
 
 const router = Router();
 
@@ -295,6 +296,10 @@ router.post(
       }
     }
 
+    // Purchase conversion (Meta CAPI + GA4 refund eligibility). Consent-gated
+    // and fire-and-forget — it never delays or fails the order response.
+    trackOrderPlaced(order, req, parseCheckoutTracking(body.tracking));
+
     res.status(201).json({ order: orderToApi(order) });
   })
 );
@@ -474,6 +479,12 @@ router.patch(
       entityId: id,
       details: `${existing.orderNumber}: ${existing.status} → ${nextStatus}`,
     });
+
+    // An online order that is cancelled/refunded/returned is a GA4 refund
+    // (sent once per order, only if GA4 recorded the purchase).
+    if (REVERSAL_STATUSES.includes(nextStatus) && !REVERSAL_STATUSES.includes(existing.status) && order.source === 'online') {
+      trackOrderRefund(order);
+    }
 
     res.json({ order: orderToApi(order) });
   })

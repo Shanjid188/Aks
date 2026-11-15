@@ -35,6 +35,7 @@ import pagesRouter from './routes/pages.ts';
 import newsletterRouter from './routes/newsletter.ts';
 import contactRouter from './routes/contact.ts';
 import seoRouter from './routes/seo.ts';
+import trackingRouter from './routes/tracking.ts';
 
 const app = express();
 
@@ -147,6 +148,7 @@ app.use('/api', storefrontRouter);
 app.use('/api', pagesRouter);
 app.use('/api', newsletterRouter);
 app.use('/api', contactRouter);
+app.use('/api', trackingRouter);
 
 /* Crawler files (robots.txt / sitemap.xml) live at the site root, not under
    /api — registered before the SPA fallback so they are never swallowed. */

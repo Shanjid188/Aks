@@ -232,6 +232,28 @@ model Order {
   @@unique([invoiceNumber]) // printable invoice reference must be unique (SQLite: multiple NULLs allowed)
 }
 
+/**
+ * Send-once ledger for conversion events delivered to ad/analytics platforms
+ * (Meta Conversions API, GA4 Measurement Protocol). The unique `key` guarantees
+ * each event is sent at most once — one Purchase per order, one GA4 refund per
+ * order — no matter how often the triggering code path runs.
+ */
+model TrackingEvent {
+  id        String   @id @default(cuid())
+  key       String   @unique // e.g. "meta:Purchase:<orderId>", "ga4:refund:<orderId>"
+  channel   String // meta_capi | ga4_mp | ga4_browser (marker: the browser reported it)
+  eventName String
+  orderId   String?
+  status    String   @default("pending") // pending | sent | failed
+  attempts  Int      @default(0)
+  lastError String? // HTTP status / platform error only — never customer data
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+}
+
 model OrderItem {
   id          String   @id @default(cuid())
   orderId     String

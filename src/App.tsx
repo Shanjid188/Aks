@@ -9,6 +9,7 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { ToastContainer } from './components/ToastContainer';
 import { SkeletonBlock } from './components/Skeleton';
 import { HomePage } from './pages/HomePage';
+import { ConsentBanner, PageViewTracker } from './components/TrackingConsent';
 
 /*
  * Only the home page is part of the first download. Every other page and every
@@ -105,6 +106,8 @@ function MainAppContent() {
       {/* WhatsApp bubble — same right-edge rail, stacked just below the cart. */}
       <FloatingWhatsApp />
       <ToastContainer />
+      <PageViewTracker />
+      <ConsentBanner />
     </div>
   );
 }

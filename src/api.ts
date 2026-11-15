@@ -139,6 +139,7 @@ export interface ApiOrder {
   subtotal: number;
   discount: number;
   shippingFee: number;
+  tax?: number;
   total: number;
   couponCode: string | null;
   customerName: string;
@@ -415,6 +416,13 @@ export interface ApiCreateOrderBody {
   paymentReference?: string;
   shippingFee: number;
   couponCode?: string;
+  /** Tracking consent + Meta browser ids (see src/lib/tracking). Optional. */
+  tracking?: {
+    consent: { analytics: boolean; marketing: boolean };
+    fbp?: string;
+    fbc?: string;
+    eventSourceUrl?: string;
+  };
 }
 
 export const createOrderAPI = (body: ApiCreateOrderBody) =>

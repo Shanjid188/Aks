@@ -3,6 +3,7 @@ import { useStore } from '../context/StoreContext';
 import { useRouter } from '../lib/router';
 import { ProductDetailPage as ProductDetailComponent } from '../components/ProductDetailPage';
 import { Package } from 'lucide-react';
+import { trackViewItem } from '../lib/tracking';
 
 /**
  * Standalone product detail page at /products/:slug.
@@ -34,6 +35,15 @@ export function ProductDetailPage() {
   }, [slug, products, setActiveProductPage, navigate]);
 
   const product = products.find((p) => p.slug === slug);
+
+  // view_item / ViewContent once per product page (keyed on the product, not on
+  // re-renders or catalog refreshes).
+  const viewedId = product?.id;
+  useEffect(() => {
+    if (product) trackViewItem(product);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewedId]);
+
   if (!product) {
     return (
       <div className="max-w-md mx-auto py-20 px-4 text-center">

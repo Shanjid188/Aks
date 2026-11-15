@@ -1,4 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  itemFromCartItem,
+  trackAddPaymentInfo,
+  trackAddShippingInfo,
+  trackBeginCheckout,
+} from '../lib/tracking';
 import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
 import { isFreeDeliveryCoupon } from '../utils/coupons';
@@ -88,6 +94,24 @@ export function CheckoutPage() {
     checkoutConfig.paymentMethods.find((m) => m.id === paymentMethodId) ?? checkoutConfig.paymentMethods[0];
   const orderTotal = Math.max(0, cartSubtotal - cartDiscount + zoneShipping);
 
+  // Tracking: goods value after the coupon (shipping is reported on Purchase).
+  const checkoutSnapshot = () => ({
+    items: cart.map((item) => itemFromCartItem(item)),
+    value: Math.max(0, cartSubtotal - cartDiscount),
+    coupon: appliedCoupon?.code,
+  });
+  // begin_checkout / InitiateCheckout once per visit to this page (the ref
+  // survives StrictMode's double effect and re-renders).
+  const beganCheckout = useRef(false);
+  useEffect(() => {
+    if (beganCheckout.current || cart.length === 0) return;
+    beganCheckout.current = true;
+    trackBeginCheckout(checkoutSnapshot());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart.length]);
+  const reportedShipping = useRef('');
+  const reportedPayment = useRef('');
+
   // Empty-cart guard — never allow checkout without items.
   if (cart.length === 0) {
     return (
@@ -139,6 +163,17 @@ export function CheckoutPage() {
       setIsPlacingOrder(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
+    }
+    // The shopper has submitted valid delivery + payment details. Report each
+    // step once per choice, so a retry after an API error does not repeat it.
+    const snapshot = checkoutSnapshot();
+    if (reportedShipping.current !== deliveryMethod) {
+      reportedShipping.current = deliveryMethod;
+      trackAddShippingInfo({ ...snapshot, shippingTier: activeZone.label });
+    }
+    if (reportedPayment.current !== selectedPayment.id) {
+      reportedPayment.current = selectedPayment.id;
+      trackAddPaymentInfo({ ...snapshot, paymentType: selectedPayment.id });
     }
     try {
       const newOrder = await createOrder({
