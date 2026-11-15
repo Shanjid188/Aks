@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.ts';
-import { asyncHandler, currentAdmin, requirePermission } from '../lib/auth.ts';
+import { asyncHandler, currentAdmin, hasPermission, requirePermission } from '../lib/auth.ts';
+import { parseBasis, parseSource } from '../lib/revenue.ts';
+import { campaignPerformance, parseModel } from '../lib/performance.ts';
 import { PERM } from '../lib/permissions.ts';
 import { logAudit } from '../lib/audit.ts';
 import { parseMatchKeys, rematchAttributions } from '../lib/attribution.ts';
@@ -209,6 +211,33 @@ router.get(
         }))
         .sort((a, b) => b.orders - a.orders),
     });
+  })
+);
+
+/**
+ * Campaign performance (ROAS, CPA, CTR, CPC) for a window.
+ * ?from&to (ISO; default last 30 days) &basis=booked|delivered &model=last|first
+ * &source=online|all|pos (default online — POS is excluded from attribution).
+ * Spend columns are null for admins without advertising.spend_view.
+ */
+router.get(
+  '/admin/advertising/performance',
+  requirePermission(PERM.ADVERTISING_CAMPAIGNS_VIEW),
+  asyncHandler(async (req, res) => {
+    const q = req.query as Record<string, string | undefined>;
+    const date = (v?: string) => {
+      const d = v ? new Date(v) : null;
+      return d && !Number.isNaN(d.getTime()) ? d : null;
+    };
+    const to = date(q.to) ?? new Date();
+    const from = date(q.from) ?? new Date(to.getTime() - 30 * 86_400_000);
+    if (from > to) return res.status(400).json({ error: 'The start date is after the end date' });
+    if (to.getTime() - from.getTime() > 731 * 86_400_000) return res.status(400).json({ error: 'Choose a range of at most 2 years' });
+    const report = await campaignPerformance(
+      { from, to, basis: parseBasis(q.basis), model: parseModel(q.model), source: parseSource(q.source, 'online') },
+      { includeSpend: await hasPermission(req, PERM.ADVERTISING_SPEND_VIEW) }
+    );
+    res.json(report);
   })
 );
 

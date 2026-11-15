@@ -293,3 +293,20 @@ Imported campaigns are created or matched automatically: by platform campaign ID
 Reports show an *Ad spend* line for the selected window, but only to admins with `advertising.spend_view`.
 
 Every import, sync, manual entry, deletion and rate change is audited. Sync history is kept in `IntegrationSyncRun`.
+
+## Campaign performance
+
+Admin → Advertising → **Performance** (`GET /api/admin/advertising/performance`) shows, per campaign: spend, orders, revenue, ROAS, CPA, CTR, CPC and AOV, plus revenue by channel and a daily revenue-vs-spend chart.
+
+Defaults:
+
+- Booked net revenue: cancelled, returned and refunded orders are excluded, and refunds are subtracted.
+- Last non-direct touch.
+- Online orders only; POS is excluded.
+
+The toggles switch to delivered revenue, first touch, or include POS. Two summary figures:
+
+- **ROAS** = attributed revenue ÷ spend.
+- **Blended ROAS** = all revenue ÷ spend.
+
+Ratios with a zero denominator show "—". Spend columns are hidden from admins without `advertising.spend_view`.
