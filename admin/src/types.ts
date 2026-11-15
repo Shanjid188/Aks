@@ -113,6 +113,17 @@ export interface Order {
   packedAt?: string | null;
   packedBy?: string | null;
   dispatchedAt?: string | null;
+  /* ── Courier booking (Shipped page গাড়ি → Steadfast) ── */
+  courierProvider?: string | null;
+  courierConsignmentId?: string | null;
+  courierTrackingCode?: string | null;
+  courierTrackingLink?: string | null;
+  /** Courier's raw status, or booking | failed | unconfirmed before a consignment exists. */
+  courierStatus?: string | null;
+  courierCodAmount?: number | null;
+  courierBookedAt?: string | null;
+  courierSyncedAt?: string | null;
+  courierError?: string | null;
   deliveryStatus?: string | null;
   packagingStatus?: string | null;
   customerNote?: string | null;

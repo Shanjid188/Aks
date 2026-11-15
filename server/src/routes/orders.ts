@@ -6,49 +6,12 @@ import { logAudit } from '../lib/audit.ts';
 import { parseJsonSafe } from '../utils/json.ts';
 import { applyStockDelta } from '../lib/stock.ts';
 import { loadCheckoutConfig } from '../lib/checkout.ts';
-import { parseCheckoutTracking, REVERSAL_STATUSES, trackOrderPlaced, trackOrderRefund } from '../lib/tracking/orders.ts';
+import { parseCheckoutTracking, trackOrderPlaced } from '../lib/tracking/orders.ts';
+import { changeOrderStatus, ITEM_INCLUDE, ORDER_STATUSES, StatusChangeError } from '../lib/orderStatus.ts';
 import { attributionCreateInput, parseAttribution } from '../lib/attribution.ts';
 import { convertSession } from '../lib/checkoutSessions.ts';
 
 const router = Router();
-
-/**
- * Order lifecycle (canonical): pending → confirmed → processing → packed → shipped → delivered / cancelled.
- * Phase-3 additions (packed, completed, returned, refunded) are accepted but legacy
- * 'out_for_delivery' remains recognised for rows created by older versions.
- */
-const ORDER_STATUSES = [
-  'pending',
-  'confirmed',
-  'processing',
-  'packed',
-  'shipped',
-  'out_for_delivery',
-  'delivered',
-  'completed',
-  'cancelled',
-  'returned',
-  'refunded',
-] as const;
-
-/** Statuses an order is still being fulfilled in; leaving `cancelled` for one of these is a reopen. */
-const ACTIVE_STATUSES: readonly string[] = [
-  'pending',
-  'confirmed',
-  'processing',
-  'packed',
-  'shipped',
-  'out_for_delivery',
-  'delivered',
-  'completed',
-];
-
-/** Thrown inside the status-change transaction to roll it back with an HTTP error. */
-class StatusChangeError extends Error {
-  constructor(readonly status: number, message: string) {
-    super(message);
-  }
-}
 
 /** Resolve a product row from an order-item payload (id or SKU). */
 async function resolveOrderProduct(it: Record<string, unknown>) {
@@ -63,16 +26,6 @@ async function resolveOrderProduct(it: Record<string, unknown>) {
   if (sku) return prisma.product.findUnique({ where: { sku } });
   return null;
 }
-
-/** Prisma include that joins the live product (with images) into every order item,
- *  so the admin item editor can show thumbnails and pick variants. */
-const ITEM_INCLUDE = {
-  items: {
-    include: {
-      product: { select: { id: true, name: true, images: true, colors: true, sizes: true, originalPrice: true, weight: true } },
-    },
-  },
-};
 
 /** Public: serialise an order for API responses (parses the address JSON + item images). */
 export function orderToApi(order: { customerAddress: string; items?: unknown; [k: string]: unknown }) {
@@ -339,7 +292,10 @@ router.get(
       include: { items: true },
     });
     if (!order) return res.status(404).json({ error: 'No order found for that tracking code' });
-    res.json({ order: orderToApi(order) });
+    // Courier booking errors are internal (admin-only); the courier's own
+    // tracking code/link and status are what the customer tracking page shows.
+    const { courierError: _courierError, ...publicOrder } = order;
+    res.json({ order: orderToApi(publicOrder) });
   })
 );
 
@@ -422,91 +378,19 @@ router.patch(
       return res.status(403).json({ error: "You don't have permission to perform this action" });
     }
 
-    // Cancelling puts the items back on the shelf; moving a cancelled order back
-    // into the active lifecycle takes them off again, so cancel → reopen → cancel
-    // restocks only once. Going from cancelled to refunded/returned is not a
-    // reopen: the goods are already back on the shelf, so stock stays put.
-    // Tracked products only, as at checkout.
-    const isReopen = existing.status === 'cancelled' && ACTIVE_STATUSES.includes(nextStatus);
-    const stockByProduct = new Map<string, number>();
-    if (isCancel || isReopen) {
-      const items = await prisma.orderItem.findMany({
-        where: { orderId: id },
-        select: { productId: true, quantity: true },
-      });
-      const tracked = await prisma.product.findMany({
-        where: { id: { in: items.map((i) => i.productId ?? '').filter(Boolean) }, trackStock: true },
-        select: { id: true },
-      });
-      const trackedIds = new Set(tracked.map((t) => t.id));
-      for (const item of items) {
-        if (item.productId && trackedIds.has(item.productId)) {
-          stockByProduct.set(item.productId, (stockByProduct.get(item.productId) ?? 0) + item.quantity);
-        }
-      }
-    }
-
-    // The status move and every stock change commit together or not at all.
+    // Stock restoration, the concurrent-edit guard, audit and GA4 refund live in
+    // the shared transition (also used by the courier webhook/sync).
+    let order;
     try {
-      await prisma.$transaction(async (tx) => {
-        // Only move the order if nobody changed its status in the meantime, so
-        // two simultaneous cancels cannot both restock it. This write comes
-        // first so the transaction holds the lock for everything below.
-        const moved = await tx.order.updateMany({
-          where: { id, status: existing.status },
-          data: { status: nextStatus },
-        });
-        if (moved.count === 0) {
-          throw new StatusChangeError(409, 'This order was just updated by someone else. Please refresh and try again.');
-        }
-
-        for (const [productId, qty] of stockByProduct) {
-          const change = isCancel ? qty : -qty;
-          // A reopen only deducts what is actually on the shelf: the check and
-          // the decrement are one conditional update, so a sale in between
-          // cannot push stock below zero.
-          const updated = await tx.product.updateMany({
-            where: isCancel ? { id: productId } : { id: productId, stockQuantity: { gte: qty } },
-            data: { stockQuantity: { increment: change } },
-          });
-          if (updated.count === 0) {
-            const row = await tx.product.findUnique({ where: { id: productId }, select: { name: true, stockQuantity: true } });
-            throw new StatusChangeError(
-              400,
-              `${row?.name ?? 'A product'} doesn't have enough stock to reopen this order (available: ${row?.stockQuantity ?? 0}, needed: ${qty})`
-            );
-          }
-          await tx.stockMovement.create({
-            data: {
-              productId,
-              change,
-              reason: isCancel ? 'order.cancelled' : 'order.reopened',
-              referenceType: 'order',
-              referenceId: id,
-              createdBy: currentAdmin(req)?.email ?? null,
-            },
-          });
-        }
-      });
+      ({ order } = await changeOrderStatus({
+        orderId: id,
+        nextStatus,
+        admin: currentAdmin(req),
+        expectedStatus: existing.status,
+      }));
     } catch (err) {
       if (err instanceof StatusChangeError) return res.status(err.status).json({ error: err.message });
       throw err;
-    }
-
-    const order = await prisma.order.findUniqueOrThrow({ where: { id }, include: ITEM_INCLUDE });
-
-    await logAudit({
-      admin: currentAdmin(req),
-      action: isCancel ? 'order.cancelled' : 'order.status.changed',
-      entity: 'order',
-      entityId: id,
-      details: `${existing.orderNumber}: ${existing.status} → ${nextStatus}`,
-    });
-
-    // An online order that is cancelled/refunded/returned is a GA4 refund
-    // (sent once per order, only if GA4 recorded the purchase).
-    if (REVERSAL_STATUSES.includes(nextStatus) && !REVERSAL_STATUSES.includes(existing.status) && order.source === 'online') {
-      trackOrderRefund(order);
     }
 
     res.json({ order: orderToApi(order) });

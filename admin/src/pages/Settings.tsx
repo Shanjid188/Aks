@@ -3,6 +3,7 @@ import { api } from '../api';
 import { Button, Field, Spinner, TextArea, TextInput, Toggle, PageHeader } from '../components/ui';
 import { Save, RefreshCw, Settings as SettingsIcon, Plus } from 'lucide-react';
 import type { ShippingZoneSetting, StoreSettings } from '../types';
+import { CourierSettingsSection } from '../components/courier';
 
 const num = (v: unknown) => (v === undefined || v === null || v === '' ? '' : String(v));
 
@@ -249,6 +250,9 @@ export function SettingsPage() {
               <Field label="Thank-you message"><TextInput value={settings.thankYouMessage || ''} onChange={(e) => set('thankYouMessage', e.target.value)} /></Field>
             </div>
           </section>
+
+          {/* Saved on its own (toggle / secrets), not by "Save Settings". */}
+          <CourierSettingsSection />
         </div>
       )}
     </div>

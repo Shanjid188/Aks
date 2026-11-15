@@ -161,6 +161,10 @@ export interface ApiOrder {
   deliveryStatus?: string | null;
   packagingStatus?: string | null;
   internalNotes?: string | null;
+  /** Courier the parcel was booked with, and the courier's own tracking code/page. */
+  courierProvider?: string | null;
+  courierTrackingCode?: string | null;
+  courierTrackingLink?: string | null;
   items: {
     id: string;
     productId: string | null;

@@ -144,14 +144,20 @@ router.put(
 
 /* ───────────────────────────── Secrets ───────────────────────────── */
 
-/** Tracking secrets need tracking_manage; integration credentials need integrations_manage. */
+/**
+ * Tracking secrets need tracking_manage; integration credentials need
+ * integrations_manage; courier credentials (Settings → Courier) need settings_manage.
+ */
 async function canManageSecret(req: Parameters<typeof hasPermission>[0], key: string): Promise<boolean> {
   const def = SECRET_DEFS.find((d) => d.key === key);
   if (!def) return false;
-  return hasPermission(
-    req,
-    def.group === 'tracking' ? PERM.ADVERTISING_TRACKING_MANAGE : PERM.ADVERTISING_INTEGRATIONS_MANAGE
-  );
+  const perm =
+    def.group === 'tracking'
+      ? PERM.ADVERTISING_TRACKING_MANAGE
+      : def.group === 'courier'
+        ? PERM.SETTINGS_MANAGE
+        : PERM.ADVERTISING_INTEGRATIONS_MANAGE;
+  return hasPermission(req, perm);
 }
 
 function sendSecretError(res: import('express').Response, err: unknown) {

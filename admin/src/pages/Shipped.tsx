@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api } from '../api';
+import { api, ApiError } from '../api';
 import type { Order } from '../types';
 import { Button, EmptyState, Spinner, formatDate, PageHeader } from '../components/ui';
+import { CourierInfo } from '../components/courier';
 import {
-  Truck, CheckCircle2, RotateCcw, Loader2,
+  Truck, CheckCircle2, RotateCcw, Loader2, RefreshCw,
 } from 'lucide-react';
+
+/** GET /admin/courier/status — whether গাড়ি books with a courier or hands off manually. */
+interface CourierStatus {
+  active: boolean;
+  provider: { id: string; label: string };
+}
 
 const bdt = (n: number) => `BDT ${Number(n || 0).toLocaleString('en-IN')}`;
 
@@ -14,10 +21,13 @@ export function ShippedPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [courier, setCourier] = useState<CourierStatus | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
+    // Courier state is best-effort: if it can't be read, গাড়ি does the manual handoff.
+    api.get<CourierStatus>('/admin/courier/status').then(setCourier).catch(() => setCourier(null));
     api
       .get<{ orders: Order[] }>('/admin/orders?status=shipped')
       .then((res) => setOrders(res.orders))
@@ -25,20 +35,62 @@ export function ShippedPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const replaceOrder = (order: Order) => setOrders((prev) => prev.map((o) => (o.id === order.id ? order : o)));
+  const refreshOrder = async (id: string) => {
+    try {
+      replaceOrder((await api.get<{ order: Order }>(`/admin/orders/${id}`)).order);
+    } catch {
+      /* the error bar already explains what went wrong */
+    }
+  };
+
   useEffect(() => {
     load();
   }, [load]);
 
-  // Courier handoff: confirm the parcel was given to the courier (dispatchedAt).
+  // গাড়ি: with courier booking on, send the order to the courier (which also
+  // records the handoff); otherwise confirm the manual handoff (dispatchedAt).
   // After this the row shows Delivery + Return buttons instead of the গাড়ি button.
   const handoff = async (id: string) => {
     setBusyId(id);
+    setError(null);
     try {
+      if (courier?.active) {
+        try {
+          const res = await api.post<{ order: Order }>(`/admin/orders/${id}/courier/book`);
+          replaceOrder(res.order);
+          return;
+        } catch (e) {
+          // Booking was switched off / credentials removed meanwhile → manual handoff below.
+          const inactive = e instanceof ApiError && e.status === 409 && /turned off|not set/i.test(e.message);
+          if (!inactive) {
+            setError((e as Error).message);
+            await refreshOrder(id); // shows the stored courier error on the row
+            return;
+          }
+          setCourier((c) => (c ? { ...c, active: false } : c));
+        }
+      }
       await api.patch(`/admin/packaging/${id}`, { packedStatus: 'shipped', dispatched: true });
-      const res = await api.get<{ order: Order }>(`/admin/orders/${id}`);
-      setOrders((prev) => prev.map((o) => (o.id === res.order.id ? res.order : o)));
+      await refreshOrder(id);
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const syncCourier = async (id: string) => {
+    setBusyId(id);
+    setError(null);
+    try {
+      const res = await api.post<{ order: Order }>(`/admin/orders/${id}/courier/sync`);
+      // A final courier status (delivered / returned) moves the order off this page.
+      if (res.order.status === 'shipped') replaceOrder(res.order);
+      else setOrders((prev) => prev.filter((o) => o.id !== id));
+    } catch (e) {
+      setError((e as Error).message);
+      await refreshOrder(id);
     } finally {
       setBusyId(null);
     }
@@ -112,6 +164,7 @@ export function ShippedPage() {
                       <td className="px-4 py-3">
                         <p className="font-bold text-neutral-900">{o.orderNumber}</p>
                         <p className="text-[10px] font-mono text-neutral-400">{o.trackingCode}</p>
+                        <CourierInfo order={o} compact />
                       </td>
                       <td className="px-4 py-3 text-neutral-700">
                         {o.customerName}<br />
@@ -123,11 +176,21 @@ export function ShippedPage() {
                       <td className="px-5 py-3">
                         <div className="flex justify-end gap-1.5">
                           {!dispatched ? (
-                            <Button onClick={() => handoff(o.id)} disabled={busyId === o.id} className="px-2.5 py-1 text-[11px]">
+                            <Button
+                              onClick={() => handoff(o.id)}
+                              disabled={busyId === o.id}
+                              className="px-2.5 py-1 text-[11px]"
+                              title={courier?.active ? `Book with ${courier.provider.label}` : 'Confirm courier handoff'}
+                            >
                               {busyId === o.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Truck className="w-3.5 h-3.5" />} গাড়ি
                             </Button>
                           ) : (
                             <>
+                              {o.courierConsignmentId && (
+                                <Button onClick={() => syncCourier(o.id)} disabled={busyId === o.id} variant="secondary" className="px-2 py-1 text-[11px]" title="Refresh courier status">
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
                               <Button onClick={() => markDelivered(o.id)} disabled={busyId === o.id} variant="secondary" className="px-2.5 py-1 text-[11px] !bg-emerald-50 !text-emerald-700 !border-emerald-200">
                                 {busyId === o.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />} Delivery
                               </Button>
