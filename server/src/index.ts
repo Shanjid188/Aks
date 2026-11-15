@@ -43,6 +43,8 @@ import { purgeExpiredClickIds } from './lib/attribution.ts';
 import { loadAdsSettings, scheduledMetaSync } from './lib/metaAds.ts';
 import advertisingSpendRouter from './routes/advertisingSpend.ts';
 import advertisingTrafficRouter from './routes/advertisingTraffic.ts';
+import abandonedCartsRouter from './routes/abandonedCarts.ts';
+import { runCartMaintenance } from './lib/checkoutSessions.ts';
 import { loadGa4Settings, purgeExpiredGa4Cache } from './lib/ga4Data.ts';
 import { loadTrackingSettings } from './lib/tracking/config.ts';
 import { loadSecrets } from './lib/secrets.ts';
@@ -163,6 +165,7 @@ app.use('/api', advertisingTrackingRouter);
 app.use('/api', advertisingCampaignsRouter);
 app.use('/api', advertisingSpendRouter);
 app.use('/api', advertisingTrafficRouter);
+app.use('/api', abandonedCartsRouter);
 
 /* Crawler files (robots.txt / sitemap.xml) live at the site root, not under
    /api — registered before the SPA fallback so they are never swallowed. */
@@ -227,6 +230,7 @@ registerJob({
   run: async () => `${await purgeExpiredClickIds()} click id(s) erased`,
 });
 registerJob({ name: 'ga4-cache-purge', everyMs: 24 * 3600 * 1000, run: purgeExpiredGa4Cache });
+registerJob({ name: 'cart-maintenance', everyMs: 10 * 60 * 1000, run: () => runCartMaintenance() });
 registerJob({ name: 'meta-ads-sync', everyMs: 6 * 3600 * 1000, run: scheduledMetaSync });
 startJobs();
 

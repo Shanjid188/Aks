@@ -6,6 +6,7 @@ import {
   trackBeginCheckout,
 } from '../lib/tracking';
 import { useStore } from '../context/StoreContext';
+import { CART_REMINDER_CONSENT_TEXT, syncCheckoutSession, withdrawReminderConsent } from '../lib/checkoutSession';
 import { formatPrice } from '../utils/format';
 import { isFreeDeliveryCoupon } from '../utils/coupons';
 import { maxOrderableQty } from '../utils/stock';
@@ -109,6 +110,22 @@ export function CheckoutPage() {
     trackBeginCheckout(checkoutSnapshot());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart.length]);
+  // Abandoned-cart analytics: sync the (anonymous) cart while on checkout.
+  // Contact details go along only if the shopper ticks the reminder opt-in.
+  const [remindMe, setRemindMe] = useState(false);
+  const reminderPhone = phone.trim();
+  const reminderContact = remindMe && BD_PHONE_REGEX.test(reminderPhone) ? { phone: reminderPhone, email: email.trim() || undefined } : undefined;
+  const cartKey = cart.map((c) => `${c.product.sku}:${c.quantity}:${c.selectedSize?.size ?? ''}:${c.selectedColor?.name ?? ''}`).join('|');
+  useEffect(() => {
+    if (cart.length === 0) return;
+    const timer = window.setTimeout(() => void syncCheckoutSession(cart, reminderContact), 1200);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartKey, reminderContact?.phone, reminderContact?.email]);
+  const onRemindMeChange = (checked: boolean) => {
+    setRemindMe(checked);
+    if (!checked) void withdrawReminderConsent();
+  };
   const reportedShipping = useRef('');
   const reportedPayment = useRef('');
 
@@ -263,6 +280,24 @@ export function CheckoutPage() {
                   <Mail className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input id="co-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" className={inputClass} />
                 </div>
+              </div>
+              <div className="sm:col-span-2">
+                {/* Optional, unticked by default — nothing is stored for reminders unless ticked. */}
+                <label htmlFor="co-remind" className="flex items-start gap-2.5 text-xs text-neutral-600 cursor-pointer">
+                  <input
+                    id="co-remind"
+                    type="checkbox"
+                    checked={remindMe}
+                    onChange={(e) => onRemindMeChange(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 accent-[#D8232A] shrink-0"
+                  />
+                  <span>
+                    {CART_REMINDER_CONSENT_TEXT}
+                    {remindMe && !BD_PHONE_REGEX.test(reminderPhone) && (
+                      <span className="block text-[11px] text-neutral-400 mt-0.5">Add your mobile number above to receive the reminder.</span>
+                    )}
+                  </span>
+                </label>
               </div>
               <div className="sm:col-span-2">
                 <label htmlFor="co-street" className={labelClass}>Street Address ঠিকানা</label>

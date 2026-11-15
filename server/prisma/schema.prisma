@@ -298,6 +298,7 @@ model MarketingCampaign {
   updatedAt          DateTime           @updatedAt
   attributions       OrderAttribution[]
   adSpend            AdSpendEntry[]
+  checkoutSessions   CheckoutSession[]
 
   @@unique([platform, platformCampaignId])
   @@index([status])
@@ -848,4 +849,38 @@ model Ga4ReportCache {
   expiresAt DateTime
 
   @@index([expiresAt])
+}
+
+/// Abandoned-cart analytics (Advertising → Abandoned Carts).
+/// Anonymous layer: random browser token (stored hashed), catalog-priced items, value, channel.
+/// Contact layer: phone/email only after the shopper ticks the (unticked-by-default) reminder
+/// opt-in; erased on conversion, on request, and N days after abandonment.
+model CheckoutSession {
+  id               String             @id @default(cuid())
+  tokenHash        String             @unique // sha256 of the storefront's random token
+  items            String             @default("[]") // JSON [{productId, sku, name, quantity, size, color, price}] — prices from the catalog
+  value            Float              @default(0)
+  itemCount        Int                @default(0)
+  status           String             @default("active") // active | converted | abandoned | recovered | expired
+  channel          String? // last non-direct touch channel (no identifiers)
+  campaignId       String?
+  campaign         MarketingCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  orderId          String?            @unique
+  contactPhone     String?
+  contactEmail     String?
+  contactConsentAt DateTime?
+  restoreCode      String?            @unique // only while contact consent is held; powers /cart?restore=<code>
+  contactedAt      DateTime?
+  contactErasedAt  DateTime?
+  restoredAt       DateTime?
+  lastActivityAt   DateTime           @default(now())
+  abandonedAt      DateTime?
+  convertedAt      DateTime?
+  recoveredAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([status, lastActivityAt])
+  @@index([abandonedAt])
+  @@index([createdAt])
 }

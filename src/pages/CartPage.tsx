@@ -1,13 +1,82 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
 import { Link, useRouter } from '../lib/router';
 import { ShoppingBag, Trash2, Minus, Plus, Tag, ArrowRight, Truck } from 'lucide-react';
 import { useSiteContent } from '../context/SiteContentContext';
 import { useLocalized, fillTokens } from '../components/Localized';
+import { eraseDetailsByRestoreCode, fetchRestoredCart } from '../lib/checkoutSession';
+
+/**
+ * `/cart?restore=<code>` (sent by the shop on WhatsApp to shoppers who opted
+ * in): puts the saved items back in the bag and lets the shopper erase the
+ * contact details they shared.
+ */
+function RestoreCartNotice() {
+  const { query, navigate } = useRouter();
+  const { products, cart, addToCart } = useStore();
+  const [code] = useState(() => query.get('restore'));
+  const [state, setState] = useState<{ kind: 'loading' | 'restored' | 'missing' | 'erased' | 'error'; count?: number }>({ kind: 'loading' });
+  const done = useRef(false);
+
+  useEffect(() => {
+    if (!code || done.current || products.length === 0) return;
+    done.current = true;
+    // Drop the code from the address bar so it isn't shared or bookmarked.
+    navigate('/cart', { replace: true });
+    fetchRestoredCart(code)
+      .then(({ items }) => {
+        let count = 0;
+        for (const it of items) {
+          const product = products.find((p) => p.sku === it.sku);
+          if (!product) continue;
+          const color = product.colors.find((c) => c.name === it.color) ?? product.colors[0];
+          const size = product.sizes.find((z) => z.size === it.size) ?? product.sizes[0];
+          const already = cart.some((c) => c.product.id === product.id && (c.selectedSize?.size ?? '') === (size?.size ?? '') && c.selectedColor?.name === color?.name);
+          if (!already) addToCart(product, color, size, it.quantity);
+          count++;
+        }
+        setState({ kind: 'restored', count });
+      })
+      .catch(() => setState({ kind: 'missing' }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, products.length]);
+
+  if (!code || state.kind === 'loading') return null;
+  const erase = () =>
+    eraseDetailsByRestoreCode(code)
+      .then(() => setState({ kind: 'erased' }))
+      .catch(() => setState({ kind: 'error' }));
+  return (
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
+      <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-xs text-neutral-700 flex flex-wrap items-center gap-x-4 gap-y-2">
+        {state.kind === 'restored' && (
+          <>
+            <span className="font-semibold">
+              {state.count ? `We've put ${state.count} saved item(s) back in your bag.` : 'The items you saved are no longer available.'}
+            </span>
+            <button onClick={erase} className="ml-auto text-[11px] font-bold text-neutral-500 underline hover:text-neutral-900 cursor-pointer">
+              Forget my contact details
+            </button>
+          </>
+        )}
+        {state.kind === 'missing' && <span>This cart link is no longer available.</span>}
+        {state.kind === 'erased' && <span className="font-semibold text-emerald-700">Done — your phone number and email have been erased. We won't send you cart reminders.</span>}
+        {state.kind === 'error' && <span className="text-red-700">Something went wrong. Please try again.</span>}
+      </div>
+    </div>
+  );
+}
 
 /** Dedicated cart page at /cart. */
-export const CartPage: React.FC = () => {
+export const CartPage: React.FC = () => (
+  <>
+    <RestoreCartNotice />
+    <CartContents />
+  </>
+);
+
+const CartContents: React.FC = () => {
   // Cart copy — Admin → Storefront → Shop UI (see src/data/siteContent.ts).
   const { content } = useSiteContent();
   const t = useLocalized();

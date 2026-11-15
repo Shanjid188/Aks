@@ -12,6 +12,7 @@ import type { CommerceSettings } from '../data/commerce';
 import * as API from '../api';
 import { adaptApiOrder } from '../lib/apiAdapter';
 import { attributionForOrder } from '../lib/tracking/attribution';
+import { currentCheckoutSession, resetCheckoutSession } from '../lib/checkoutSession';
 import {
   checkoutTrackingContext,
   itemFromCartItem,
@@ -633,12 +634,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // Consent + Meta browser ids so the API can send the matching CAPI Purchase.
         tracking: checkoutTrackingContext(),
         attribution: attributionForOrder(),
+        checkoutSession: currentCheckoutSession(),
       };
 
       const { order: apiOrder } = await API.createOrderAPI(body);
       // Purchase fires here — on the API confirming a persisted order — never on
       // the confirmation page, and never for the offline fallback order above.
       trackPurchase(apiOrder, products);
+      resetCheckoutSession();
 
       // Map the API response into the frontend Order shape used by the receipt/tracker.
       const mappedOrder: Order = {

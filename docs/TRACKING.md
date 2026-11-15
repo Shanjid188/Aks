@@ -343,3 +343,22 @@ Admin → Reports → **Products** extends the existing Reports page (no separat
 - **GA4 item funnel** (needs `advertising.traffic_view` and a connected GA4): views, add-to-cart rate and view-to-purchase rate, matched on SKU (the storefront sends the SKU as `item_id`), cached like the Traffic reports and labelled as consented shoppers only.
 
 Click a product for its daily trend (`/api/admin/reports/products/:productId/trend`). Admins with `reports.export` can download the table as CSV.
+
+## Abandoned carts
+
+Admin → Advertising → **Abandoned Carts** (`advertising.carts_view`).
+
+**Anonymous layer (everyone).** On the checkout page the storefront keeps a random token (`aks.checkoutSession.v1`) and sends the cart to `PUT /api/checkout-sessions/:token`: SKU, quantity, size and colour, plus campaign tags so the channel can be shown. Ad click IDs are stripped. The server stores only the token's SHA-256 hash, re-prices the items from the catalog (client prices are ignored) and drops unknown SKUs. The order request carries the token, and the session becomes **converted**, or **recovered** if it had been abandoned first. The `cart-maintenance` job (every 10 min) marks sessions idle for `CART_ABANDON_MINUTES` (default 60) as **abandoned**.
+
+**Contact layer (opt-in only).** An unticked checkbox reads: *"I agree to receive a reminder about my abandoned cart via WhatsApp or SMS."* Only when it is ticked, and a valid mobile number is entered, are the phone (and email) stored, together with the consent time and a random restore code. Contact details are erased:
+
+- when the shopper unticks the box (`DELETE /api/checkout-sessions/:token/contact`);
+- when they use "Forget my contact details" on the restore link;
+- when they place the order;
+- `CART_CONTACT_RETENTION_DAYS` (default 30) after abandonment.
+
+Sessions are deleted after `CART_SESSION_RETENTION_DAYS` (default 180). Contact details are never sent to Meta or Google.
+
+**Recovery is manual.** The cart list never includes contact details. An admin with `advertising.carts_contact` can open a cart's contact card, and each opening is logged (`cart.contact_viewed`). The card has an *Open WhatsApp* link (`wa.me`, pre-filled message) and a restore link `/cart?restore=<code>` that puts the items back in the shopper's bag. The admin can mark a cart contacted or recovered, and both actions are logged. Automated SMS is not implemented; it needs a messaging provider.
+
+**Metrics.** Abandonment rate = abandoned ÷ (abandoned + converted + recovered). The page also shows abandoned and recovered value, the products most often left behind, and abandoned value by channel.

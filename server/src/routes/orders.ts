@@ -8,6 +8,7 @@ import { applyStockDelta } from '../lib/stock.ts';
 import { loadCheckoutConfig } from '../lib/checkout.ts';
 import { parseCheckoutTracking, REVERSAL_STATUSES, trackOrderPlaced, trackOrderRefund } from '../lib/tracking/orders.ts';
 import { attributionCreateInput, parseAttribution } from '../lib/attribution.ts';
+import { convertSession } from '../lib/checkoutSessions.ts';
 
 const router = Router();
 
@@ -305,6 +306,8 @@ router.post(
     // Purchase conversion (Meta CAPI + GA4 refund eligibility). Consent-gated
     // and fire-and-forget — it never delays or fails the order response.
     trackOrderPlaced(order, req, checkoutTracking);
+    // Abandoned-cart analytics: mark the checkout session converted (never fails the order).
+    await convertSession(body.checkoutSession, order.id);
 
     res.status(201).json({ order: orderToApi(order) });
   })
