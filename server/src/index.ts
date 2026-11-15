@@ -37,6 +37,9 @@ import contactRouter from './routes/contact.ts';
 import seoRouter from './routes/seo.ts';
 import trackingRouter from './routes/tracking.ts';
 import advertisingTrackingRouter from './routes/advertisingTracking.ts';
+import advertisingCampaignsRouter from './routes/advertisingCampaigns.ts';
+import { registerJob, startJobs } from './lib/jobs.ts';
+import { purgeExpiredClickIds } from './lib/attribution.ts';
 import { loadTrackingSettings } from './lib/tracking/config.ts';
 import { loadSecrets } from './lib/secrets.ts';
 
@@ -153,6 +156,7 @@ app.use('/api', newsletterRouter);
 app.use('/api', contactRouter);
 app.use('/api', trackingRouter);
 app.use('/api', advertisingTrackingRouter);
+app.use('/api', advertisingCampaignsRouter);
 
 /* Crawler files (robots.txt / sitemap.xml) live at the site root, not under
    /api — registered before the SPA fallback so they are never swallowed. */
@@ -208,6 +212,14 @@ await Promise.all([
 ]);
 
 const PORT = Number(process.env.PORT) || 4000;
+// Privacy & maintenance jobs (exclusive via JobLock; DISABLE_JOBS=true turns them off).
+registerJob({
+  name: 'purge-click-ids',
+  everyMs: 24 * 3600 * 1000,
+  run: async () => `${await purgeExpiredClickIds()} click id(s) erased`,
+});
+startJobs();
+
 app.listen(PORT, () => {
   console.log(`🚀 AKS API listening on http://localhost:${PORT}`);
   console.log(`   Health:  http://localhost:${PORT}/api/health`);

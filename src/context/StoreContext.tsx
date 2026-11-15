@@ -11,6 +11,7 @@ import { readCache } from '../lib/apiCache';
 import type { CommerceSettings } from '../data/commerce';
 import * as API from '../api';
 import { adaptApiOrder } from '../lib/apiAdapter';
+import { attributionForOrder } from '../lib/tracking/attribution';
 import {
   checkoutTrackingContext,
   itemFromCartItem,
@@ -631,6 +632,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         couponCode: orderData.couponApplied?.code,
         // Consent + Meta browser ids so the API can send the matching CAPI Purchase.
         tracking: checkoutTrackingContext(),
+        attribution: attributionForOrder(),
       };
 
       const { order: apiOrder } = await API.createOrderAPI(body);

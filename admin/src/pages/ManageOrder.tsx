@@ -1,6 +1,7 @@
+import { MarketingSourceCard } from '../components/marketing';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
-import type { Order, OrderItem, Product } from '../types';
+import type { Order, OrderAttribution, OrderItem, Product } from '../types';
 import {
   Button, ConfirmDialog, ORDER_STATUS_META, Spinner, StatusBadge, formatDate, PageHeader } from '../components/ui';
 import {
@@ -68,6 +69,8 @@ export function ManageOrder({
   onUpdated?: (order: Order) => void;
 }) {
   const [order, setOrder] = useState<Order | null>(null);
+  // Loaded once with the detail; save responses don't carry it.
+  const [attribution, setAttribution] = useState<OrderAttribution[] | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -119,7 +122,10 @@ export function ManageOrder({
     setError(null);
     api
       .get<{ order: Order }>(`/admin/orders/${orderId}`)
-      .then((res) => applyOrder(res.order))
+      .then((res) => {
+        setAttribution(res.order.attribution);
+        applyOrder(res.order);
+      })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, [orderId, applyOrder]);
@@ -589,6 +595,8 @@ export function ManageOrder({
             </div>
           </div>
         </div>
+
+        {order.source !== 'pos' && <MarketingSourceCard attribution={attribution} />}
       </div>
 
       {/* Cancel confirmation */}

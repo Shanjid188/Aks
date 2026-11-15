@@ -235,3 +235,35 @@ consent gating, event ids, retries, the relay and once-only refunds.
   shopper consented) and relayed events, but `_fbp` will be missing.
 - The Meta Graph API version defaults to `v26.0`; update
   `META_GRAPH_API_VERSION` when Meta announces its deprecation.
+
+## Campaign attribution (orders)
+
+The storefront records where each shopper came from (`src/lib/tracking/attribution.ts`):
+
+- What it collects: utm_* tags, the referring site's **host name only** and the landing path, with no query string.
+- How touches are kept: the first and the last non-direct visit within **30 days** are stored in `localStorage` (`aks.attribution.v1`) and sent with the order as `attribution`.
+- Who it applies to: campaign tags are collected for every visitor.
+- Ad click IDs (fbclid, gclid, gbraid, wbraid, ttclid, msclkid):
+  - Kept only with **advertising consent**.
+  - Held in memory until consent is given.
+  - Stripped if consent is withdrawn.
+  - Erased server-side after 90 days by the daily `purge-click-ids` job.
+
+The server (`server/src/lib/attribution.ts`):
+
+- Re-validates every field and derives a channel.
+- Stores `OrderAttribution` rows (`first` and `last`).
+- Links each touch to a `MarketingCampaign`:
+  - `utm_id` = platform campaign ID wins.
+  - Otherwise `utm_campaign` must match one of the campaign's match keys or its name (case-insensitive).
+- The default reporting model is **last non-direct**; **first touch** is the alternative.
+- POS orders carry no attribution.
+
+Where it appears in the admin:
+
+- **Advertising → Campaigns**: create campaigns, see unmatched UTM tags, re-match orders, and copy the Meta and Google URL templates.
+- **Order detail**: a *Marketing source* card.
+- **Orders list**: filter by channel.
+- Raw click IDs are never returned by the API.
+
+Before production, check legally that collecting UTM tags without consent meets the privacy rules that apply to you.

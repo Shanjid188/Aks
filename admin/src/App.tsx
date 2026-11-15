@@ -42,13 +42,14 @@ const StorefrontPage = lazy(() => import('./pages/Storefront'));
 const PagesPage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.PagesPage })));
 const SubscribersPage = lazy(() => import('./pages/Subscribers').then((m) => ({ default: m.SubscribersPage })));
 const MessagesPage = lazy(() => import('./pages/Messages').then((m) => ({ default: m.MessagesPage })));
+const CampaignsPage = lazy(() => import('./pages/advertising/Campaigns').then((m) => ({ default: m.CampaignsPage })));
 const TrackingSettingsPage = lazy(() => import('./pages/advertising/TrackingSettings').then((m) => ({ default: m.TrackingSettingsPage })));
 import {
   Activity, BarChart3, Boxes, Calculator, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
   Clock, FileText, Image, Images, Inbox, LayoutDashboard, LayoutGrid, LogOut, Mail, Menu, Package,
   PackageCheck, Receipt, RotateCcw, Search, Settings, ShieldCheck, ShoppingBag,
   ShoppingCart, Sparkles, Star, Ticket, Truck, UserCog, Users, X, XCircle, Undo2, Percent, Heart,
-  Radar, Target,
+  Radar, Target, Megaphone,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -85,6 +86,7 @@ type PageKey =
   | 'orders_pending' | 'orders_confirmed'
   | 'orders_shipped' | 'orders_delivered' | 'orders_cancelled' | 'orders_returned'
   | 'shippedpage'
+  | 'ad_campaigns'
   | 'ad_tracking';
 
 /** Sidebar entries — each requires a `view` permission to be visible. */
@@ -114,6 +116,7 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
   { key: 'pages', label: 'Content Pages', icon: <FileText className="w-[18px] h-[18px]" />, permission: PERM.STOREFRONT_VIEW, desc: 'About & policy pages' },
   { key: 'subscribers', label: 'Subscribers', icon: <Mail className="w-[18px] h-[18px]" />, permission: PERM.MARKETING_SUBSCRIBERS_VIEW, desc: 'Newsletter audience' },
   { key: 'messages', label: 'Messages', icon: <Inbox className="w-[18px] h-[18px]" />, permission: PERM.MARKETING_MESSAGES_VIEW, desc: 'Contact-form inbox' },
+  { key: 'ad_campaigns', label: 'Campaigns', icon: <Megaphone className="w-[18px] h-[18px]" />, permission: PERM.ADVERTISING_CAMPAIGNS_VIEW, desc: 'UTM campaigns & attribution' },
   { key: 'ad_tracking', label: 'Tracking Settings', icon: <Radar className="w-[18px] h-[18px]" />, permission: PERM.ADVERTISING_TRACKING_VIEW, desc: 'Pixel, CAPI & GA4' },
   { key: 'admins', label: 'Admin Users', icon: <UserCog className="w-[18px] h-[18px]" />, permission: PERM.ADMINS_VIEW, desc: 'Team accounts' },
   { key: 'roles', label: 'Roles & Permissions', icon: <ShieldCheck className="w-[18px] h-[18px]" />, permission: PERM.ROLES_VIEW, desc: 'Access control' },
@@ -137,7 +140,7 @@ const NAV_GROUPS: { key: string; label: string; icon: ReactNode; keys: PageKey[]
   { key: 'operation', label: 'Operation', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders_pending', 'orders_confirmed', 'packaging', 'orders_shipped', 'orders_delivered', 'orders_cancelled', 'orders_returned', 'invoices', 'returns', 'customers'] },
   { key: 'catalog', label: 'Catalog', icon: <Boxes className="w-4 h-4" />, keys: ['products', 'categories', 'inventory', 'purchases', 'suppliers'] },
   { key: 'marketing', label: 'Marketing', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'gallery', 'offers', 'lovedproducts', 'storefront', 'pages', 'subscribers', 'messages'] },
-  { key: 'advertising', label: 'Advertising', icon: <Target className="w-4 h-4" />, keys: ['ad_tracking'] },
+  { key: 'advertising', label: 'Advertising', icon: <Target className="w-4 h-4" />, keys: ['ad_campaigns', 'ad_tracking'] },
   { key: 'finance', label: 'Finance', icon: <BarChart3 className="w-4 h-4" />, keys: ['expenses', 'reports'] },
   { key: 'administration', label: 'Administration', icon: <ShieldCheck className="w-4 h-4" />, keys: ['admins', 'roles', 'activity', 'settings'] },
 ];
@@ -431,6 +434,8 @@ export default function App() {
         return <RolesPage />;
       case 'settings':
         return <SettingsPage />;
+      case 'ad_campaigns':
+        return <CampaignsPage />;
       case 'ad_tracking':
         return <TrackingSettingsPage />;
       default:

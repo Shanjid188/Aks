@@ -221,6 +221,7 @@ model Order {
   items             OrderItem[]
   payments          Payment[]
   returnRequests    ReturnRequest[]
+  attributions      OrderAttribution[]
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -270,6 +271,75 @@ model IntegrationSecret {
   updatedBy  String? // admin email (snapshot)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+/**
+ * An advertising / marketing campaign that orders and ad spend are linked to.
+ * Created manually or by an ad-platform sync. Orders are matched to it by
+ * `utm_id` = platformCampaignId, then by utm_campaign ∈ matchKeys (or name).
+ */
+model MarketingCampaign {
+  id                 String             @id @default(cuid())
+  name               String
+  channel            String             @default("other") // meta | google | tiktok | email | sms | other
+  platform           String? // meta | google | tiktok — set when the campaign exists on an ad platform
+  platformCampaignId String? // the platform's campaign id (what utm_id carries)
+  platformAccountId  String?
+  matchKeys          String             @default("[]") // JSON array of lowercase utm_campaign values
+  status             String             @default("active") // active | paused | archived
+  objective          String?
+  startDate          DateTime?
+  endDate            DateTime?
+  notes              String?
+  createdBy          String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  attributions       OrderAttribution[]
+
+  @@unique([platform, platformCampaignId])
+  @@index([status])
+}
+
+/**
+ * Marketing touch that led to an order: one row for the first and one for the
+ * last non-direct visit within the 30-day attribution window (identical when
+ * there was only one). Orders placed before attribution existed have none.
+ * Ad click IDs are stored only with advertising consent and are erased after
+ * 90 days; the referrer is kept as a host name only.
+ */
+model OrderAttribution {
+  id           String             @id @default(cuid())
+  orderId      String
+  order        Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  touch        String // first | last
+  channel      String // paid_social | paid_search | organic_search | social | email | sms | referral | display | affiliate | other
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  utmContent   String?
+  utmTerm      String?
+  utmId        String?
+  clickIdType  String? // fbclid | gclid | gbraid | wbraid | ttclid | msclkid
+  clickId      String?
+  referrerHost String?
+  landingPath  String?
+  touchedAt    DateTime
+  campaignId   String?
+  campaign     MarketingCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdAt    DateTime           @default(now())
+
+  @@unique([orderId, touch])
+  @@index([campaignId])
+  @@index([channel])
+  @@index([touchedAt])
+}
+
+/** Single-row locks so scheduled jobs never run twice concurrently. */
+model JobLock {
+  name        String    @id
+  lockedUntil DateTime
+  lastRunAt   DateTime?
+  lastResult  String?
 }
 
 model OrderItem {

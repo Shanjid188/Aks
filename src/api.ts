@@ -416,6 +416,11 @@ export interface ApiCreateOrderBody {
   paymentReference?: string;
   shippingFee: number;
   couponCode?: string;
+  /** First/last non-direct marketing touch (see src/lib/tracking/attribution). Optional. */
+  attribution?: {
+    first?: import('./lib/tracking/attribution').AttributionTouch;
+    last?: import('./lib/tracking/attribution').AttributionTouch;
+  };
   /** Tracking consent + Meta browser ids (see src/lib/tracking). Optional. */
   tracking?: {
     consent: { analytics: boolean; marketing: boolean };
