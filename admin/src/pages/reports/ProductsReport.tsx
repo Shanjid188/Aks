@@ -195,7 +195,7 @@ export function ProductsReport({ tabs }: { tabs: ReactNode }) {
               label="Profit"
               value={fmtMoney(t.profit)}
               tone={t.profit === null ? 'muted' : t.profit >= 0 ? 'good' : 'bad'}
-              sub={t.costCoverage === null ? 'No cost prices' : t.costCoverage < 0.9995 ? `Covers ${fmtPct(t.costCoverage, 0)} of net revenue (products with cost)` : `Margin ${fmtPct(t.margin)}`}
+              sub={t.profit === null || t.costCoverage === null ? 'No cost prices on these products' : t.costCoverage < 0.9995 ? `Covers ${fmtPct(t.costCoverage, 0)} of net revenue (products with cost)` : `Margin ${fmtPct(t.margin)}`}
             />
             <StatTile label="Return rate" value={fmtPct(t.returnRate)} sub="Returned ÷ ordered units" />
           </div>
