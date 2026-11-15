@@ -197,8 +197,8 @@ async function cachedReport(name: TrafficReportName, start: string, end: string,
   const payload = JSON.stringify(data);
   await prisma.ga4ReportCache.upsert({
     where: { key },
-    create: { key, payload, fetchedAt, expiresAt: new Date(Date.now() + ttl) },
-    update: { payload, fetchedAt, expiresAt: new Date(Date.now() + ttl) },
+    create: { key, payload, fetchedAt, expiresAt: new Date(fetchedAt.getTime() + ttl) },
+    update: { payload, fetchedAt, expiresAt: new Date(fetchedAt.getTime() + ttl) },
   });
   return { data, fetchedAt };
 }
