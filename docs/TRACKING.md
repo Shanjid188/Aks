@@ -362,3 +362,26 @@ Sessions are deleted after `CART_SESSION_RETENTION_DAYS` (default 180). Contact 
 **Recovery is manual.** The cart list never includes contact details. An admin with `advertising.carts_contact` can open a cart's contact card, and each opening is logged (`cart.contact_viewed`). The card has an *Open WhatsApp* link (`wa.me`, pre-filled message) and a restore link `/cart?restore=<code>` that puts the items back in the shopper's bag. The admin can mark a cart contacted or recovered, and both actions are logged. Automated SMS is not implemented; it needs a messaging provider.
 
 **Metrics.** Abandonment rate = abandoned ÷ (abandoned + converted + recovered). The page also shows abandoned and recovered value, the products most often left behind, and abandoned value by channel.
+
+## Marketing Dashboard
+
+Admin → Advertising → **Marketing Dashboard** (`advertising.dashboard_view`) is a summary page. It does no maths of its own: it reads the endpoints above and shows each number with its source.
+
+| Section | Endpoint | Shown when the admin has |
+|---|---|---|
+| Ad spend, attributed revenue, ROAS, CPA; spend vs. revenue chart; revenue by channel; top 5 campaigns by ROAS and by revenue | `/admin/advertising/performance` | `advertising.campaigns_view` (spend needs `advertising.spend_view`) |
+| Sessions, conversion rate | `/admin/advertising/traffic` (GA4) | `advertising.traffic_view` |
+| Abandoned cart value and rate | `/admin/advertising/carts` | `advertising.carts_view` |
+| Tracking health strip | `/admin/advertising/tracking/health` | `advertising.tracking_view` |
+| Funnel: GA4 sessions → checkouts started → online orders | the three above | each step needs its own permission |
+
+**"Needs attention"** is a list of plain rules over that data:
+
+- campaigns with spend but no attributed orders in the last 7 days;
+- spend rows without an exchange rate;
+- UTM campaign names that match no campaign;
+- server-side tracking failures in the last 24 hours;
+- abandoned carts whose shoppers opted in to a reminder;
+- no ad spend recorded for the range.
+
+A section whose source isn't connected shows a setup prompt, never an estimate. A section the admin can't access is left out. The funnel note warns that GA4 counts consented visitors only.
