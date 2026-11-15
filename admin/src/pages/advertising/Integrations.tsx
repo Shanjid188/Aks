@@ -19,6 +19,7 @@ interface SyncRun {
 
 interface IntegrationsView {
   metaAds: { accountId: string | null; accountSource: 'env' | 'admin' | null; connected: boolean; maxSyncDays: number };
+  ga4: { propertyId: string | null; propertySource: 'env' | 'admin' | null; serviceAccountEmail: string | null; connected: boolean };
   secrets: SecretStatus[];
   encryptionConfigured: boolean;
   runs: SyncRun[];
@@ -46,12 +47,14 @@ export function IntegrationsPage() {
   const [view, setView] = useState<IntegrationsView | null>(null);
   const [account, setAccount] = useState('');
   const [sync, setSync] = useState({ from: dayOffset(29), to: dayOffset(0) });
-  const [busy, setBusy] = useState<'save' | 'sync' | null>(null);
+  const [property, setProperty] = useState('');
+  const [busy, setBusy] = useState<'save' | 'sync' | 'ga4' | 'ga4test' | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   const apply = (v: IntegrationsView) => {
     setView(v);
     setAccount(v.metaAds.accountSource === 'admin' ? `act_${v.metaAds.accountId}` : '');
+    setProperty(v.ga4.propertySource === 'admin' ? (v.ga4.propertyId ?? '') : '');
   };
   const load = useCallback(async () => {
     try {
@@ -87,6 +90,33 @@ export function IntegrationsPage() {
     } catch (e) {
       setMessage({ ok: false, text: (e as Error).message });
       await load();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const saveProperty = async () => {
+    setBusy('ga4');
+    setMessage(null);
+    try {
+      await api.put('/admin/advertising/integrations/ga4', { propertyId: property.trim() });
+      await load();
+      setMessage({ ok: true, text: 'GA4 property saved.' });
+    } catch (e) {
+      setMessage({ ok: false, text: (e as Error).message });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const testGa4 = async () => {
+    setBusy('ga4test');
+    setMessage(null);
+    try {
+      const r = await api.post<{ sessionsLast7Days: number }>('/admin/advertising/integrations/ga4/test');
+      setMessage({ ok: true, text: `Connected to GA4 — ${r.sessionsLast7Days.toLocaleString('en-IN')} sessions in the last 7 days.` });
+    } catch (e) {
+      setMessage({ ok: false, text: (e as Error).message });
     } finally {
       setBusy(null);
     }
@@ -178,6 +208,47 @@ export function IntegrationsPage() {
               </div>
             </section>
           </div>
+
+          <section className="bg-white rounded-2xl border border-neutral-200">
+            <header className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-black text-neutral-900">Google Analytics 4 (reporting)</h3>
+                <p className="text-[11px] text-neutral-400">Read-only GA4 Data API for the Traffic page. Separate from the GA4 tag in Tracking Settings.</p>
+              </div>
+              <Connected on={view.ga4.connected} label="Connected" />
+            </header>
+            <div className="p-5 grid grid-cols-1 xl:grid-cols-2 gap-5">
+              <div className="space-y-4">
+                <Field
+                  label="GA4 property ID"
+                  hint={view.ga4.propertySource === 'env' ? `Set by GA4_PROPERTY_ID on the server (${view.ga4.propertyId}).` : 'GA4 → Admin → Property details → Property ID (a number, not the G- measurement ID).'}
+                >
+                  <div className="flex gap-2">
+                    <TextInput value={property} onChange={(e) => setProperty(e.target.value)} placeholder="412345678" disabled={view.ga4.propertySource === 'env'} />
+                    {view.ga4.propertySource !== 'env' && (
+                      <Button onClick={() => void saveProperty()} disabled={busy !== null}>{busy === 'ga4' ? 'Saving…' : 'Save'}</Button>
+                    )}
+                  </div>
+                </Field>
+                {view.ga4.serviceAccountEmail && (
+                  <div className="text-[11px] text-neutral-600 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2">
+                    In GA4 → Admin → <b>Property access management</b>, add <code className="break-all">{view.ga4.serviceAccountEmail}</code> with the <b>Viewer</b> role.
+                  </div>
+                )}
+                <Button variant="ghost" onClick={() => void testGa4()} disabled={busy !== null || !view.ga4.connected}>
+                  {busy === 'ga4test' ? 'Testing…' : 'Test connection'}
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {secret('GA4_SERVICE_ACCOUNT_JSON') && (
+                  <SecretField status={secret('GA4_SERVICE_ACCOUNT_JSON')!} canManage multiline encryptionConfigured={view.encryptionConfigured} onChange={onSecrets} />
+                )}
+                <p className="text-[11px] text-neutral-500">
+                  Google Cloud → IAM → Service accounts → create one, enable the <b>Google Analytics Data API</b>, then Keys → Add key → JSON. Paste the whole file. It is stored encrypted and never shown again.
+                </p>
+              </div>
+            </div>
+          </section>
 
           <section className="bg-white rounded-2xl border border-neutral-200">
             <header className="px-5 py-4 border-b border-neutral-100">

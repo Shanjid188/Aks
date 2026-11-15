@@ -13,13 +13,43 @@ export interface SecretDef {
   group: 'tracking' | 'integrations';
   /** Maximum accepted length (service-account JSON is large). */
   maxLength: number;
+  /** Returns an error message when the value is malformed. */
+  validate?: (value: string) => string | null;
+  /** Keep the last 4 characters as a hint (off for structured values). */
+  hint?: boolean;
+}
+
+/** A Google service-account key file: JSON with client_email and a usable private key. */
+export function validateServiceAccountJson(value: string): string | null {
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(value) as Record<string, unknown>;
+  } catch {
+    return 'Paste the whole service-account key file (JSON)';
+  }
+  if (parsed.type !== 'service_account') return 'This is not a service-account key (type must be "service_account")';
+  if (typeof parsed.client_email !== 'string' || !/^[^@\s]+@[^@\s]+$/.test(parsed.client_email)) return 'The key file has no client_email';
+  if (typeof parsed.private_key !== 'string') return 'The key file has no private_key';
+  try {
+    crypto.createPrivateKey(parsed.private_key);
+  } catch {
+    return 'The private_key in this file could not be read';
+  }
+  return null;
 }
 
 export const SECRET_DEFS: SecretDef[] = [
   { key: 'META_CAPI_ACCESS_TOKEN', label: 'Meta Conversions API access token', group: 'tracking', maxLength: 1024 },
   { key: 'GA4_API_SECRET', label: 'GA4 Measurement Protocol API secret', group: 'tracking', maxLength: 256 },
   { key: 'META_ADS_ACCESS_TOKEN', label: 'Meta Marketing API token (ads_read)', group: 'integrations', maxLength: 1024 },
-  { key: 'GA4_SERVICE_ACCOUNT_JSON', label: 'GA4 Data API service-account key (JSON)', group: 'integrations', maxLength: 8192 },
+  {
+    key: 'GA4_SERVICE_ACCOUNT_JSON',
+    label: 'GA4 Data API service-account key (JSON)',
+    group: 'integrations',
+    maxLength: 8192,
+    validate: validateServiceAccountJson,
+    hint: false,
+  },
 ];
 
 export const SECRET_KEYS = new Set(SECRET_DEFS.map((d) => d.key));
@@ -153,8 +183,10 @@ export async function setSecret(name: string, value: string, updatedBy: string |
   const plain = value.trim();
   if (!plain) throw new SecretError(400, 'Value is required');
   if (plain.length > def.maxLength) throw new SecretError(400, `Value is longer than ${def.maxLength} characters`);
+  const invalid = def.validate?.(plain);
+  if (invalid) throw new SecretError(400, invalid);
   const enc = encrypt(key, name, plain);
-  const last4 = plain.length >= 12 ? plain.slice(-4) : '';
+  const last4 = def.hint !== false && plain.length >= 12 ? plain.slice(-4) : '';
   await prisma.integrationSecret.upsert({
     where: { key: name },
     create: { key: name, ...enc, last4, updatedBy },

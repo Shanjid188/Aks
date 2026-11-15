@@ -42,6 +42,8 @@ import { registerJob, startJobs } from './lib/jobs.ts';
 import { purgeExpiredClickIds } from './lib/attribution.ts';
 import { loadAdsSettings, scheduledMetaSync } from './lib/metaAds.ts';
 import advertisingSpendRouter from './routes/advertisingSpend.ts';
+import advertisingTrafficRouter from './routes/advertisingTraffic.ts';
+import { loadGa4Settings, purgeExpiredGa4Cache } from './lib/ga4Data.ts';
 import { loadTrackingSettings } from './lib/tracking/config.ts';
 import { loadSecrets } from './lib/secrets.ts';
 
@@ -160,6 +162,7 @@ app.use('/api', trackingRouter);
 app.use('/api', advertisingTrackingRouter);
 app.use('/api', advertisingCampaignsRouter);
 app.use('/api', advertisingSpendRouter);
+app.use('/api', advertisingTrafficRouter);
 
 /* Crawler files (robots.txt / sitemap.xml) live at the site root, not under
    /api — registered before the SPA fallback so they are never swallowed. */
@@ -213,6 +216,7 @@ await Promise.all([
   loadSecrets().catch((err) => console.warn('[secrets] could not load stored secrets:', err?.message ?? err)),
   loadTrackingSettings().catch((err) => console.warn('[tracking] could not load tracking settings:', err?.message ?? err)),
   loadAdsSettings().catch((err) => console.warn('[ads] could not load ad settings:', err?.message ?? err)),
+  loadGa4Settings().catch((err) => console.warn('[ga4] could not load GA4 settings:', err?.message ?? err)),
 ]);
 
 const PORT = Number(process.env.PORT) || 4000;
@@ -222,6 +226,7 @@ registerJob({
   everyMs: 24 * 3600 * 1000,
   run: async () => `${await purgeExpiredClickIds()} click id(s) erased`,
 });
+registerJob({ name: 'ga4-cache-purge', everyMs: 24 * 3600 * 1000, run: purgeExpiredGa4Cache });
 registerJob({ name: 'meta-ads-sync', everyMs: 6 * 3600 * 1000, run: scheduledMetaSync });
 startJobs();
 

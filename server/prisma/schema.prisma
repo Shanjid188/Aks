@@ -835,3 +835,17 @@ model IntegrationSyncRun {
 
   @@index([integration, startedAt])
 }
+
+/**
+ * Cached GA4 Data API responses (aggregate, non-personal report rows).
+ * Keyed by property + service account + report + date range; expires after
+ * an hour for ranges that include today, a day otherwise.
+ */
+model Ga4ReportCache {
+  key       String   @id
+  payload   String
+  fetchedAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}

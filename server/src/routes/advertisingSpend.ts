@@ -29,6 +29,7 @@ import {
   syncMetaAds,
   validMetaAccountId,
 } from '../lib/metaAds.ts';
+import { ga4DataStatus } from '../lib/ga4Data.ts';
 
 /**
  * Admin → Advertising → Ad Spend, Exchange Rates and Integrations.
@@ -299,6 +300,7 @@ async function integrationsView() {
       connected: metaAdsConfig() !== null,
       maxSyncDays: MAX_SYNC_DAYS,
     },
+    ga4: ga4DataStatus(),
     secrets: secretStatuses('integrations'),
     encryptionConfigured: encryptionConfigured(),
     runs,

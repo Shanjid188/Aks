@@ -44,6 +44,7 @@ const SubscribersPage = lazy(() => import('./pages/Subscribers').then((m) => ({ 
 const MessagesPage = lazy(() => import('./pages/Messages').then((m) => ({ default: m.MessagesPage })));
 const CampaignsPage = lazy(() => import('./pages/advertising/Campaigns').then((m) => ({ default: m.CampaignsPage })));
 const PerformancePage = lazy(() => import('./pages/advertising/Performance').then((m) => ({ default: m.PerformancePage })));
+const TrafficPage = lazy(() => import('./pages/advertising/Traffic').then((m) => ({ default: m.TrafficPage })));
 const AdSpendPage = lazy(() => import('./pages/advertising/AdSpend').then((m) => ({ default: m.AdSpendPage })));
 const IntegrationsPage = lazy(() => import('./pages/advertising/Integrations').then((m) => ({ default: m.IntegrationsPage })));
 const TrackingSettingsPage = lazy(() => import('./pages/advertising/TrackingSettings').then((m) => ({ default: m.TrackingSettingsPage })));
@@ -52,7 +53,7 @@ import {
   Clock, FileText, Image, Images, Inbox, LayoutDashboard, LayoutGrid, LogOut, Mail, Menu, Package,
   PackageCheck, Receipt, RotateCcw, Search, Settings, ShieldCheck, ShoppingBag,
   ShoppingCart, Sparkles, Star, Ticket, Truck, UserCog, Users, X, XCircle, Undo2, Percent, Heart,
-  Radar, Target, Megaphone, Coins, Plug, TrendingUp,
+  Radar, Target, Megaphone, Coins, Plug, TrendingUp, BarChart2,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -90,6 +91,7 @@ type PageKey =
   | 'orders_shipped' | 'orders_delivered' | 'orders_cancelled' | 'orders_returned'
   | 'shippedpage'
   | 'ad_performance'
+  | 'ad_traffic'
   | 'ad_campaigns'
   | 'ad_spend'
   | 'ad_integrations'
@@ -123,6 +125,7 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
   { key: 'subscribers', label: 'Subscribers', icon: <Mail className="w-[18px] h-[18px]" />, permission: PERM.MARKETING_SUBSCRIBERS_VIEW, desc: 'Newsletter audience' },
   { key: 'messages', label: 'Messages', icon: <Inbox className="w-[18px] h-[18px]" />, permission: PERM.MARKETING_MESSAGES_VIEW, desc: 'Contact-form inbox' },
   { key: 'ad_performance', label: 'Performance', icon: <TrendingUp className="w-[18px] h-[18px]" />, permission: PERM.ADVERTISING_CAMPAIGNS_VIEW, desc: 'ROAS, CPA & revenue by campaign' },
+  { key: 'ad_traffic', label: 'Traffic', icon: <BarChart2 className="w-[18px] h-[18px]" />, permission: PERM.ADVERTISING_TRAFFIC_VIEW, desc: 'GA4 sessions, channels & pages' },
   { key: 'ad_campaigns', label: 'Campaigns', icon: <Megaphone className="w-[18px] h-[18px]" />, permission: PERM.ADVERTISING_CAMPAIGNS_VIEW, desc: 'UTM campaigns & attribution' },
   { key: 'ad_spend', label: 'Ad Spend', icon: <Coins className="w-[18px] h-[18px]" />, permission: PERM.ADVERTISING_SPEND_VIEW, desc: 'Spend, imports & exchange rates' },
   { key: 'ad_integrations', label: 'Integrations', icon: <Plug className="w-[18px] h-[18px]" />, permission: PERM.ADVERTISING_INTEGRATIONS_MANAGE, desc: 'Meta Ads & Google Ads' },
@@ -149,7 +152,7 @@ const NAV_GROUPS: { key: string; label: string; icon: ReactNode; keys: PageKey[]
   { key: 'operation', label: 'Operation', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders_pending', 'orders_confirmed', 'packaging', 'orders_shipped', 'orders_delivered', 'orders_cancelled', 'orders_returned', 'invoices', 'returns', 'customers'] },
   { key: 'catalog', label: 'Catalog', icon: <Boxes className="w-4 h-4" />, keys: ['products', 'categories', 'inventory', 'purchases', 'suppliers'] },
   { key: 'marketing', label: 'Marketing', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'gallery', 'offers', 'lovedproducts', 'storefront', 'pages', 'subscribers', 'messages'] },
-  { key: 'advertising', label: 'Advertising', icon: <Target className="w-4 h-4" />, keys: ['ad_performance', 'ad_campaigns', 'ad_spend', 'ad_integrations', 'ad_tracking'] },
+  { key: 'advertising', label: 'Advertising', icon: <Target className="w-4 h-4" />, keys: ['ad_performance', 'ad_traffic', 'ad_campaigns', 'ad_spend', 'ad_integrations', 'ad_tracking'] },
   { key: 'finance', label: 'Finance', icon: <BarChart3 className="w-4 h-4" />, keys: ['expenses', 'reports'] },
   { key: 'administration', label: 'Administration', icon: <ShieldCheck className="w-4 h-4" />, keys: ['admins', 'roles', 'activity', 'settings'] },
 ];
@@ -445,6 +448,8 @@ export default function App() {
         return <SettingsPage />;
       case 'ad_performance':
         return <PerformancePage />;
+      case 'ad_traffic':
+        return <TrafficPage />;
       case 'ad_campaigns':
         return <CampaignsPage />;
       case 'ad_spend':

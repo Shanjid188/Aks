@@ -310,3 +310,23 @@ The toggles switch to delivered revenue, first touch, or include POS. Two summar
 - **Blended ROAS** = all revenue ÷ spend.
 
 Ratios with a zero denominator show "—". Spend columns are hidden from admins without `advertising.spend_view`.
+
+## Traffic (GA4 Data API)
+
+Admin → Advertising → **Traffic** reads aggregate reports from GA4: sessions, users, engagement, purchases, channels, source/medium, landing pages and devices.
+
+**Setup (Integrations):**
+
+1. Enter the numeric GA4 **property ID**.
+2. Paste a Google Cloud **service-account key** (JSON).
+3. Add the service account's email as a **Viewer** on the property.
+
+The key is stored encrypted; the env vars `GA4_PROPERTY_ID` and `GA4_SERVICE_ACCOUNT_JSON` take precedence.
+
+**How it works:**
+
+- The server signs a JWT itself (RS256 via node:crypto, `analytics.readonly` scope) and calls the REST `runReport` endpoint. No Google SDK is bundled.
+- Responses are cached in `Ga4ReportCache`: for 1 hour when the range includes today, otherwise for 24 hours. `refresh=1` refetches, and a daily job removes expired entries.
+- If GA4 is unreachable or refuses access, the page shows that error. It never shows estimated numbers.
+
+GA4 counts only visitors who accepted analytics cookies, and it reports gross purchases. Revenue and ROAS therefore come from your own orders (Performance, Reports), not from GA4.
