@@ -26,9 +26,9 @@ export interface PaymentMethodOption {
 
 /** Bundled defaults — exactly the zones/payment method the checkout used before. */
 export const DEFAULT_SHIPPING_ZONES: ShippingZone[] = [
-  { id: 'inside_dhaka', label: 'Inside Dhaka', labelBn: 'ঢাকার ভিতরে', fee: 120 },
-  { id: 'sub_dhaka', label: 'Sub-Dhaka Area', labelBn: 'ঢাকার আশপাশে', fee: 150 },
-  { id: 'outside_dhaka', label: 'Outside Dhaka', labelBn: 'ঢাকার বাইরে', fee: 200 },
+  { id: 'inside_dhaka', label: 'Inside Dhaka', labelBn: 'ঢাকার ভিতরে', fee: 70 },
+  { id: 'sub_dhaka', label: 'Sub-Dhaka Area', labelBn: 'ঢাকার আশপাশে', fee: 110 },
+  { id: 'outside_dhaka', label: 'Outside Dhaka', labelBn: 'ঢাকার বাইরে', fee: 130 },
 ];
 
 /**
