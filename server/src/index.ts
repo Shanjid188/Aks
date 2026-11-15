@@ -36,6 +36,7 @@ import newsletterRouter from './routes/newsletter.ts';
 import contactRouter from './routes/contact.ts';
 import seoRouter from './routes/seo.ts';
 import trackingRouter from './routes/tracking.ts';
+import { loadSecrets } from './lib/secrets.ts';
 
 const app = express();
 
@@ -195,6 +196,9 @@ const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   res.status(500).json({ error: err?.message || 'Internal server error' });
 };
 app.use(errorHandler);
+
+// Decrypt admin-managed integration secrets into memory (env vars still win).
+loadSecrets().catch((err) => console.warn('[secrets] could not load stored secrets:', err?.message ?? err));
 
 const PORT = Number(process.env.PORT) || 4000;
 app.listen(PORT, () => {

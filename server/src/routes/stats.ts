@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma.ts';
 import { parseJsonSafe } from '../utils/json.ts';
 import { asyncHandler, requirePermission } from '../lib/auth.ts';
 import { PERM } from '../lib/permissions.ts';
+import { revenueOrders, revenueOrderWhere, revenueSummary, isRevenueOrder, refundsByOrder, netOrderValue } from '../lib/revenue.ts';
 
 const router = Router();
 
@@ -33,7 +34,8 @@ function parseImages(raw: unknown): string[] {
 
 /**
  * Admin dashboard metrics — all computed from real database data.
- * revenue intentionally excludes cancelled orders.
+ * Revenue is net booked revenue (see lib/revenue.ts): no cancelled/returned/
+ * refunded orders, no parked POS carts, minus refunds on the counted orders.
  */
 router.get(
   '/admin/stats',
@@ -63,7 +65,7 @@ router.get(
       itemRows,
       allProducts,
     ] = await Promise.all([
-      prisma.order.aggregate({ _sum: { total: true }, where: { status: { not: 'cancelled' } } }),
+      revenueSummary(),
       prisma.order.count(),
       prisma.order.count({ where: { status: 'delivered' } }),
       prisma.order.count({ where: { status: 'pending' } }),
@@ -76,14 +78,8 @@ router.get(
       prisma.product.count(),
       prisma.review.count(),
       prisma.coupon.count({ where: { active: true } }),
-      prisma.order.aggregate({
-        _sum: { total: true },
-        where: { status: { not: 'cancelled' }, createdAt: { gte: current30 } },
-      }),
-      prisma.order.aggregate({
-        _sum: { total: true },
-        where: { status: { not: 'cancelled' }, createdAt: { gte: previous60, lt: current30 } },
-      }),
+      revenueSummary({ createdAt: { gte: current30 } }),
+      revenueSummary({ createdAt: { gte: previous60, lt: current30 } }),
       prisma.order.findMany({ select: { customerPhone: true } }),
       prisma.order.findMany({
         orderBy: { createdAt: 'desc' },
@@ -100,7 +96,7 @@ router.get(
       }),
       prisma.order.count({ where: { status: 'returned' } }),
       prisma.orderItem.findMany({
-        where: { order: { status: { not: 'cancelled' } } },
+        where: { order: revenueOrderWhere() },
         select: {
           id: true,
           orderId: true,
@@ -116,9 +112,9 @@ router.get(
 
     // Customers (distinct phone numbers) & revenue trend
     const customersCount = new Set(customerPhones.map((r) => r.customerPhone)).size;
-    const revenue = revenueAgg._sum.total ?? 0;
-    const revenueLast30 = revenueWindow._sum.total ?? 0;
-    const revenuePrev30 = revenuePrevious._sum.total ?? 0;
+    const revenue = revenueAgg.net;
+    const revenueLast30 = revenueWindow.net;
+    const revenuePrev30 = revenuePrevious.net;
     let revenueDeltaPercent: number | null = null;
     if (revenuePrev30 > 0) {
       revenueDeltaPercent = Math.round(((revenueLast30 - revenuePrev30) / revenuePrev30) * 100);
@@ -280,10 +276,7 @@ router.get(
       }
     }
 
-    const orders = await prisma.order.findMany({
-      where: { status: { not: 'cancelled' }, createdAt: { gte: since } },
-      select: { createdAt: true, total: true },
-    });
+    const orders = await revenueOrders({ createdAt: { gte: since } });
 
     // Anchor buckets at the range start (day boundaries for day+ ranges, hour for 'today').
     let anchor = since.getTime();
@@ -306,7 +299,7 @@ router.get(
       const t = o.createdAt.getTime();
       if (t < anchor) continue;
       const idx = Math.min(bucketCount - 1, Math.max(0, Math.floor((t - anchor) / bucketMs)));
-      buckets[idx].revenue += o.total;
+      buckets[idx].revenue += o.net;
       buckets[idx].orders += 1;
     }
 
@@ -322,7 +315,7 @@ router.get(
 /**
  * All customers — one row per unique phone number, computed from real order data.
  * GET /api/admin/customers
- * Returns name, phone, email, total orders, total spend (excl. cancelled),
+ * Returns name, phone, email, total orders, total spend (net booked revenue),
  * first/last order date and location, sorted by total spend descending.
  */
 router.get(
@@ -338,10 +331,12 @@ router.get(
         customerEmail: true,
         customerAddress: true,
         status: true,
+        heldAt: true,
         total: true,
         createdAt: true,
       },
     });
+    const refunds = await refundsByOrder(orders.map((o) => o.id));
 
     // Group by normalized phone number (fallback for phone-less orders).
     const byPhone = new Map<string, CustomerRow>();
@@ -366,7 +361,7 @@ router.get(
         byPhone.set(phone, c);
       }
       c.ordersCount += 1;
-      if (o.status !== 'cancelled') c.totalSpent += o.total;
+      if (isRevenueOrder(o)) c.totalSpent += netOrderValue(o.total, refunds.get(o.id));
       if (o.createdAt > c.lastOrderAt) {
         c.lastOrderAt = o.createdAt;
         c.lastOrderNumber = o.orderNumber;

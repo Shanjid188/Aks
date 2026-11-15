@@ -254,6 +254,24 @@ model TrackingEvent {
   @@index([status])
 }
 
+/**
+ * Admin-managed integration secrets (Meta CAPI / Marketing API tokens, GA4
+ * secrets), encrypted at rest with AES-256-GCM. The key lives only in the
+ * INTEGRATION_ENCRYPTION_KEY environment variable; a same-named environment
+ * variable always overrides the stored value. Values are write-only through
+ * the API — only `last4` and timestamps are ever returned.
+ */
+model IntegrationSecret {
+  key        String   @id // e.g. META_CAPI_ACCESS_TOKEN
+  ciphertext String
+  iv         String
+  authTag    String
+  last4      String
+  updatedBy  String? // admin email (snapshot)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 model OrderItem {
   id          String   @id @default(cuid())
   orderId     String

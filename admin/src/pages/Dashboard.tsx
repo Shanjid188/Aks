@@ -5,6 +5,7 @@ import { EmptyState, Spinner, StatusBadge, formatDate } from '../components/ui';
 import { PERM } from '../lib/permissions';
 import { useCan } from '../lib/permission-context';
 import { adminImageUrl } from '../lib/imageUrl';
+import { TrendChart } from '../components/charts';
 import {
   AlertTriangle,
   ArrowDownRight,
@@ -221,142 +222,14 @@ function SectionCard({
 /* ──────────────────────────────── Sales chart ────────────────────────────── */
 
 function SalesChart({ overview }: { overview: SalesOverview }) {
-  const [hover, setHover] = useState<number | null>(null);
-  const W = 640;
-  const H = 240;
-  const PAD = { top: 16, right: 12, bottom: 28, left: 40 };
-  const pts = overview.points;
-  const maxV = Math.max(...pts.map((p) => p.revenue), 1);
-  const maxO = Math.max(...pts.map((p) => p.orders), 1);
-  const innerW = W - PAD.left - PAD.right;
-  const innerH = H - PAD.top - PAD.bottom;
-  const step = pts.length > 1 ? innerW / (pts.length - 1) : 0;
-  const xAt = (i: number) => PAD.left + (pts.length > 1 ? i * step : innerW / 2);
-  const yAt = (v: number) => PAD.top + innerH - (v / maxV) * innerH;
-
-  // Smooth curve: each segment bends through its horizontal midpoint, so it never overshoots.
-  const path = pts
-    .map((p, i) => {
-      const x = xAt(i);
-      const y = yAt(p.revenue);
-      if (i === 0) return `M${x},${y}`;
-      const px = xAt(i - 1);
-      const py = yAt(pts[i - 1].revenue);
-      const mx = (px + x) / 2;
-      return `C${mx},${py} ${mx},${y} ${x},${y}`;
-    })
-    .join(' ');
-  const base = PAD.top + innerH;
-  const area = `${path} L${xAt(pts.length - 1)},${base} L${xAt(0)},${base} Z`;
-  const labelEvery = Math.max(1, Math.ceil(pts.length / 8));
-  const barW = Math.max(3, Math.min(18, (step || innerW) * 0.5));
-  const hp = hover != null ? pts[hover] : null;
-
   return (
-    <div className="relative">
-      {hp && hover != null && (
-        <div
-          className="pointer-events-none absolute -top-2 z-10 -translate-x-1/2 -translate-y-full rounded-xl bg-neutral-900 px-3 py-2 text-white shadow-xl"
-          style={{ left: `${Math.min(88, Math.max(12, (xAt(hover) / W) * 100))}%` }}
-        >
-          <p className="text-[10px] font-bold uppercase tracking-wider text-white/50">{hp.label}</p>
-          <p className="text-sm font-black tabular-nums">{bdt(hp.revenue)}</p>
-          <p className="text-[10px] font-semibold text-sky-300">{hp.orders} orders</p>
-        </div>
-      )}
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="w-full h-auto"
-        role="img"
-        aria-label="Sales trend chart"
-        onMouseLeave={() => setHover(null)}
-      >
-        <defs>
-          <linearGradient id="salesFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#f97316" stopOpacity="0.02" />
-          </linearGradient>
-          <linearGradient id="salesStroke" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#D8232A" />
-            <stop offset="55%" stopColor="#f43f5e" />
-            <stop offset="100%" stopColor="#f97316" />
-          </linearGradient>
-          <linearGradient id="ordersBar" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#6366f1" stopOpacity="0.08" />
-          </linearGradient>
-        </defs>
-        {[0, 0.25, 0.5, 0.75, 1].map((f) => (
-          <g key={f}>
-            <line
-              x1={PAD.left}
-              x2={W - PAD.right}
-              y1={PAD.top + innerH * (1 - f)}
-              y2={PAD.top + innerH * (1 - f)}
-              stroke={f === 0 ? '#e2e8f0' : '#f1f5f9'}
-              strokeDasharray={f === 0 ? undefined : '4 4'}
-            />
-            <text x={PAD.left - 8} y={PAD.top + innerH * (1 - f) + 3} textAnchor="end" fontSize="9" fill="#94a3b8" fontWeight="600">
-              {compact(maxV * f)}
-            </text>
-          </g>
-        ))}
-        {/* Order volume, scaled to the lower 35% of the plot. */}
-        {pts.map((p, i) => {
-          const h = (p.orders / maxO) * innerH * 0.35;
-          return (
-            <rect
-              key={`b${i}`}
-              x={xAt(i) - barW / 2}
-              y={base - h}
-              width={barW}
-              height={h}
-              rx={Math.min(3, barW / 2)}
-              fill="url(#ordersBar)"
-            />
-          );
-        })}
-        <path d={area} fill="url(#salesFill)" />
-        <path d={path} fill="none" stroke="url(#salesStroke)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
-        {hover != null && (
-          <line x1={xAt(hover)} x2={xAt(hover)} y1={PAD.top} y2={base} stroke="#cbd5e1" strokeDasharray="3 3" />
-        )}
-        {pts.map((p, i) => (
-          <g key={i}>
-            <circle
-              cx={xAt(i)}
-              cy={yAt(p.revenue)}
-              r={hover === i ? 5.5 : pts.length > 40 ? 0 : 3}
-              fill="#fff"
-              stroke="#D8232A"
-              strokeWidth={hover === i ? 3 : 2}
-            />
-            {i % labelEvery === 0 && (
-              <text x={xAt(i)} y={H - 8} textAnchor="middle" fontSize="9" fill="#94a3b8" fontWeight="600">
-                {p.label}
-              </text>
-            )}
-            <rect
-              x={xAt(i) - (step || innerW) / 2}
-              y={PAD.top}
-              width={step || innerW}
-              height={innerH}
-              fill="transparent"
-              onMouseEnter={() => setHover(i)}
-            />
-          </g>
-        ))}
-      </svg>
-      <div className="mt-2 flex flex-wrap items-center gap-4 text-[10px] font-semibold text-neutral-500">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-1.5 w-4 rounded-full bg-gradient-to-r from-[#D8232A] to-orange-500" /> Revenue
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm bg-indigo-300" /> Orders
-        </span>
-        <span className="ml-auto text-neutral-400">Revenue excludes cancelled orders</span>
-      </div>
-    </div>
+    <TrendChart
+      ariaLabel="Sales trend chart"
+      points={overview.points.map((p) => ({ label: p.label, primary: p.revenue, secondary: p.orders }))}
+      primaryLabel="Revenue"
+      secondaryLabel="Orders"
+      footnote="Net revenue: excludes cancelled, returned & refunded orders and refunds"
+    />
   );
 }
 

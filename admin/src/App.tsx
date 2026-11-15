@@ -132,7 +132,7 @@ const NAV: { key: PageKey; label: string; icon: ReactNode; permission: string; d
 const NAV_GROUPS: { key: string; label: string; icon: ReactNode; keys: PageKey[] }[] = [
   { key: 'operation', label: 'Operation', icon: <ShoppingCart className="w-4 h-4" />, keys: ['orders_pending', 'orders_confirmed', 'packaging', 'orders_shipped', 'orders_delivered', 'orders_cancelled', 'orders_returned', 'invoices', 'returns', 'customers'] },
   { key: 'catalog', label: 'Catalog', icon: <Boxes className="w-4 h-4" />, keys: ['products', 'categories', 'inventory', 'purchases', 'suppliers'] },
-  { key: 'marketing', label: 'Marketing', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'gallery', 'offers', 'lovedproducts', 'storefront', 'pages'] },
+  { key: 'marketing', label: 'Marketing', icon: <Sparkles className="w-4 h-4" />, keys: ['coupons', 'reviews', 'slides', 'gallery', 'offers', 'lovedproducts', 'storefront', 'pages', 'subscribers', 'messages'] },
   { key: 'finance', label: 'Finance', icon: <BarChart3 className="w-4 h-4" />, keys: ['expenses', 'reports'] },
   { key: 'administration', label: 'Administration', icon: <ShieldCheck className="w-4 h-4" />, keys: ['admins', 'roles', 'activity', 'settings'] },
 ];
