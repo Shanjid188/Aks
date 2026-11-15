@@ -24,17 +24,55 @@ import {
 
 export * from './consent';
 
-const PIXEL_ID = (import.meta.env.NEXT_PUBLIC_META_PIXEL_ID ?? '').trim();
-const GA_ID = (import.meta.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? '').trim();
+const BUILD_PIXEL_ID = (import.meta.env.NEXT_PUBLIC_META_PIXEL_ID ?? '').trim();
+const BUILD_GA_ID = (import.meta.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? '').trim();
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api';
 const USE_API = import.meta.env.VITE_USE_API !== 'false';
 const CURRENCY = 'BDT';
 const DEBUG = import.meta.env.DEV;
 
-export const pixelConfigured = PIXEL_ID !== '';
-export const gaConfigured = GA_ID !== '';
+/*
+ * Tracker IDs are resolved at runtime from GET /api/tracking/config (server
+ * environment → Admin → Tracking Settings), so changing them needs no rebuild
+ * and an admin can switch a channel off. Build-time NEXT_PUBLIC_* values are
+ * the fallback when the server has none or the API is unavailable. Nothing is
+ * loaded or sent until the config is known AND the shopper has consented.
+ */
+let PIXEL_ID = '';
+let GA_ID = '';
+let configReady = false;
+const configListeners = new Set<() => void>();
+
+export const isPixelConfigured = () => PIXEL_ID !== '';
+export const isGaConfigured = () => GA_ID !== '';
 /** True when any tracker is configured — otherwise no consent prompt is needed. */
-export const trackingConfigured = pixelConfigured || gaConfigured;
+export const isTrackingConfigured = () => isPixelConfigured() || isGaConfigured();
+
+/** For useSyncExternalStore: changes whenever the resolved config changes. */
+export function trackingConfigSnapshot(): string {
+  return `${configReady ? 1 : 0}|${PIXEL_ID}|${GA_ID}`;
+}
+export function subscribeTrackingConfig(fn: () => void): () => void {
+  configListeners.add(fn);
+  return () => configListeners.delete(fn);
+}
+
+interface RuntimeTrackingConfig {
+  metaPixelId: string | null;
+  ga4MeasurementId: string | null;
+  metaEnabled?: boolean;
+  ga4Enabled?: boolean;
+}
+
+async function fetchRuntimeConfig(): Promise<RuntimeTrackingConfig | null> {
+  if (!USE_API) return null;
+  try {
+    const res = await fetch(`${API_BASE}/tracking/config`, { signal: AbortSignal.timeout(4000) });
+    return res.ok ? ((await res.json()) as RuntimeTrackingConfig) : null;
+  } catch {
+    return null;
+  }
+}
 
 type Fbq = ((...args: unknown[]) => void) & {
   callMethod?: (...args: unknown[]) => void;
@@ -76,7 +114,7 @@ function injectScript(src: string) {
 
 /** Meta's base-code stub: queues calls until fbevents.js arrives. */
 function initPixel() {
-  if (pixelReady || !pixelConfigured) return;
+  if (pixelReady || !isPixelConfigured()) return;
   if (!window.fbq) {
     const n = function (...args: unknown[]) {
       if (n.callMethod) n.callMethod(...args);
@@ -100,7 +138,7 @@ function initPixel() {
 }
 
 function initGa(marketing: boolean) {
-  if (!gaConfigured) return;
+  if (!isGaConfigured()) return;
   if (!gaReady) {
     window.dataLayer = window.dataLayer || [];
     window.gtag = function gtag() {
@@ -152,10 +190,22 @@ function applyConsent(state: ConsentState | null) {
 }
 
 let started = false;
-/** Call once at app start. Loads whatever the stored consent allows. */
+let pageViewPending = false;
+
+/** Call once at app start. Resolves the tracker IDs, then loads whatever the stored consent allows. */
 export function initTracking(): void {
-  if (started || typeof window === 'undefined' || !trackingConfigured) return;
+  if (started || typeof window === 'undefined') return;
   started = true;
+  void fetchRuntimeConfig().then((runtime) => {
+    PIXEL_ID = runtime?.metaEnabled === false ? '' : (runtime?.metaPixelId ?? '').trim() || BUILD_PIXEL_ID;
+    GA_ID = runtime?.ga4Enabled === false ? '' : (runtime?.ga4MeasurementId ?? '').trim() || BUILD_GA_ID;
+    configReady = true;
+    configListeners.forEach((fn) => fn());
+    if (isTrackingConfigured()) startTracking();
+  });
+}
+
+function startTracking() {
   let previous = getConsent();
   applyConsent(previous);
   subscribeConsent((state) => {
@@ -166,6 +216,11 @@ export function initTracking(): void {
     if (state?.marketing && !previous?.marketing) meta('PageView', {});
     previous = state;
   });
+  // The route's page view was requested before the IDs were known.
+  if (pageViewPending) {
+    pageViewPending = false;
+    sendPageView();
+  }
 }
 
 /* ───────────────────────────── Helpers ───────────────────────────── */
@@ -292,7 +347,7 @@ const itemsValue = (items: TrackItem[]) => round(items.reduce((s, it) => s + it.
 /* ───────────────────────────── Senders ───────────────────────────── */
 
 function ga(name: string, params: Record<string, unknown>) {
-  if (!gaConfigured || !hasAnalyticsConsent() || !window.gtag) return;
+  if (!isGaConfigured() || !hasAnalyticsConsent() || !window.gtag) return;
   window.gtag('event', name, params);
   log('ga4', name, params);
 }
@@ -341,7 +396,7 @@ function relay(eventName: string, eventId: string, customData: Record<string, un
  * event_id. Returns the event_id (or null when not sent).
  */
 function meta(name: string, data: Record<string, unknown>, opts: { eventId?: string; serverCopy?: boolean } = {}) {
-  if (!pixelConfigured || !hasMarketingConsent() || !window.fbq) return null;
+  if (!isPixelConfigured() || !hasMarketingConsent() || !window.fbq) return null;
   const eventId = opts.eventId ?? newEventId(name.toLowerCase());
   window.fbq('track', name, data, { eventID: eventId });
   log('meta', name, { ...data, eventID: eventId });
@@ -376,7 +431,11 @@ function sendPageView() {
  * URL so React re-renders and StrictMode double effects never repeat it.
  */
 export function trackPageView(): void {
-  if (!trackingConfigured) return;
+  if (!configReady) {
+    pageViewPending = true;
+    return;
+  }
+  if (!isTrackingConfigured()) return;
   clearTimeout(pageTimer);
   pageTimer = setTimeout(() => sendPageView(), 300);
 }
@@ -384,7 +443,7 @@ export function trackPageView(): void {
 /* ───────────────────────────── Ecommerce events ───────────────────────────── */
 
 export function trackViewItem(product: Product): void {
-  if (!trackingConfigured || !once(`view:${product.id}`)) return;
+  if (!isTrackingConfigured() || !once(`view:${product.id}`)) return;
   const item = itemFromProduct(product);
   ga('view_item', { currency: CURRENCY, value: item.price, items: gaItems([item]) });
   meta(
@@ -396,7 +455,7 @@ export function trackViewItem(product: Product): void {
 
 /** GA4 only — Meta has no list-view event. Sends at most the first 30 items. */
 export function trackViewItemList(products: Product[], listId: string, listName: string): void {
-  if (!trackingConfigured || products.length === 0) return;
+  if (!isTrackingConfigured() || products.length === 0) return;
   const shown = products.slice(0, 30);
   if (!once(`list:${listId}:${shown.map((p) => p.id).join(',')}`, 10_000)) return;
   ga('view_item_list', {
@@ -407,7 +466,7 @@ export function trackViewItemList(products: Product[], listId: string, listName:
 }
 
 export function trackAddToCart(item: TrackItem): void {
-  if (!trackingConfigured || item.quantity <= 0) return;
+  if (!isTrackingConfigured() || item.quantity <= 0) return;
   const value = itemsValue([item]);
   ga('add_to_cart', { currency: CURRENCY, value, items: gaItems([item]) });
   meta('AddToCart', { currency: CURRENCY, value, content_name: item.name, ...metaContents([item]) }, { serverCopy: true });
@@ -415,7 +474,7 @@ export function trackAddToCart(item: TrackItem): void {
 
 /** GA4 only — Meta has no remove-from-cart standard event. */
 export function trackRemoveFromCart(item: TrackItem): void {
-  if (!trackingConfigured || item.quantity <= 0) return;
+  if (!isTrackingConfigured() || item.quantity <= 0) return;
   ga('remove_from_cart', { currency: CURRENCY, value: itemsValue([item]), items: gaItems([item]) });
 }
 
@@ -427,14 +486,14 @@ export interface CheckoutSnapshot {
 }
 
 export function trackBeginCheckout(c: CheckoutSnapshot): void {
-  if (!trackingConfigured || c.items.length === 0) return;
+  if (!isTrackingConfigured() || c.items.length === 0) return;
   ga('begin_checkout', { currency: CURRENCY, value: round(c.value), ...(c.coupon ? { coupon: c.coupon } : {}), items: gaItems(c.items) });
   meta('InitiateCheckout', { currency: CURRENCY, value: round(c.value), ...metaContents(c.items) }, { serverCopy: true });
 }
 
 /** GA4 only. `shippingTier` is the delivery zone label. */
 export function trackAddShippingInfo(c: CheckoutSnapshot & { shippingTier: string }): void {
-  if (!trackingConfigured || c.items.length === 0) return;
+  if (!isTrackingConfigured() || c.items.length === 0) return;
   ga('add_shipping_info', {
     currency: CURRENCY,
     value: round(c.value),
@@ -445,7 +504,7 @@ export function trackAddShippingInfo(c: CheckoutSnapshot & { shippingTier: strin
 }
 
 export function trackAddPaymentInfo(c: CheckoutSnapshot & { paymentType: string }): void {
-  if (!trackingConfigured || c.items.length === 0) return;
+  if (!isTrackingConfigured() || c.items.length === 0) return;
   ga('add_payment_info', {
     currency: CURRENCY,
     value: round(c.value),
@@ -458,7 +517,7 @@ export function trackAddPaymentInfo(c: CheckoutSnapshot & { paymentType: string 
 
 export function trackSearch(term: string): void {
   const q = term.trim().slice(0, 100);
-  if (!trackingConfigured || !q || !once(`search:${q.toLowerCase()}`, 3000)) return;
+  if (!isTrackingConfigured() || !q || !once(`search:${q.toLowerCase()}`, 3000)) return;
   ga('search', { search_term: q });
   meta('Search', { search_string: q, currency: CURRENCY }, { serverCopy: true });
 }
@@ -498,7 +557,7 @@ const purchasesThisVisit = new Set<string>();
  * CAPI copy with the same event_id.
  */
 export function trackPurchase(order: ApiOrder, catalog: Product[] = []): void {
-  if (!trackingConfigured || !order?.id) return;
+  if (!isTrackingConfigured() || !order?.id) return;
   if (purchasesThisVisit.has(order.id) || purchaseAlreadyTracked(order.id)) return;
   purchasesThisVisit.add(order.id);
   markPurchaseTracked(order.id);
@@ -539,9 +598,9 @@ export function trackPurchase(order: ApiOrder, catalog: Product[] = []): void {
 /** Identifiers + consent the API needs to send the server-side Purchase. */
 export function checkoutTrackingContext() {
   const consent = getConsent();
-  const marketing = pixelConfigured && consent?.marketing === true;
+  const marketing = isPixelConfigured() && consent?.marketing === true;
   return {
-    consent: { analytics: gaConfigured && consent?.analytics === true, marketing },
+    consent: { analytics: isGaConfigured() && consent?.analytics === true, marketing },
     ...(marketing ? metaBrowserIds() : {}),
     eventSourceUrl: window.location.href,
   };

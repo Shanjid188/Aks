@@ -76,7 +76,7 @@ async function settleEvent(id: string, result: SendResult) {
     where: { id },
     data: {
       status: result.ok ? 'sent' : 'failed',
-      attempts: result.attempts,
+      attempts: { increment: result.attempts },
       lastError: result.ok ? null : result.error,
     },
   });
@@ -89,6 +89,15 @@ export async function recordMarker(key: string, channel: string, eventName: stri
   } catch (e) {
     if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002')) throw e;
   }
+}
+
+/**
+ * Re-claim a failed send for a retry. Atomic: only one caller can move a row
+ * from failed → pending, so a retry never sends twice.
+ */
+export async function reclaimFailed(id: string): Promise<boolean> {
+  const res = await prisma.trackingEvent.updateMany({ where: { id, status: 'failed' }, data: { status: 'pending' } });
+  return res.count === 1;
 }
 
 export async function hasEvent(key: string): Promise<boolean> {
@@ -137,8 +146,15 @@ export async function sendMetaEventOnce(key: string, orderId: string | null, eve
   if (!metaEnabled()) return;
   const id = await claimEvent(key, 'meta_capi', event.event_name, orderId);
   if (!id) return;
+  await deliverMetaEvent(id, event);
+}
+
+/** Send for an already-claimed ledger row and record the outcome. */
+export async function deliverMetaEvent(id: string, event: MetaServerEvent): Promise<SendResult | null> {
   const result = await sendMetaEvent(event);
-  if (result) await settleEvent(id, result);
+  // CAPI switched off between claim and send: release the row as failed.
+  await settleEvent(id, result ?? { ok: false, attempts: 0, error: 'Conversions API not configured' });
+  return result;
 }
 
 /* ─────────────────────── GA4 Measurement Protocol ─────────────────────── */
@@ -161,7 +177,23 @@ export async function sendGa4RefundOnce(orderId: string, transactionId: string, 
   if (!(await hasEvent(`ga4:purchase:${orderId}`))) return;
   const id = await claimEvent(`ga4:refund:${orderId}`, 'ga4_mp', 'refund', orderId);
   if (!id) return;
+  await deliverGa4Refund(id, orderId, transactionId, value, items);
+}
 
+/** Send a GA4 refund for an already-claimed ledger row and record the outcome. */
+export async function deliverGa4Refund(
+  id: string,
+  orderId: string,
+  transactionId: string,
+  value: number,
+  items?: Ga4RefundItem[]
+): Promise<SendResult> {
+  const cfg = ga4Config();
+  if (!cfg) {
+    const off: SendResult = { ok: false, attempts: 0, error: 'GA4 Measurement Protocol not configured' };
+    await settleEvent(id, off);
+    return off;
+  }
   const url = `${cfg.endpoint}?measurement_id=${encodeURIComponent(cfg.measurementId)}&api_secret=${encodeURIComponent(cfg.apiSecret)}`;
   const params: Record<string, unknown> = { currency: CURRENCY, transaction_id: transactionId, value };
   if (items?.length) params.items = items;
@@ -175,4 +207,5 @@ export async function sendGa4RefundOnce(orderId: string, transactionId: string, 
     console.warn(`[tracking] GA4 refund ${transactionId} failed after ${result.attempts} attempt(s): ${result.error}`);
   }
   await settleEvent(id, result);
+  return result;
 }

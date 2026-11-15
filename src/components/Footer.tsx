@@ -24,7 +24,8 @@ import type { ContentPageData } from '../data/pages';
 import { splitFooterPages } from '../data/pages';
 import type { CategoryType } from '../types';
 import { PAYMENT_BRANDS } from '../data/payments';
-import { openConsentSettings, trackingConfigured } from '../lib/tracking';
+import { openConsentSettings } from '../lib/tracking';
+import { useTrackingConfig } from './TrackingConsent';
 
 /** Accent colour for a live payment-method pill (Admin → Settings). */
 const methodAccent = (label: string) => {
@@ -65,6 +66,7 @@ const FooterColumn: React.FC<{
 };
 
 export const Footer: React.FC = () => {
+  const { any: trackingConfigured } = useTrackingConfig();
   const {
     setIsSizeGuideOpen,
     setFilters,

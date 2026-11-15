@@ -1,14 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from '../lib/router';
 import {
   OPEN_CONSENT_EVENT,
-  gaConfigured,
   getConsent,
-  pixelConfigured,
+  isGaConfigured,
+  isPixelConfigured,
   setConsent,
+  subscribeTrackingConfig,
   trackPageView,
-  trackingConfigured,
+  trackingConfigSnapshot,
 } from '../lib/tracking';
+
+/** Which trackers are configured (resolved at runtime from the API). */
+export function useTrackingConfig() {
+  useSyncExternalStore(subscribeTrackingConfig, trackingConfigSnapshot, trackingConfigSnapshot);
+  const pixel = isPixelConfigured();
+  const ga = isGaConfigured();
+  return { pixel, ga, any: pixel || ga };
+}
 
 /** Sends one page view per route (path + query) change. Renders nothing. */
 export function PageViewTracker() {
@@ -26,7 +35,8 @@ export function PageViewTracker() {
  * actually configured are offered.
  */
 export function ConsentBanner() {
-  const [open, setOpen] = useState(() => trackingConfigured && getConsent() === null);
+  const { pixel: pixelConfigured, ga: gaConfigured, any: trackingConfigured } = useTrackingConfig();
+  const [open, setOpen] = useState(false);
   const [customizing, setCustomizing] = useState(false);
   const [analytics, setAnalytics] = useState(() => getConsent()?.analytics ?? false);
   const [marketing, setMarketing] = useState(() => getConsent()?.marketing ?? false);
@@ -42,6 +52,11 @@ export function ConsentBanner() {
     window.addEventListener(OPEN_CONSENT_EVENT, reopen);
     return () => window.removeEventListener(OPEN_CONSENT_EVENT, reopen);
   }, []);
+
+  // Ask once the tracker IDs are known, if the shopper hasn't chosen yet.
+  useEffect(() => {
+    if (trackingConfigured && getConsent() === null) setOpen(true);
+  }, [trackingConfigured]);
 
   if (!trackingConfigured || !open) return null;
 

@@ -1,5 +1,15 @@
 import { CURRENCY } from './config.ts';
-import { recordMarker, sendGa4RefundOnce, sendMetaEventOnce } from './send.ts';
+import { prisma } from '../prisma.ts';
+import { metaConfig, ga4Config } from './config.ts';
+import {
+  deliverGa4Refund,
+  deliverMetaEvent,
+  reclaimFailed,
+  recordMarker,
+  sendGa4RefundOnce,
+  sendMetaEventOnce,
+  type MetaServerEvent,
+} from './send.ts';
 import { buildUserData, cleanFbCookie, clientIp, userAgent } from './userData.ts';
 
 /**
@@ -64,33 +74,28 @@ interface PlacedOrder {
 
 type Req = { ip?: string; headers: Record<string, unknown> };
 
-async function reportOrderPlaced(order: PlacedOrder, req: Req, tracking: CheckoutTracking) {
-  if (tracking.analytics) {
-    // The browser sends the GA4 purchase (it owns the GA client id). Remember
-    // that it did, so a later refund is only sent for purchases GA4 has seen.
-    await recordMarker(`ga4:purchase:${order.id}`, 'ga4_browser', 'purchase', order.id);
-  }
-  if (!tracking.marketing) return;
-
+/** The CAPI Purchase for an order. `ctx` carries browser signals when known. */
+function purchaseEvent(
+  order: PlacedOrder,
+  ctx: { ip?: string; userAgent?: string; fbp?: string; fbc?: string; eventSourceUrl?: string }
+): MetaServerEvent {
   let address: Record<string, unknown> = {};
   try {
     address = JSON.parse(order.customerAddress || '{}');
   } catch {
     address = {};
   }
-  const referer = typeof req.headers.referer === 'string' ? req.headers.referer : undefined;
   const contents = order.items.map((it) => ({
     id: it.productSku || it.productId || '',
     quantity: it.quantity,
     item_price: it.price,
   }));
-
-  await sendMetaEventOnce(`meta:Purchase:${order.id}`, order.id, {
+  return {
     event_name: 'Purchase',
     event_id: purchaseEventId(order.id),
     event_time: Math.floor(order.createdAt.getTime() / 1000),
     action_source: 'website',
-    event_source_url: tracking.eventSourceUrl ?? cleanUrl(referer),
+    event_source_url: ctx.eventSourceUrl,
     user_data: buildUserData(
       {
         fullName: order.customerName,
@@ -100,7 +105,7 @@ async function reportOrderPlaced(order: PlacedOrder, req: Req, tracking: Checkou
         division: address.division,
         postalCode: address.postalCode,
       },
-      { ip: clientIp(req), userAgent: userAgent(req), fbp: tracking.fbp, fbc: tracking.fbc }
+      { ip: ctx.ip, userAgent: ctx.userAgent, fbp: ctx.fbp, fbc: ctx.fbc }
     ),
     custom_data: {
       currency: CURRENCY,
@@ -111,7 +116,28 @@ async function reportOrderPlaced(order: PlacedOrder, req: Req, tracking: Checkou
       contents,
       num_items: order.items.reduce((n, it) => n + it.quantity, 0),
     },
-  });
+  };
+}
+
+async function reportOrderPlaced(order: PlacedOrder, req: Req, tracking: CheckoutTracking) {
+  if (tracking.analytics) {
+    // The browser sends the GA4 purchase (it owns the GA client id). Remember
+    // that it did, so a later refund is only sent for purchases GA4 has seen.
+    await recordMarker(`ga4:purchase:${order.id}`, 'ga4_browser', 'purchase', order.id);
+  }
+  if (!tracking.marketing) return;
+  const referer = typeof req.headers.referer === 'string' ? req.headers.referer : undefined;
+  await sendMetaEventOnce(
+    `meta:Purchase:${order.id}`,
+    order.id,
+    purchaseEvent(order, {
+      ip: clientIp(req),
+      userAgent: userAgent(req),
+      fbp: tracking.fbp,
+      fbc: tracking.fbc,
+      eventSourceUrl: tracking.eventSourceUrl ?? cleanUrl(referer),
+    })
+  );
 }
 
 /** Fire-and-forget: never delays or fails the checkout response. */
@@ -141,4 +167,64 @@ export function trackOrderRefund(
   sendGa4RefundOnce(order.id, order.id, full ? order.total : value, items).catch((e) => {
     console.warn(`[tracking] refund ${order.id}: ${e instanceof Error ? e.message : String(e)}`);
   });
+}
+
+/* ─────────────────────────────── Retries ─────────────────────────────── */
+
+/** Meta rejects events whose event_time is more than 7 days old. */
+const META_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
+
+export type RetryOutcome = 'sent' | 'failed' | 'skipped';
+
+/** Can this ledger row be rebuilt and re-sent from stored order data? */
+export function isRetryable(row: { channel: string; eventName: string; orderId: string | null; createdAt: Date }): boolean {
+  if (!row.orderId) return false; // browser-relayed events keep no payload
+  if (row.channel === 'meta_capi' && row.eventName === 'Purchase') return Date.now() - row.createdAt.getTime() < META_MAX_AGE_MS;
+  return row.channel === 'ga4_mp' && row.eventName === 'refund';
+}
+
+/**
+ * Re-send failed ledger rows. Each row is rebuilt from the stored order (the
+ * original send had consent — rows are only ever claimed with it). Browser
+ * signals (IP, user agent, fbp/fbc) were never stored, so a retried Purchase
+ * matches on hashed contact details only.
+ */
+export async function retryFailedTracking(ids?: string[]): Promise<Record<RetryOutcome, number>> {
+  const out: Record<RetryOutcome, number> = { sent: 0, failed: 0, skipped: 0 };
+  const rows = await prisma.trackingEvent.findMany({
+    where: { status: 'failed', ...(ids?.length ? { id: { in: ids } } : {}) },
+    orderBy: { createdAt: 'asc' },
+    take: 200,
+  });
+  for (const row of rows) {
+    const ready = row.channel === 'meta_capi' ? metaConfig() : ga4Config();
+    if (!ready || !isRetryable(row)) {
+      out.skipped++;
+      continue;
+    }
+    const order = await prisma.order.findUnique({ where: { id: row.orderId! }, include: { items: true } });
+    if (!order || !(await reclaimFailed(row.id))) {
+      out.skipped++;
+      continue;
+    }
+    if (row.channel === 'meta_capi') {
+      const res = await deliverMetaEvent(row.id, purchaseEvent(order, {}));
+      out[res?.ok ? 'sent' : 'failed']++;
+    } else {
+      const refunded = await prisma.refund.aggregate({ where: { orderId: order.id }, _sum: { amount: true } });
+      const partial = refunded._sum.amount ?? 0;
+      const full = partial <= 0 || partial >= order.total;
+      const res = await deliverGa4Refund(
+        row.id,
+        order.id,
+        order.id,
+        full ? order.total : partial,
+        full
+          ? order.items.map((it) => ({ item_id: it.productSku || it.productId || '', item_name: it.productName, price: it.price, quantity: it.quantity }))
+          : undefined
+      );
+      out[res.ok ? 'sent' : 'failed']++;
+    }
+  }
+  return out;
 }

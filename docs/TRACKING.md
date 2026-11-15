@@ -84,8 +84,11 @@ never request bodies.
 | `NEXT_PUBLIC_META_PIXEL_ID` | `123456789012345` | Meta Pixel / dataset ID |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | `G-ABC123XYZ` | GA4 web stream measurement ID |
 
-These are compiled into the browser bundle at `npm run build`, so **rebuild after
-changing them**. Never put a secret under `NEXT_PUBLIC_*` or `VITE_*`.
+These are only a **fallback**: at startup the storefront asks the API
+(`GET /api/tracking/config`) for the IDs, which come from the server environment
+or Admin → Advertising → Tracking Settings, so changing them there needs no
+rebuild. An admin switching a channel off also disables the build-time ID.
+Never put a secret under `NEXT_PUBLIC_*` or `VITE_*`.
 
 ### API server (`server/.env`) — server-only
 
@@ -97,6 +100,15 @@ changing them**. Never put a secret under `NEXT_PUBLIC_*` or `VITE_*`.
 | `META_GRAPH_API_VERSION` | no | Defaults to `v26.0`; bump when Meta deprecates it |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` (or `GA_MEASUREMENT_ID`) | for refunds | Same G-ID as the storefront |
 | `GA4_API_SECRET` | for refunds | GA4 Measurement Protocol API secret — **secret** |
+
+| `INTEGRATION_ENCRYPTION_KEY` | for admin-entered secrets | 32 bytes (hex/base64) used to encrypt secrets stored from the admin panel |
+
+**Admin → Advertising → Tracking Settings** can set every value above. Order of
+precedence for each one: server environment variable → admin setting → off.
+Secrets entered in the admin are encrypted (AES-256-GCM) with
+`INTEGRATION_ENCRYPTION_KEY`, are write-only (only the last 4 characters are
+ever shown) and are never logged; the page also shows delivery health, lets you
+retry failed server sends and sends a Meta test event.
 
 CAPI is active only when both the Pixel ID and the access token are set;
 GA4 server refunds only when both the measurement ID and the API secret are set.
