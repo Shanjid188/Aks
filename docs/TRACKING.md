@@ -267,3 +267,29 @@ Where it appears in the admin:
 - Raw click IDs are never returned by the API.
 
 Before production, check legally that collecting UTM tags without consent meets the privacy rules that apply to you.
+
+## Ad spend
+
+Admin → Advertising → **Ad Spend** holds daily spend per campaign (`AdSpendEntry`). Spend gets there in three ways:
+
+- **Meta Ads sync:**
+  - Set up in **Integrations**: an ad account ID plus a token with `ads_read`. The token is stored encrypted, and the `META_ADS_ACCESS_TOKEN` / `META_AD_ACCOUNT_ID` env vars take precedence.
+  - Runs every 6 hours for the last 3 days, or manually for up to 90 days.
+  - The token is sent only in the `Authorization` header.
+- **CSV import:**
+  - Google Ads first (Campaigns → segment by Day → Download CSV); any Date/Campaign/Cost CSV also works.
+  - A preview step shows totals and bad lines.
+  - Re-importing the same days replaces the earlier rows (keyed by platform, account, campaign and day).
+- **Manual entries:** for boosted posts, influencer fees and similar.
+
+Imported campaigns are created or matched automatically: by platform campaign ID first, then by name. Orders are then re-linked to them.
+
+**Currency:**
+
+- Spend is stored in the billed currency.
+- It is converted to BDT at read time using the admin **exchange-rate table**. A rate applies from its date until the next rate for that currency.
+- Rates are never guessed. Rows without a rate are listed as "not converted" and excluded from BDT totals until a rate is added.
+
+Reports show an *Ad spend* line for the selected window, but only to admins with `advertising.spend_view`.
+
+Every import, sync, manual entry, deletion and rate change is audited. Sync history is kept in `IntegrationSyncRun`.

@@ -40,6 +40,8 @@ import advertisingTrackingRouter from './routes/advertisingTracking.ts';
 import advertisingCampaignsRouter from './routes/advertisingCampaigns.ts';
 import { registerJob, startJobs } from './lib/jobs.ts';
 import { purgeExpiredClickIds } from './lib/attribution.ts';
+import { loadAdsSettings, scheduledMetaSync } from './lib/metaAds.ts';
+import advertisingSpendRouter from './routes/advertisingSpend.ts';
 import { loadTrackingSettings } from './lib/tracking/config.ts';
 import { loadSecrets } from './lib/secrets.ts';
 
@@ -157,6 +159,7 @@ app.use('/api', contactRouter);
 app.use('/api', trackingRouter);
 app.use('/api', advertisingTrackingRouter);
 app.use('/api', advertisingCampaignsRouter);
+app.use('/api', advertisingSpendRouter);
 
 /* Crawler files (robots.txt / sitemap.xml) live at the site root, not under
    /api — registered before the SPA fallback so they are never swallowed. */
@@ -209,6 +212,7 @@ app.use(errorHandler);
 await Promise.all([
   loadSecrets().catch((err) => console.warn('[secrets] could not load stored secrets:', err?.message ?? err)),
   loadTrackingSettings().catch((err) => console.warn('[tracking] could not load tracking settings:', err?.message ?? err)),
+  loadAdsSettings().catch((err) => console.warn('[ads] could not load ad settings:', err?.message ?? err)),
 ]);
 
 const PORT = Number(process.env.PORT) || 4000;
@@ -218,6 +222,7 @@ registerJob({
   everyMs: 24 * 3600 * 1000,
   run: async () => `${await purgeExpiredClickIds()} click id(s) erased`,
 });
+registerJob({ name: 'meta-ads-sync', everyMs: 6 * 3600 * 1000, run: scheduledMetaSync });
 startJobs();
 
 app.listen(PORT, () => {

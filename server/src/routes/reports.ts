@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.ts';
-import { asyncHandler, requirePermission } from '../lib/auth.ts';
+import { asyncHandler, hasPermission, requirePermission } from '../lib/auth.ts';
+import { spendTotals } from '../lib/adSpend.ts';
 import { PERM } from '../lib/permissions.ts';
 import { parseBasis, parseSource, refundsByOrder, netOrderValue, revenueOrderWhere } from '../lib/revenue.ts';
 
@@ -67,6 +68,13 @@ router.get(
     const orderRefunds = await refundsByOrder(orders.map((o) => o.id));
     const netRevenue = orders.reduce((s, o) => s + netOrderValue(o.total, orderRefunds.get(o.id)), 0);
 
+    // Ad spend in the same window (BDT via the admin exchange-rate table), only
+    // for admins allowed to see spend. Unconverted foreign-currency rows are
+    // reported, never guessed.
+    const adSpend = (await hasPermission(_req, PERM.ADVERTISING_SPEND_VIEW))
+      ? await spendTotals({ from: since, to: until ?? new Date() })
+      : null;
+
     const paymentMethod: Record<string, { count: number; revenue: number }> = {};
     const source: Record<string, { count: number; revenue: number }> = {};
     const status: Record<string, number> = {};
@@ -101,6 +109,7 @@ router.get(
       totalRefunds,
       netRevenue,
       refundsOnCountedOrders: revenue - netRevenue,
+      adSpend,
       profit: null, // cost-price profit is computed when product cost prices exist
       paymentMethod,
       source,

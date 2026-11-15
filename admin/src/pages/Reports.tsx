@@ -14,6 +14,8 @@ interface ReportData {
   totalRefunds: number;
   netRevenue: number;
   profit: number | null;
+  /** null when the admin may not see ad spend */
+  adSpend?: { spendBdt: number; rows: number; unconvertedRows: number; unconverted: { currency: string; amount: number; rows: number }[] } | null;
   paymentMethod: Record<string, { count: number; revenue: number }>;
   source: Record<string, { count: number; revenue: number }>;
   orderStatus: Record<string, number>;
@@ -63,6 +65,21 @@ export function ReportsPage() {
             <div className="bg-white rounded-2xl border border-neutral-200 p-4"><p className="text-[10px] font-bold uppercase text-neutral-400">Orders</p><p className="text-xl font-black text-neutral-900 mt-1">{data.ordersCount}</p></div>
             <div className="bg-white rounded-2xl border border-neutral-200 p-4"><p className="text-[10px] font-bold uppercase text-neutral-400">Expenses</p><p className="text-xl font-black text-rose-600 mt-1">{bdt(data.totalExpenses)}</p></div>
           </div>
+          {data.adSpend && (
+            <div className="bg-white rounded-2xl border border-neutral-200 p-4 flex flex-wrap items-baseline justify-between gap-2">
+              <div>
+                <p className="text-[10px] font-bold uppercase text-neutral-400">Ad spend</p>
+                <p className="text-xl font-black text-rose-600 mt-1">{bdt(data.adSpend.spendBdt)}</p>
+              </div>
+              <p className="text-[11px] text-neutral-500">
+                {data.adSpend.rows === 0
+                  ? 'No ad spend recorded for this range (Advertising → Ad Spend).'
+                  : data.adSpend.unconvertedRows > 0
+                    ? `Excludes ${data.adSpend.unconverted.map((u) => `${u.currency} ${u.amount.toLocaleString('en-IN')}`).join(', ')} — add exchange rates in Advertising → Ad Spend.`
+                    : 'Imported and manual ad spend, converted with your exchange rates.'}
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
             <section className="bg-white rounded-2xl border border-neutral-200">

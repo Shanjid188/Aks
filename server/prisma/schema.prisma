@@ -94,7 +94,9 @@ model Category {
   accentColor   String        @default("#D8232A")
   isActive      Boolean       @default(true)
   sortOrder     Int           @default(0)
-  /** Legacy nesting from the first seed — subcategories now live in their own table. */
+  /**
+   * Legacy nesting from the first seed — subcategories now live in their own table.
+   */
   parentId      String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @default(now()) @updatedAt
@@ -179,40 +181,40 @@ model Product {
 }
 
 model Order {
-  id                String          @id @default(cuid())
-  orderNumber       String          @unique
-  trackingCode      String          @unique
-  status            String          @default("pending") // pending (new orders) → confirmed | processing | packed | shipped | out_for_delivery (legacy) | delivered | completed | cancelled | returned | refunded
-  source            String          @default("online") // online (storefront) | pos (counter sale)
+  id                String             @id @default(cuid())
+  orderNumber       String             @unique
+  trackingCode      String             @unique
+  status            String             @default("pending") // pending (new orders) → confirmed | processing | packed | shipped | out_for_delivery (legacy) | delivered | completed | cancelled | returned | refunded
+  source            String             @default("online") // online (storefront) | pos (counter sale)
   invoiceNumber     String? // printable invoice reference — assigned when invoice module ships
   customerName      String
   customerPhone     String
   customerEmail     String
-  customerAddress   String          @default("{}") // JSON — mirrors ShippingAddress from src/types.ts
+  customerAddress   String             @default("{}") // JSON — mirrors ShippingAddress from src/types.ts
   customerId        String? // optional Customer model link (POS / registered customers)
-  customer          Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  deliveryMethod    String          @default("standard") // standard | express | pickup
+  customer          Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  deliveryMethod    String             @default("standard") // standard | express | pickup
   pickupStore       String?
-  paymentMethod     String          @default("cod") // bkash | nagad | card | cod | cash | rocket | bank
+  paymentMethod     String             @default("cod") // bkash | nagad | card | cod | cash | rocket | bank
   /// Customer-declared transaction ID for manual transfers (bKash/Nagad/bank).
   paymentReference  String?
-  paymentStatus     String          @default("unpaid") // unpaid | partial | paid | failed | refunded | due
-  paidAmount        Float           @default(0)
-  dueAmount         Float           @default(0)
+  paymentStatus     String             @default("unpaid") // unpaid | partial | paid | failed | refunded | due
+  paidAmount        Float              @default(0)
+  dueAmount         Float              @default(0)
   cashierId         String? // admin who recorded/POS-sold the order
-  cashier           AdminUser?      @relation("OrderCashier", fields: [cashierId], references: [id], onDelete: SetNull)
+  cashier           AdminUser?         @relation("OrderCashier", fields: [cashierId], references: [id], onDelete: SetNull)
   assignedAdminId   String? // admin currently responsible for processing
-  assignedAdmin     AdminUser?      @relation("AssignedOrders", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  assignedAdmin     AdminUser?         @relation("AssignedOrders", fields: [assignedAdminId], references: [id], onDelete: SetNull)
   subtotal          Float
-  discount          Float           @default(0)
-  shippingFee       Float           @default(0)
-  tax               Float           @default(0)
+  discount          Float              @default(0)
+  shippingFee       Float              @default(0)
+  tax               Float              @default(0)
   total             Float
   couponCode        String?
   customerNote      String?
   adminNote         String?
   estimatedDelivery String?
-  packedStatus      String          @default("not_packed") // not_packed | packing | packed | shipped
+  packedStatus      String             @default("not_packed") // not_packed | packing | packed | shipped
   packedAt          DateTime?
   packedBy          String? // admin name/email who packed (snapshot, survives admin deletion)
   dispatchedAt      DateTime?
@@ -222,15 +224,15 @@ model Order {
   payments          Payment[]
   returnRequests    ReturnRequest[]
   attributions      OrderAttribution[]
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
+  @@unique([invoiceNumber]) // printable invoice reference must be unique (SQLite: multiple NULLs allowed)
   @@index([customerPhone])
   @@index([status])
   @@index([source])
   @@index([paymentStatus])
   @@index([createdAt])
-  @@unique([invoiceNumber]) // printable invoice reference must be unique (SQLite: multiple NULLs allowed)
 }
 
 /**
@@ -295,6 +297,7 @@ model MarketingCampaign {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   attributions       OrderAttribution[]
+  adSpend            AdSpendEntry[]
 
   @@unique([platform, platformCampaignId])
   @@index([status])
@@ -334,7 +337,9 @@ model OrderAttribution {
   @@index([touchedAt])
 }
 
-/** Single-row locks so scheduled jobs never run twice concurrently. */
+/**
+ * Single-row locks so scheduled jobs never run twice concurrently.
+ */
 model JobLock {
   name        String    @id
   lockedUntil DateTime
@@ -570,19 +575,19 @@ model Refund {
 }
 
 model Coupon {
-  id           String   @id @default(cuid())
-  code         String   @unique
-  discountType String // percent | fixed
-  value        Float
-  minSpend     Float    @default(0)
-  description  String
-  descriptionBn String  @default("") // Bangla copy shown on the storefront offers section
-  image        String? // optional ticket artwork (uploaded via Admin → Coupons)
-  sortOrder    Int      @default(0) // order inside the storefront "Active Offers" section
-  active       Boolean  @default(true)
-  usedCount    Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  code          String   @unique
+  discountType  String // percent | fixed
+  value         Float
+  minSpend      Float    @default(0)
+  description   String
+  descriptionBn String   @default("") // Bangla copy shown on the storefront offers section
+  image         String? // optional ticket artwork (uploaded via Admin → Coupons)
+  sortOrder     Int      @default(0) // order inside the storefront "Active Offers" section
+  active        Boolean  @default(true)
+  usedCount     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 /// Storefront content page (About, Contact, policies…) — Admin → Content Pages.
@@ -762,3 +767,71 @@ model LoveBanner {
  * created in Admin → Categories (name + picture), so there is no separate model
  * for it here.
  */
+
+/**
+ * Advertising spend per campaign per day, in the currency the platform billed.
+ * Converted to BDT at read time with FxRate (never guessed: rows without a
+ * rate are reported as unconverted). `externalKey` de-duplicates imports and
+ * API syncs (platform:account:campaign:date), so re-importing replaces rows.
+ */
+model AdSpendEntry {
+  id                 String             @id @default(cuid())
+  date               DateTime // UTC midnight of the spend day
+  platform           String // meta | google | tiktok | other
+  campaignId         String?
+  campaign           MarketingCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  platformCampaignId String?
+  campaignName       String
+  accountId          String?
+  currency           String // ISO 4217, upper-case
+  amount             Float
+  impressions        Int?
+  clicks             Int?
+  source             String // manual | csv | meta_api
+  externalKey        String?            @unique
+  importRunId        String?
+  note               String?
+  createdBy          String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([date])
+  @@index([campaignId])
+  @@index([platform])
+}
+
+/**
+ * Admin-managed exchange rates: 1 unit of `currency` = `rateToBdt` BDT from
+ * `effectiveFrom` (UTC day) until the next rate for that currency.
+ */
+model FxRate {
+  id            String   @id @default(cuid())
+  currency      String
+  rateToBdt     Float
+  effectiveFrom DateTime
+  note          String?
+  createdBy     String?
+  createdAt     DateTime @default(now())
+
+  @@unique([currency, effectiveFrom])
+}
+
+/**
+ * History of imports and API syncs (no personal data).
+ */
+model IntegrationSyncRun {
+  id           String    @id @default(cuid())
+  integration  String // meta_ads | csv_import
+  status       String // running | success | partial | failed
+  trigger      String // manual | schedule
+  rangeFrom    DateTime?
+  rangeTo      DateTime?
+  rowsUpserted Int       @default(0)
+  rowsSkipped  Int       @default(0)
+  message      String?
+  triggeredBy  String?
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+
+  @@index([integration, startedAt])
+}
