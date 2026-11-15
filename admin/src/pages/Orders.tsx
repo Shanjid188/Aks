@@ -1,3 +1,4 @@
+import { CHANNEL_LABELS } from '../components/marketing';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 import type { Order, OrderItem, Product } from '../types';
@@ -77,6 +78,8 @@ export function OrdersPage({ initialFilter }: { initialFilter?: string } = {}) {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  // Marketing channel of the order's last non-direct touch (server-side filter).
+  const [channelFilter, setChannelFilter] = useState('');
   const [detail, setDetail] = useState<Order | null>(null);
   // Status line for "Direct Print" inside the order-detail modal.
   const [directPrintMsg, setDirectPrintMsg] = useState<string | null>(null);
@@ -120,11 +123,12 @@ export function OrdersPage({ initialFilter }: { initialFilter?: string } = {}) {
     setLoading(true);
     setError(null);
     api
-      .get<{ orders: Order[] }>('/admin/orders')
+      .get<{ orders: Order[] }>(`/admin/orders${channelFilter ? `?channel=${encodeURIComponent(channelFilter)}` : ''}`)
       .then((res) => {
         setOrders(res.orders);
-        // Publish the live pending count so the sidebar badge stays current.
-        window.dispatchEvent(
+        // Publish the live pending count so the sidebar badge stays current
+        // (only from the unfiltered list).
+        if (!channelFilter) window.dispatchEvent(
           new CustomEvent('aks-admin-pending-count', {
             detail: res.orders.filter((o) => o.status === 'pending').length,
           })
@@ -132,7 +136,7 @@ export function OrdersPage({ initialFilter }: { initialFilter?: string } = {}) {
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [channelFilter]);
 
   useEffect(() => {
     load();
@@ -374,6 +378,18 @@ return (
         desc={pageDesc}
         icon={<ShoppingCart className="w-5 h-5" />}
         actions={
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <select
+            value={channelFilter}
+            onChange={(e) => setChannelFilter(e.target.value)}
+            aria-label="Marketing channel"
+            className="px-3 py-2 text-sm rounded-lg border border-white/15 bg-white/10 text-white outline-none focus:border-white/40 [&>option]:text-neutral-900"
+          >
+            <option value="">All channels</option>
+            {Object.entries(CHANNEL_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
           <div className="relative w-full sm:w-64">
             <Search className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -382,6 +398,7 @@ return (
               placeholder="Search order ID / name / phone…"
               className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-white/15 bg-white/10 text-white placeholder:text-white/40 outline-none focus:border-white/40 focus:bg-white/15"
             />
+          </div>
           </div>
         }
       />

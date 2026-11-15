@@ -35,6 +35,19 @@ import pagesRouter from './routes/pages.ts';
 import newsletterRouter from './routes/newsletter.ts';
 import contactRouter from './routes/contact.ts';
 import seoRouter from './routes/seo.ts';
+import trackingRouter from './routes/tracking.ts';
+import advertisingTrackingRouter from './routes/advertisingTracking.ts';
+import advertisingCampaignsRouter from './routes/advertisingCampaigns.ts';
+import { registerJob, startJobs } from './lib/jobs.ts';
+import { purgeExpiredClickIds } from './lib/attribution.ts';
+import { loadAdsSettings, scheduledMetaSync } from './lib/metaAds.ts';
+import advertisingSpendRouter from './routes/advertisingSpend.ts';
+import advertisingTrafficRouter from './routes/advertisingTraffic.ts';
+import abandonedCartsRouter from './routes/abandonedCarts.ts';
+import { runCartMaintenance } from './lib/checkoutSessions.ts';
+import { loadGa4Settings, purgeExpiredGa4Cache } from './lib/ga4Data.ts';
+import { loadTrackingSettings } from './lib/tracking/config.ts';
+import { loadSecrets } from './lib/secrets.ts';
 
 const app = express();
 
@@ -147,6 +160,12 @@ app.use('/api', storefrontRouter);
 app.use('/api', pagesRouter);
 app.use('/api', newsletterRouter);
 app.use('/api', contactRouter);
+app.use('/api', trackingRouter);
+app.use('/api', advertisingTrackingRouter);
+app.use('/api', advertisingCampaignsRouter);
+app.use('/api', advertisingSpendRouter);
+app.use('/api', advertisingTrafficRouter);
+app.use('/api', abandonedCartsRouter);
 
 /* Crawler files (robots.txt / sitemap.xml) live at the site root, not under
    /api — registered before the SPA fallback so they are never swallowed. */
@@ -194,7 +213,27 @@ const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 };
 app.use(errorHandler);
 
+// Decrypt admin-managed integration secrets into memory (env vars still win).
+// Awaited so the very first order already sees admin-configured tracking.
+await Promise.all([
+  loadSecrets().catch((err) => console.warn('[secrets] could not load stored secrets:', err?.message ?? err)),
+  loadTrackingSettings().catch((err) => console.warn('[tracking] could not load tracking settings:', err?.message ?? err)),
+  loadAdsSettings().catch((err) => console.warn('[ads] could not load ad settings:', err?.message ?? err)),
+  loadGa4Settings().catch((err) => console.warn('[ga4] could not load GA4 settings:', err?.message ?? err)),
+]);
+
 const PORT = Number(process.env.PORT) || 4000;
+// Privacy & maintenance jobs (exclusive via JobLock; DISABLE_JOBS=true turns them off).
+registerJob({
+  name: 'purge-click-ids',
+  everyMs: 24 * 3600 * 1000,
+  run: async () => `${await purgeExpiredClickIds()} click id(s) erased`,
+});
+registerJob({ name: 'ga4-cache-purge', everyMs: 24 * 3600 * 1000, run: purgeExpiredGa4Cache });
+registerJob({ name: 'cart-maintenance', everyMs: 10 * 60 * 1000, run: () => runCartMaintenance() });
+registerJob({ name: 'meta-ads-sync', everyMs: 6 * 3600 * 1000, run: scheduledMetaSync });
+startJobs();
+
 app.listen(PORT, () => {
   console.log(`🚀 AKS API listening on http://localhost:${PORT}`);
   console.log(`   Health:  http://localhost:${PORT}/api/health`);

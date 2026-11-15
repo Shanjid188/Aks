@@ -28,6 +28,7 @@ import { Bi } from './Bi';
 import { Link, navigate } from '../lib/router';
 import { useLanguage } from '../context/LanguageContext';
 import { useLocalized } from './Localized';
+import { trackSearch } from '../lib/tracking';
 
 /** Icon cycle for the announcement ticker — DB announcements carry no icon,
  *  so the header rotates through a small curated set. */
@@ -135,6 +136,7 @@ export const Header: React.FC = () => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      trackSearch(searchQuery);
       setFilters((prev) => ({
         ...prev,
         searchQuery: searchQuery.trim(),
@@ -362,6 +364,7 @@ export const Header: React.FC = () => {
                                 key={kw}
                                 onClick={() => {
                                   setSearchQuery(kw);
+                                  trackSearch(kw);
                                   setFilters((prev) => ({ ...prev, searchQuery: kw, category: 'all', subcategory: 'All' }));
                                   setIsSearchFocused(false);
                                 }}

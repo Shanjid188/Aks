@@ -4,6 +4,7 @@ import { asyncHandler, requirePermission, currentAdmin } from '../lib/auth.ts';
 import { PERM } from '../lib/permissions.ts';
 import { logAudit } from '../lib/audit.ts';
 import { applyStockDelta } from '../lib/stock.ts';
+import { trackOrderRefund } from '../lib/tracking/orders.ts';
 
 const router = Router();
 
@@ -143,10 +144,12 @@ router.post(
 
     // If the linked order is being fully refunded, flip its payment ledger.
     if (ret.orderId) {
-      await prisma.order.update({
+      const refundedOrder = await prisma.order.update({
         where: { id: ret.orderId },
         data: { status: 'refunded', paymentStatus: 'refunded', dueAmount: 0 },
       });
+      // GA4 refund for the amount actually refunded (once per order).
+      if (refundedOrder.source === 'online') trackOrderRefund(refundedOrder, amount);
     }
 
     await logAudit({

@@ -6,6 +6,9 @@ import { logAudit } from '../lib/audit.ts';
 import { parseJsonSafe } from '../utils/json.ts';
 import { applyStockDelta } from '../lib/stock.ts';
 import { loadCheckoutConfig } from '../lib/checkout.ts';
+import { parseCheckoutTracking, REVERSAL_STATUSES, trackOrderPlaced, trackOrderRefund } from '../lib/tracking/orders.ts';
+import { attributionCreateInput, parseAttribution } from '../lib/attribution.ts';
+import { convertSession } from '../lib/checkoutSessions.ts';
 
 const router = Router();
 
@@ -241,6 +244,10 @@ router.post(
     const randomSuffix = Math.floor(100000 + Math.random() * 900000);
     const orderNumber = `ORD-${Date.now()}`;
     const trackingCode = `AKS-BD-${randomSuffix}`;
+    // Marketing source (UTM / referrer always; ad click IDs only with
+    // advertising consent). Written in the same statement as the order.
+    const checkoutTracking = parseCheckoutTracking(body.tracking);
+    const attributions = await attributionCreateInput(parseAttribution(body.attribution, checkoutTracking.marketing));
     const order = await prisma.order.create({
       data: {
         orderNumber,
@@ -271,6 +278,7 @@ router.post(
         couponCode,
         estimatedDelivery: 'Delivery time will be confirmed after your order is placed.',
         items: { create: orderItems },
+        ...(attributions ? { attributions: { create: attributions } } : {}),
       },
       include: { items: true },
     });
@@ -294,6 +302,12 @@ router.post(
         });
       }
     }
+
+    // Purchase conversion (Meta CAPI + GA4 refund eligibility). Consent-gated
+    // and fire-and-forget — it never delays or fails the order response.
+    trackOrderPlaced(order, req, checkoutTracking);
+    // Abandoned-cart analytics: mark the checkout session converted (never fails the order).
+    await convertSession(body.checkoutSession, order.id);
 
     res.status(201).json({ order: orderToApi(order) });
   })
@@ -338,6 +352,13 @@ router.get(
     const q = req.query as Record<string, string | undefined>;
     const where: Record<string, unknown> = {};
     if (q.status) where.status = q.status;
+    // Marketing filters (last non-direct touch).
+    if (q.channel === 'direct') where.attributions = { none: {} };
+    else if (q.channel || q.campaignId) {
+      where.attributions = {
+        some: { touch: 'last', ...(q.channel ? { channel: String(q.channel) } : {}), ...(q.campaignId ? { campaignId: String(q.campaignId) } : {}) },
+      };
+    }
     if (q.search) {
       const term = String(q.search).trim();
       where.OR = [
@@ -367,7 +388,14 @@ router.get(
       include: ITEM_INCLUDE,
     });
     if (!order) return res.status(404).json({ error: 'Order not found' });
-    res.json({ order: orderToApi(order) });
+    // Marketing source: first/last non-direct touch. The raw ad click ID is
+    // never shown — only whether one was captured.
+    const touches = await prisma.orderAttribution.findMany({
+      where: { orderId: order.id },
+      include: { campaign: { select: { id: true, name: true, status: true } } },
+    });
+    const attribution = touches.map(({ clickId, ...t }) => ({ ...t, hasClickId: clickId !== null }));
+    res.json({ order: { ...orderToApi(order), attribution } });
   })
 );
 
@@ -474,6 +502,12 @@ router.patch(
       entityId: id,
       details: `${existing.orderNumber}: ${existing.status} → ${nextStatus}`,
     });
+
+    // An online order that is cancelled/refunded/returned is a GA4 refund
+    // (sent once per order, only if GA4 recorded the purchase).
+    if (REVERSAL_STATUSES.includes(nextStatus) && !REVERSAL_STATUSES.includes(existing.status) && order.source === 'online') {
+      trackOrderRefund(order);
+    }
 
     res.json({ order: orderToApi(order) });
   })

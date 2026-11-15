@@ -116,6 +116,27 @@ export interface Order {
   deliveryStatus?: string | null;
   packagingStatus?: string | null;
   customerNote?: string | null;
+  /** Marketing source (admin order detail only): first / last non-direct touch. */
+  attribution?: OrderAttribution[];
+}
+
+export interface OrderAttribution {
+  id: string;
+  touch: 'first' | 'last';
+  channel: string;
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  utmContent: string | null;
+  utmTerm: string | null;
+  utmId: string | null;
+  clickIdType: string | null;
+  hasClickId: boolean;
+  referrerHost: string | null;
+  landingPath: string | null;
+  touchedAt: string;
+  campaignId: string | null;
+  campaign: { id: string; name: string; status: string } | null;
 }
 
 export interface Coupon {

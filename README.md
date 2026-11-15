@@ -109,6 +109,12 @@ Key endpoints:
 | `/api/admin/coupons` | Bearer | Coupon CRUD |
 | `/api/admin/reviews` | Bearer | Review moderation |
 
+## Advertising & Analytics Tracking
+
+Meta Pixel, Meta Conversions API and GA4 ecommerce, behind a consent banner —
+all disabled until their IDs are set. Setup, environment variables, event map
+and verification steps: **[docs/TRACKING.md](docs/TRACKING.md)**.
+
 ## Admin Panel (React)
 
 ```bash

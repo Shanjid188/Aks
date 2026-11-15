@@ -7,6 +7,11 @@ export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
 
+    // NEXT_PUBLIC_* is accepted alongside VITE_* so the tracking IDs keep the
+    // names used in the deployment docs. Only PUBLIC ids may use these
+    // prefixes — anything with them is compiled into the browser bundle.
+    envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
+
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

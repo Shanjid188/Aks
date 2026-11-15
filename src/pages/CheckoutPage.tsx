@@ -1,5 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  itemFromCartItem,
+  trackAddPaymentInfo,
+  trackAddShippingInfo,
+  trackBeginCheckout,
+} from '../lib/tracking';
 import { useStore } from '../context/StoreContext';
+import { CART_REMINDER_CONSENT_TEXT, syncCheckoutSession, withdrawReminderConsent } from '../lib/checkoutSession';
 import { formatPrice } from '../utils/format';
 import { isFreeDeliveryCoupon } from '../utils/coupons';
 import { maxOrderableQty } from '../utils/stock';
@@ -88,6 +95,40 @@ export function CheckoutPage() {
     checkoutConfig.paymentMethods.find((m) => m.id === paymentMethodId) ?? checkoutConfig.paymentMethods[0];
   const orderTotal = Math.max(0, cartSubtotal - cartDiscount + zoneShipping);
 
+  // Tracking: goods value after the coupon (shipping is reported on Purchase).
+  const checkoutSnapshot = () => ({
+    items: cart.map((item) => itemFromCartItem(item)),
+    value: Math.max(0, cartSubtotal - cartDiscount),
+    coupon: appliedCoupon?.code,
+  });
+  // begin_checkout / InitiateCheckout once per visit to this page (the ref
+  // survives StrictMode's double effect and re-renders).
+  const beganCheckout = useRef(false);
+  useEffect(() => {
+    if (beganCheckout.current || cart.length === 0) return;
+    beganCheckout.current = true;
+    trackBeginCheckout(checkoutSnapshot());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart.length]);
+  // Abandoned-cart analytics: sync the (anonymous) cart while on checkout.
+  // Contact details go along only if the shopper ticks the reminder opt-in.
+  const [remindMe, setRemindMe] = useState(false);
+  const reminderPhone = phone.trim();
+  const reminderContact = remindMe && BD_PHONE_REGEX.test(reminderPhone) ? { phone: reminderPhone, email: email.trim() || undefined } : undefined;
+  const cartKey = cart.map((c) => `${c.product.sku}:${c.quantity}:${c.selectedSize?.size ?? ''}:${c.selectedColor?.name ?? ''}`).join('|');
+  useEffect(() => {
+    if (cart.length === 0) return;
+    const timer = window.setTimeout(() => void syncCheckoutSession(cart, reminderContact), 1200);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartKey, reminderContact?.phone, reminderContact?.email]);
+  const onRemindMeChange = (checked: boolean) => {
+    setRemindMe(checked);
+    if (!checked) void withdrawReminderConsent();
+  };
+  const reportedShipping = useRef('');
+  const reportedPayment = useRef('');
+
   // Empty-cart guard — never allow checkout without items.
   if (cart.length === 0) {
     return (
@@ -139,6 +180,17 @@ export function CheckoutPage() {
       setIsPlacingOrder(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
+    }
+    // The shopper has submitted valid delivery + payment details. Report each
+    // step once per choice, so a retry after an API error does not repeat it.
+    const snapshot = checkoutSnapshot();
+    if (reportedShipping.current !== deliveryMethod) {
+      reportedShipping.current = deliveryMethod;
+      trackAddShippingInfo({ ...snapshot, shippingTier: activeZone.label });
+    }
+    if (reportedPayment.current !== selectedPayment.id) {
+      reportedPayment.current = selectedPayment.id;
+      trackAddPaymentInfo({ ...snapshot, paymentType: selectedPayment.id });
     }
     try {
       const newOrder = await createOrder({
@@ -228,6 +280,24 @@ export function CheckoutPage() {
                   <Mail className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input id="co-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@email.com" className={inputClass} />
                 </div>
+              </div>
+              <div className="sm:col-span-2">
+                {/* Optional, unticked by default — nothing is stored for reminders unless ticked. */}
+                <label htmlFor="co-remind" className="flex items-start gap-2.5 text-xs text-neutral-600 cursor-pointer">
+                  <input
+                    id="co-remind"
+                    type="checkbox"
+                    checked={remindMe}
+                    onChange={(e) => onRemindMeChange(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 accent-[#D8232A] shrink-0"
+                  />
+                  <span>
+                    {CART_REMINDER_CONSENT_TEXT}
+                    {remindMe && !BD_PHONE_REGEX.test(reminderPhone) && (
+                      <span className="block text-[11px] text-neutral-400 mt-0.5">Add your mobile number above to receive the reminder.</span>
+                    )}
+                  </span>
+                </label>
               </div>
               <div className="sm:col-span-2">
                 <label htmlFor="co-street" className={labelClass}>Street Address ঠিকানা</label>

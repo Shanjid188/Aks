@@ -24,6 +24,8 @@ import type { ContentPageData } from '../data/pages';
 import { splitFooterPages } from '../data/pages';
 import type { CategoryType } from '../types';
 import { PAYMENT_BRANDS } from '../data/payments';
+import { openConsentSettings } from '../lib/tracking';
+import { useTrackingConfig } from './TrackingConsent';
 
 /** Accent colour for a live payment-method pill (Admin → Settings). */
 const methodAccent = (label: string) => {
@@ -64,6 +66,7 @@ const FooterColumn: React.FC<{
 };
 
 export const Footer: React.FC = () => {
+  const { any: trackingConfigured } = useTrackingConfig();
   const {
     setIsSizeGuideOpen,
     setFilters,
@@ -350,6 +353,15 @@ export const Footer: React.FC = () => {
                 })
               )}
             </span>
+            {trackingConfigured && (
+              <button
+                type="button"
+                onClick={openConsentSettings}
+                className="underline-offset-2 hover:text-neutral-300 hover:underline cursor-pointer"
+              >
+                · Cookie settings
+              </button>
+            )}
           </div>
 
           {/* Pay with — self-drawn brand badges plus the live methods the

@@ -7,7 +7,7 @@ type ApiOpts = { method?: string; body?: unknown };
  * Reads that must always hit the network: per-visitor data (order tracking) and
  * content that was just written (reviews the customer posted themselves).
  */
-const NEVER_CACHED = [/^\/orders\//, /\/reviews$/];
+const NEVER_CACHED = [/^\/orders\//, /\/reviews$/, /^\/checkout-sessions\//];
 
 async function request<T>(path: string, opts: ApiOpts): Promise<T> {
   const res = await fetch(`${import.meta.env.VITE_API_BASE ?? '/api'}${path}`, {
@@ -139,6 +139,7 @@ export interface ApiOrder {
   subtotal: number;
   discount: number;
   shippingFee: number;
+  tax?: number;
   total: number;
   couponCode: string | null;
   customerName: string;
@@ -415,6 +416,20 @@ export interface ApiCreateOrderBody {
   paymentReference?: string;
   shippingFee: number;
   couponCode?: string;
+  /** First/last non-direct marketing touch (see src/lib/tracking/attribution). Optional. */
+  attribution?: {
+    first?: import('./lib/tracking/attribution').AttributionTouch;
+    last?: import('./lib/tracking/attribution').AttributionTouch;
+  };
+  /** Anonymous checkout-session token (abandoned-cart analytics). Optional. */
+  checkoutSession?: string;
+  /** Tracking consent + Meta browser ids (see src/lib/tracking). Optional. */
+  tracking?: {
+    consent: { analytics: boolean; marketing: boolean };
+    fbp?: string;
+    fbc?: string;
+    eventSourceUrl?: string;
+  };
 }
 
 export const createOrderAPI = (body: ApiCreateOrderBody) =>

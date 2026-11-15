@@ -11,6 +11,17 @@ import { readCache } from '../lib/apiCache';
 import type { CommerceSettings } from '../data/commerce';
 import * as API from '../api';
 import { adaptApiOrder } from '../lib/apiAdapter';
+import { attributionForOrder } from '../lib/tracking/attribution';
+import { currentCheckoutSession, resetCheckoutSession } from '../lib/checkoutSession';
+import {
+  checkoutTrackingContext,
+  itemFromCartItem,
+  itemFromProduct,
+  trackAddToCart,
+  trackPurchase,
+  trackRemoveFromCart,
+  trackViewItem,
+} from '../lib/tracking';
 
 interface ToastMessage {
   id: string;
@@ -362,6 +373,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ];
     });
 
+    // Track only what actually went into the bag (stock caps can trim it).
+    const added = allowed - (existing?.quantity ?? 0);
+    if (added > 0) {
+      const variant = [safeColor.name, safeSize.size].filter((v) => v && v !== 'Default').join(' / ');
+      trackAddToCart(itemFromProduct(product, added, variant || undefined));
+    }
+
     addToast({
       type: 'success',
       title: 'Added to Cart',
@@ -380,6 +398,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const removeFromCart = (cartItemId: string) => {
+    const removed = cart.find((item) => item.cartItemId === cartItemId);
+    if (removed) trackRemoveFromCart(itemFromCartItem(removed));
     setCart((prev) => prev.filter((item) => item.cartItemId !== cartItemId));
     addToast({
       type: 'info',
@@ -392,6 +412,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (quantity <= 0) {
       removeFromCart(cartItemId);
       return;
+    }
+    // Quantity steppers: an increase is an add_to_cart, a decrease a remove_from_cart.
+    const row = cart.find((item) => item.cartItemId === cartItemId);
+    if (row && quantity !== row.quantity) {
+      const delta = quantity - row.quantity;
+      if (delta > 0) trackAddToCart(itemFromCartItem(row, delta));
+      else trackRemoveFromCart(itemFromCartItem(row, -delta));
     }
     setCart((prev) =>
       prev.map((item) => (item.cartItemId === cartItemId ? { ...item, quantity } : item))
@@ -550,6 +577,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setQuickViewProduct(product);
     setIsQuickViewOpen(true);
     addToRecentlyViewed(product);
+    trackViewItem(product);
   };
 
   const closeQuickView = () => {
@@ -603,9 +631,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         paymentReference: orderData.paymentReference,
         shippingFee: orderData.shippingFee,
         couponCode: orderData.couponApplied?.code,
+        // Consent + Meta browser ids so the API can send the matching CAPI Purchase.
+        tracking: checkoutTrackingContext(),
+        attribution: attributionForOrder(),
+        checkoutSession: currentCheckoutSession(),
       };
 
       const { order: apiOrder } = await API.createOrderAPI(body);
+      // Purchase fires here — on the API confirming a persisted order — never on
+      // the confirmation page, and never for the offline fallback order above.
+      trackPurchase(apiOrder, products);
+      resetCheckoutSession();
 
       // Map the API response into the frontend Order shape used by the receipt/tracker.
       const mappedOrder: Order = {

@@ -2,6 +2,7 @@
 import { api } from '../api';
 import { EmptyState, PageHeader, Spinner } from '../components/ui';
 import { RefreshCw, BarChart3, TrendingUp, Wallet, ShoppingBag } from 'lucide-react';
+import { ProductsReport } from './reports/ProductsReport';
 
 const bdt = (n: number) => `BDT ${Math.round(n).toLocaleString('en-IN')}`;
 
@@ -14,13 +15,37 @@ interface ReportData {
   totalRefunds: number;
   netRevenue: number;
   profit: number | null;
+  /** null when the admin may not see ad spend */
+  adSpend?: { spendBdt: number; rows: number; unconvertedRows: number; unconverted: { currency: string; amount: number; rows: number }[] } | null;
   paymentMethod: Record<string, { count: number; revenue: number }>;
   source: Record<string, { count: number; revenue: number }>;
   orderStatus: Record<string, number>;
   topProducts: { name: string; qty: number; revenue: number }[];
 }
 
+function ReportTabs({ tab, onChange }: { tab: 'overview' | 'products'; onChange: (t: 'overview' | 'products') => void }) {
+  return (
+    <div className="flex gap-1 border-b border-neutral-200">
+      {([['overview', 'Overview'], ['products', 'Products']] as const).map(([id, label]) => (
+        <button
+          key={id}
+          onClick={() => onChange(id)}
+          className={`px-4 py-2 text-xs font-black -mb-px border-b-2 cursor-pointer ${tab === id ? 'border-[#D8232A] text-neutral-900' : 'border-transparent text-neutral-400 hover:text-neutral-700'}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function ReportsPage() {
+  const [tab, setTab] = useState<'overview' | 'products'>('overview');
+  if (tab === 'products') return <ProductsReport tabs={<ReportTabs tab={tab} onChange={setTab} />} />;
+  return <OverviewReport tabs={<ReportTabs tab={tab} onChange={setTab} />} />;
+}
+
+function OverviewReport({ tabs }: { tabs: React.ReactNode }) {
   const [range, setRange] = useState('7d');
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,6 +77,7 @@ export function ReportsPage() {
           </>
         }
       />
+      {tabs}
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
       {loading ? <Spinner /> : !data ? (
         <EmptyState icon={<BarChart3 className="w-6 h-6" />} title="No report data" hint="Select a range and try again." />
@@ -63,6 +89,21 @@ export function ReportsPage() {
             <div className="bg-white rounded-2xl border border-neutral-200 p-4"><p className="text-[10px] font-bold uppercase text-neutral-400">Orders</p><p className="text-xl font-black text-neutral-900 mt-1">{data.ordersCount}</p></div>
             <div className="bg-white rounded-2xl border border-neutral-200 p-4"><p className="text-[10px] font-bold uppercase text-neutral-400">Expenses</p><p className="text-xl font-black text-rose-600 mt-1">{bdt(data.totalExpenses)}</p></div>
           </div>
+          {data.adSpend && (
+            <div className="bg-white rounded-2xl border border-neutral-200 p-4 flex flex-wrap items-baseline justify-between gap-2">
+              <div>
+                <p className="text-[10px] font-bold uppercase text-neutral-400">Ad spend</p>
+                <p className="text-xl font-black text-rose-600 mt-1">{bdt(data.adSpend.spendBdt)}</p>
+              </div>
+              <p className="text-[11px] text-neutral-500">
+                {data.adSpend.rows === 0
+                  ? 'No ad spend recorded for this range (Advertising → Ad Spend).'
+                  : data.adSpend.unconvertedRows > 0
+                    ? `Excludes ${data.adSpend.unconverted.map((u) => `${u.currency} ${u.amount.toLocaleString('en-IN')}`).join(', ')} — add exchange rates in Advertising → Ad Spend.`
+                    : 'Imported and manual ad spend, converted with your exchange rates.'}
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
             <section className="bg-white rounded-2xl border border-neutral-200">
