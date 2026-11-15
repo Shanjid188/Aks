@@ -171,6 +171,8 @@ const REPORTS = {
   sourceMedium: { dimensions: ['sessionSourceMedium'], metrics: ['sessions', 'ecommercePurchases', 'purchaseRevenue'], orderByMetric: 'sessions', limit: 20 },
   landingPages: { dimensions: ['landingPage'], metrics: ['sessions', 'engagedSessions', 'ecommercePurchases'], orderByMetric: 'sessions', limit: 20 },
   devices: { dimensions: ['deviceCategory'], metrics: ['sessions', 'ecommercePurchases'], orderByMetric: 'sessions', limit: 10 },
+  // Per-item funnel; storefront tracking sends the product SKU as item_id.
+  items: { dimensions: ['itemId'], metrics: ['itemsViewed', 'itemsAddedToCart', 'itemsPurchased'], orderByMetric: 'itemsViewed', limit: 2000 },
 } satisfies Record<string, ReportRequest>;
 
 export type TrafficReportName = keyof typeof REPORTS;
@@ -253,6 +255,25 @@ export async function trafficReport(start: string, end: string, today: string, r
     landingPages: r.landingPages.rows.map((x) => ({ page: x.dims[0], sessions: x.values[0], engagedSessions: x.values[1], purchases: x.values[2] })),
     devices: r.devices.rows.map((x) => ({ device: x.dims[0], sessions: x.values[0], purchases: x.values[1] })),
   };
+}
+
+export interface ItemFunnelReport {
+  range: { start: string; end: string };
+  fetchedAt: string;
+  /** Keyed by GA4 item_id (= product SKU). */
+  items: Map<string, { viewed: number; addedToCart: number; purchased: number }>;
+}
+
+/** GA4 per-item views / add-to-carts / purchases for store-local days start..end. */
+export async function itemFunnelReport(start: string, end: string, today: string, refresh = false): Promise<ItemFunnelReport> {
+  const { data, fetchedAt } = await cachedReport('items', start, end, today, refresh);
+  const items = new Map<string, { viewed: number; addedToCart: number; purchased: number }>();
+  for (const r of data.rows) {
+    const id = r.dims[0];
+    if (!id || id === '(not set)') continue;
+    items.set(id, { viewed: r.values[0], addedToCart: r.values[1], purchased: r.values[2] });
+  }
+  return { range: { start, end }, fetchedAt: fetchedAt.toISOString(), items };
 }
 
 /** Smallest possible request, for "Test connection". */

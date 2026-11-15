@@ -14,6 +14,7 @@ export const CHANNEL_LABELS: Record<string, string> = {
   affiliate: 'Affiliate',
   other: 'Other',
   direct: 'Direct / unknown',
+  pos: 'POS (in store)',
 };
 
 export const channelLabel = (c: string | null | undefined) => (c ? CHANNEL_LABELS[c] ?? c : '—');

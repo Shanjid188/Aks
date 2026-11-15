@@ -4,6 +4,10 @@ import { asyncHandler, hasPermission, requirePermission } from '../lib/auth.ts';
 import { spendTotals } from '../lib/adSpend.ts';
 import { PERM } from '../lib/permissions.ts';
 import { parseBasis, parseSource, refundsByOrder, netOrderValue, revenueOrderWhere } from '../lib/revenue.ts';
+import { isoDay, storeDay } from '../lib/adSpend.ts';
+import { parseModel } from '../lib/performance.ts';
+import { productPerformance, productTrend } from '../lib/productPerformance.ts';
+import { Ga4Error, ga4DataStatus, itemFunnelReport } from '../lib/ga4Data.ts';
 
 const router = Router();
 
@@ -180,6 +184,90 @@ router.get(
       totalProfit: costedRevenue === 0 ? null : costedRevenue - totalCost,
       costCoverage: totalRevenue === 0 ? null : costedRevenue / totalRevenue,
     });
+  })
+);
+
+/** Shared window parsing for the Products tab: ISO from/to, default last 30 days, max 2 years. */
+function productWindow(q: Record<string, string | undefined>): { from: Date; to: Date } | { error: string } {
+  const to = parseDate(q.to) ?? new Date();
+  const from = parseDate(q.from) ?? new Date(to.getTime() - 30 * 86_400_000);
+  if (from > to) return { error: 'The start date is after the end date' };
+  if (to.getTime() - from.getTime() > 731 * 86_400_000) return { error: 'Choose a range of at most 2 years' };
+  return { from, to };
+}
+
+/**
+ * Admin: Reports → Products. Units, revenue, refunds, net revenue, profit and
+ * margin (where cost is known), return rate — plus, for admins who may see
+ * them, net revenue by marketing channel and the GA4 item funnel.
+ * GET /api/admin/reports/products?from&to&basis=booked|delivered&source=all|online|pos&model=last|first&refresh=1
+ */
+router.get(
+  '/admin/reports/products',
+  requirePermission(PERM.REPORTS_VIEW),
+  asyncHandler(async (req, res) => {
+    const q = req.query as Record<string, string | undefined>;
+    const w = productWindow(q);
+    if ('error' in w) return res.status(400).json({ error: w.error });
+    const filter = { ...w, basis: parseBasis(q.basis), source: parseSource(q.source), model: parseModel(q.model) };
+    const [canChannels, canTraffic] = await Promise.all([
+      hasPermission(req, PERM.ADVERTISING_CAMPAIGNS_VIEW),
+      hasPermission(req, PERM.ADVERTISING_TRAFFIC_VIEW),
+    ]);
+    const report = await productPerformance(filter, { includeChannels: canChannels });
+
+    // GA4 item funnel (consented shoppers only), joined on SKU = GA4 item_id.
+    let ga4: { connected: boolean; fetchedAt?: string; error?: string; unmatchedItems?: number } | null = null;
+    if (canTraffic) {
+      if (!ga4DataStatus().connected) ga4 = { connected: false };
+      else {
+        try {
+          const today = isoDay(storeDay(new Date()));
+          const funnel = await itemFunnelReport(isoDay(storeDay(w.from)), isoDay(storeDay(w.to)), today, q.refresh === '1');
+          const seen = new Set<string>();
+          for (const r of report.rows) {
+            const f = funnel.items.get(r.sku);
+            if (!f) continue;
+            seen.add(r.sku);
+            Object.assign(r, {
+              ga4: {
+                viewed: f.viewed,
+                addedToCart: f.addedToCart,
+                purchased: f.purchased,
+                addToCartRate: f.viewed ? f.addedToCart / f.viewed : null,
+                viewToPurchaseRate: f.viewed ? f.purchased / f.viewed : null,
+              },
+            });
+          }
+          ga4 = { connected: true, fetchedAt: funnel.fetchedAt, unmatchedItems: [...funnel.items.keys()].filter((k) => !seen.has(k)).length };
+        } catch (err) {
+          if (!(err instanceof Ga4Error)) throw err;
+          ga4 = { connected: true, error: err.message };
+        }
+      }
+    }
+
+    res.json({
+      filter: { from: w.from, to: w.to, basis: filter.basis, source: filter.source, model: filter.model },
+      ...report,
+      channelsIncluded: canChannels,
+      ga4,
+    });
+  })
+);
+
+/** Admin: one product's daily units and net revenue. GET /api/admin/reports/products/:productId/trend?from&to&basis&source */
+router.get(
+  '/admin/reports/products/:productId/trend',
+  requirePermission(PERM.REPORTS_VIEW),
+  asyncHandler(async (req, res) => {
+    const q = req.query as Record<string, string | undefined>;
+    const w = productWindow(q);
+    if ('error' in w) return res.status(400).json({ error: w.error });
+    const product = await prisma.product.findUnique({ where: { id: String(req.params.productId) }, select: { id: true, name: true, sku: true } });
+    if (!product) return res.status(404).json({ error: 'Product not found' });
+    const daily = await productTrend(product.id, { ...w, basis: parseBasis(q.basis), source: parseSource(q.source) });
+    res.json({ product, daily });
   })
 );
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, RefreshCw, TrendingUp } from 'lucide-react';
 import { api } from '../../api';
 import { EmptyState, PageHeader, Spinner } from '../../components/ui';
-import { BarList, DateRangePicker, StatTile, TrendChart, bdt, fmtMoney, fmtPct, fmtRatio, presetRange, rangeQuery, type DateRange } from '../../components/charts';
+import { BarList, DateRangePicker, Segmented as Toggle, StatTile, TrendChart, bdt, fmtMoney, fmtPct, fmtRatio, presetRange, rangeQuery, type DateRange } from '../../components/charts';
 import { channelLabel } from '../../components/marketing';
 
 interface Metrics {
@@ -29,22 +29,6 @@ interface Report {
 
 type Basis = 'booked' | 'delivered';
 type Model = 'last' | 'first';
-
-function Toggle<T extends string>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
-  return (
-    <div className="inline-flex rounded-lg border border-neutral-200 bg-white p-0.5">
-      {options.map(([k, label]) => (
-        <button
-          key={k}
-          onClick={() => onChange(k)}
-          className={`text-[11px] font-bold px-2.5 py-1.5 rounded-md cursor-pointer ${value === k ? 'bg-neutral-900 text-white' : 'text-neutral-500 hover:text-neutral-900'}`}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 const roasTone = (v: number | null) => (v === null ? 'muted' : v >= 1 ? 'good' : 'bad');
 

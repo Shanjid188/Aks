@@ -2,6 +2,7 @@
 import { api } from '../api';
 import { EmptyState, PageHeader, Spinner } from '../components/ui';
 import { RefreshCw, BarChart3, TrendingUp, Wallet, ShoppingBag } from 'lucide-react';
+import { ProductsReport } from './reports/ProductsReport';
 
 const bdt = (n: number) => `BDT ${Math.round(n).toLocaleString('en-IN')}`;
 
@@ -22,7 +23,29 @@ interface ReportData {
   topProducts: { name: string; qty: number; revenue: number }[];
 }
 
+function ReportTabs({ tab, onChange }: { tab: 'overview' | 'products'; onChange: (t: 'overview' | 'products') => void }) {
+  return (
+    <div className="flex gap-1 border-b border-neutral-200">
+      {([['overview', 'Overview'], ['products', 'Products']] as const).map(([id, label]) => (
+        <button
+          key={id}
+          onClick={() => onChange(id)}
+          className={`px-4 py-2 text-xs font-black -mb-px border-b-2 cursor-pointer ${tab === id ? 'border-[#D8232A] text-neutral-900' : 'border-transparent text-neutral-400 hover:text-neutral-700'}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function ReportsPage() {
+  const [tab, setTab] = useState<'overview' | 'products'>('overview');
+  if (tab === 'products') return <ProductsReport tabs={<ReportTabs tab={tab} onChange={setTab} />} />;
+  return <OverviewReport tabs={<ReportTabs tab={tab} onChange={setTab} />} />;
+}
+
+function OverviewReport({ tabs }: { tabs: React.ReactNode }) {
   const [range, setRange] = useState('7d');
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +77,7 @@ export function ReportsPage() {
           </>
         }
       />
+      {tabs}
       {error && <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
       {loading ? <Spinner /> : !data ? (
         <EmptyState icon={<BarChart3 className="w-6 h-6" />} title="No report data" hint="Select a range and try again." />

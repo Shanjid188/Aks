@@ -330,3 +330,16 @@ The key is stored encrypted; the env vars `GA4_PROPERTY_ID` and `GA4_SERVICE_ACC
 - If GA4 is unreachable or refuses access, the page shows that error. It never shows estimated numbers.
 
 GA4 counts only visitors who accepted analytics cookies, and it reports gross purchases. Revenue and ROAS therefore come from your own orders (Performance, Reports), not from GA4.
+
+## Product performance (Reports → Products)
+
+Admin → Reports → **Products** extends the existing Reports page (no separate report). `GET /api/admin/reports/products?from&to&basis&source&model` returns, per product:
+
+- **Units sold, product revenue** (price × qty on counted orders — before order discount, shipping and tax), **refunds**, **net revenue**. Counted orders follow `lib/revenue.ts` (booked by default, delivered on request; all sources by default).
+- **Refund allocation:** a refund tied to a return request goes to that return's product; any other refund is split over the order's lines by item value.
+- **Profit and margin** from each sale's cost snapshot (`OrderItem.unitCost`), else the product's cost price. A product with any unknown cost shows "No cost price", never 0.
+- **Return rate** = returned ÷ ordered units over all placed (non-cancelled) orders: orders with status returned/refunded count all their units; other orders count approved/received/refunded return requests.
+- **Net revenue by channel** (needs `advertising.campaigns_view`): last non-direct touch by default; POS sales appear as their own "POS" bucket.
+- **GA4 item funnel** (needs `advertising.traffic_view` and a connected GA4): views, add-to-cart rate and view-to-purchase rate, matched on SKU (the storefront sends the SKU as `item_id`), cached like the Traffic reports and labelled as consented shoppers only.
+
+Click a product for its daily trend (`/api/admin/reports/products/:productId/trend`). Admins with `reports.export` can download the table as CSV.

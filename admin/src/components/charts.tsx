@@ -288,3 +288,20 @@ export function DateRangePicker({ value, onChange }: { value: DateRange; onChang
     </div>
   );
 }
+
+/** Segmented toggle (light background), e.g. booked/delivered or last/first touch. */
+export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
+  return (
+    <div className="inline-flex rounded-lg border border-neutral-200 bg-white p-0.5">
+      {options.map(([k, label]) => (
+        <button
+          key={k}
+          onClick={() => onChange(k)}
+          className={`text-[11px] font-bold px-2.5 py-1.5 rounded-md cursor-pointer ${value === k ? 'bg-neutral-900 text-white' : 'text-neutral-500 hover:text-neutral-900'}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
