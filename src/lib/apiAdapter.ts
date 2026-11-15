@@ -77,5 +77,8 @@ export const adaptApiOrder = (o: ApiOrder): Order => {
     deliveryStatus: o.deliveryStatus ?? undefined,
     packagingStatus: o.packagingStatus ?? undefined,
     internalNotes: o.internalNotes ?? null,
+    courierProvider: o.courierProvider ?? null,
+    courierTrackingCode: o.courierTrackingCode ?? null,
+    courierTrackingLink: o.courierTrackingLink ?? null,
   };
 };

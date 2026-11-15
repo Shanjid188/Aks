@@ -9,7 +9,7 @@ import { Badge, Button, PasswordInput, TextArea } from './ui';
 export interface SecretStatus {
   key: string;
   label: string;
-  group: 'tracking' | 'integrations';
+  group: 'tracking' | 'integrations' | 'courier';
   source: 'env' | 'admin' | null;
   undecryptable: boolean;
   last4: string | null;

@@ -220,6 +220,17 @@ model Order {
   dispatchedAt      DateTime?
   receivedAt        DateTime?
   heldAt            DateTime? // POS hold/resume
+  // Courier booking (server/src/lib/courier). Set when the Shipped page's
+  // গাড়ি button books the parcel with the configured courier.
+  courierProvider      String? // steadfast
+  courierConsignmentId String? // courier's consignment id
+  courierTrackingCode  String? // courier's own tracking code (not our AKS-BD code)
+  courierTrackingLink  String? // public tracking page returned by the courier
+  courierStatus        String? // courier's raw status, or booking | failed | unconfirmed while not booked
+  courierCodAmount     Float? // amount the courier was told to collect (snapshot at booking)
+  courierBookedAt      DateTime?
+  courierSyncedAt      DateTime? // last status update from webhook / sync
+  courierError         String? // last booking/sync error (admin-only, never public)
   items             OrderItem[]
   payments          Payment[]
   returnRequests    ReturnRequest[]
@@ -233,6 +244,7 @@ model Order {
   @@index([source])
   @@index([paymentStatus])
   @@index([createdAt])
+  @@index([courierConsignmentId])
 }
 
 /**

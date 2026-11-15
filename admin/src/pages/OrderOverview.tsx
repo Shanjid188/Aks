@@ -6,6 +6,7 @@ import { adminImageUrl } from '../lib/imageUrl';
 import {
   Package, Clock, PackageCheck, Boxes, Truck, CheckCircle2, XCircle, ShoppingBag, Activity, Undo2, Banknote,
 } from 'lucide-react';
+import { CourierInfo } from '../components/courier';
 
 interface LogEntry { id: string; adminName: string | null; adminEmail: string | null; action: string; details: string; createdAt: string }
 
@@ -166,6 +167,7 @@ export function OrderOverviewPage() {
               <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
                 <p className="text-[10px] font-bold uppercase text-neutral-400">Tracking</p>
                 <p className="font-mono text-sm font-bold text-neutral-900 mt-0.5">{detail.trackingCode}</p>
+                <CourierInfo order={detail} />
               </div>
               <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
                 <p className="text-[10px] font-bold uppercase text-neutral-400">Delivery</p>

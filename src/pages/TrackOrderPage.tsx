@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { formatPrice } from '../utils/format';
 import type { Order } from '../types';
-import { Package, Search, Loader2, X, Undo2 } from 'lucide-react';
+import { Package, Search, Loader2, X, Undo2, ExternalLink } from 'lucide-react';
 import { useSiteContent } from '../context/SiteContentContext';
 import { useLocalized, fillTokens } from '../components/Localized';
 import { orderStatusLabel } from '../data/siteContent';
@@ -140,6 +140,26 @@ function OrderResult({ order, onClose }: { order: Order; onClose: () => void }) 
           </p>
           <p className="text-sm font-black text-[#D8232A]">{order.trackingCode}</p>
         </div>
+        {order.courierTrackingCode && (
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">
+              {t('Courier', 'কুরিয়ার')}
+              {order.courierProvider === 'steadfast' ? ' · Steadfast' : ''}
+            </p>
+            {order.courierTrackingLink ? (
+              <a
+                href={order.courierTrackingLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm font-black text-neutral-900 underline decoration-neutral-300 hover:decoration-[#D8232A] break-all"
+              >
+                {order.courierTrackingCode} <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+              </a>
+            ) : (
+              <p className="text-sm font-black text-neutral-900 break-all">{order.courierTrackingCode}</p>
+            )}
+          </div>
+        )}
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-400">
             {t(content.orderStatusLabel, content.orderStatusLabelBn)}

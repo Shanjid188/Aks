@@ -3,14 +3,15 @@ import { api } from '../api';
 import { Button, Field, Spinner, TextArea, TextInput, Toggle, PageHeader } from '../components/ui';
 import { Save, RefreshCw, Settings as SettingsIcon, Plus } from 'lucide-react';
 import type { ShippingZoneSetting, StoreSettings } from '../types';
+import { CourierSettingsSection } from '../components/courier';
 
 const num = (v: unknown) => (v === undefined || v === null || v === '' ? '' : String(v));
 
 /** Same delivery zones the API falls back to when nothing is configured. */
 const DEFAULT_ZONES: ShippingZoneSetting[] = [
-  { id: 'inside_dhaka', label: 'Inside Dhaka', labelBn: 'ঢাকার ভিতরে', fee: 120 },
-  { id: 'sub_dhaka', label: 'Sub-Dhaka Area', labelBn: 'ঢাকার আশপাশে', fee: 150 },
-  { id: 'outside_dhaka', label: 'Outside Dhaka', labelBn: 'ঢাকার বাইরে', fee: 200 },
+  { id: 'inside_dhaka', label: 'Inside Dhaka', labelBn: 'ঢাকার ভিতরে', fee: 70 },
+  { id: 'sub_dhaka', label: 'Sub-Dhaka Area', labelBn: 'ঢাকার আশপাশে', fee: 110 },
+  { id: 'outside_dhaka', label: 'Outside Dhaka', labelBn: 'ঢাকার বাইরে', fee: 130 },
 ];
 
 export function SettingsPage() {
@@ -249,6 +250,9 @@ export function SettingsPage() {
               <Field label="Thank-you message"><TextInput value={settings.thankYouMessage || ''} onChange={(e) => set('thankYouMessage', e.target.value)} /></Field>
             </div>
           </section>
+
+          {/* Saved on its own (toggle / secrets), not by "Save Settings". */}
+          <CourierSettingsSection />
         </div>
       )}
     </div>

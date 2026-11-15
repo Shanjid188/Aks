@@ -10,7 +10,7 @@ import { prisma } from './prisma.ts';
 export interface SecretDef {
   key: string;
   label: string;
-  group: 'tracking' | 'integrations';
+  group: 'tracking' | 'integrations' | 'courier';
   /** Maximum accepted length (service-account JSON is large). */
   maxLength: number;
   /** Returns an error message when the value is malformed. */
@@ -49,6 +49,16 @@ export const SECRET_DEFS: SecretDef[] = [
     maxLength: 8192,
     validate: validateServiceAccountJson,
     hint: false,
+  },
+  // Courier booking (Admin → Settings → Courier). Steadfast merchant panel → API.
+  { key: 'STEADFAST_API_KEY', label: 'Steadfast API key', group: 'courier', maxLength: 256 },
+  { key: 'STEADFAST_SECRET_KEY', label: 'Steadfast secret key', group: 'courier', maxLength: 256 },
+  {
+    key: 'STEADFAST_WEBHOOK_TOKEN',
+    label: 'Steadfast webhook auth token',
+    group: 'courier',
+    maxLength: 256,
+    validate: (v) => (v.length < 16 ? 'Use at least 16 characters for the webhook token' : null),
   },
 ];
 

@@ -228,6 +228,10 @@ export interface Order {
   deliveryStatus?: string;
   packagingStatus?: string;
   internalNotes?: string | null;
+  /** Courier booking (set once the shop books the parcel, e.g. with Steadfast). */
+  courierProvider?: string | null;
+  courierTrackingCode?: string | null;
+  courierTrackingLink?: string | null;
 }
 
 export type CurrencyMode = 'BDT' | 'USD';

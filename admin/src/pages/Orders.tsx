@@ -19,6 +19,7 @@ import { Package, Search, Plus, Minus, Trash2, Loader2, ClipboardList, PackageCh
 import { ManageOrder } from './ManageOrder';
 import { directPrintPosReceiptById, openPosReceiptById, PrintAgentUnavailableError } from '../lib/posReceipt';
 import { adminImageUrl } from '../lib/imageUrl';
+import { CourierInfo } from '../components/courier';
 
 const bdt = (n: number) => `BDT ${n.toLocaleString('en-IN')}`;
 const addr = (o: Order, key: string) => (o.customerAddress as Record<string, string>)?.[key] || '';
@@ -572,6 +573,7 @@ return (
               <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
                 <p className="text-[10px] font-bold uppercase text-neutral-400">Tracking</p>
                 <p className="font-mono text-sm font-bold text-neutral-900 mt-0.5">{detail.trackingCode}</p>
+                <CourierInfo order={detail} />
               </div>
               <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
                 <p className="text-[10px] font-bold uppercase text-neutral-400">Delivery</p>
